@@ -608,6 +608,90 @@ const PREFILL = {
   r20:{setup:1,ptz:0,stream:0,parsec:0,tested:0}, // Elicium 2 🛠️
 };
 
+// ═══════════════════════════════
+// SCHEDULE DATA
+// ═══════════════════════════════
+const DAYS = [
+  { key:'sun', label:'Sun 22' },
+  { key:'mon', label:'Mon 23' },
+  { key:'tue', label:'Tue 24' },
+  { key:'wed', label:'Wed 25' },
+  { key:'thu', label:'Thu 26' },
+];
+
+// Schedule per crew id → room id → day → sessions
+const SCHEDULE = {
+  alex: {
+    'r1': { // E103-105
+      sun: [
+        { time:'10:05', end:'10:40', name:'Ask the Experts: Kubernetes Steering Committee', badge:'rw' },
+        { time:'10:50', end:'11:25', name:"It's 2030. What Does Prow Look Like?", badge:'rw' },
+        { time:'11:35', end:'12:10', name:'Building Bridges: OTel End User SIG', badge:'rw' },
+        { time:'13:40', end:'14:20', name:'Unconference Session #1', badge:'rw' },
+        { time:'14:25', end:'15:00', name:'Cluster Autoscaler Evolution', badge:'rw' },
+        { time:'15:10', end:'15:45', name:"Metal3.io's Path To CNCF Incubation", badge:'rw' },
+        { time:'16:05', end:'16:40', name:"The Practices That Made Me Go 'Wow'", badge:'rw' },
+      ],
+      mon: [{ time:'All day', end:'', name:'Co-Lo 9 — Observability Day Track 1', badge:'rw' }],
+      tue: [{ time:'All day', end:'', name:'Breakout 10', badge:'rw' }],
+      wed: [{ time:'All day', end:'', name:'Breakout 10', badge:'rw' }],
+      thu: [{ time:'All day', end:'', name:'Breakout 10', badge:'rw' }],
+    },
+    'r2': { // E106-108
+      sun: [
+        { time:'10:05', end:'10:40', name:'Running the Runners: How CNCF Powers GitHub Actions at Scale', badge:'rw' },
+        { time:'10:50', end:'12:10', name:'TAG Workshop', badge:'rw' },
+        { time:'13:40', end:'14:20', name:'Unconference Session #2', badge:'rw' },
+        { time:'14:25', end:'15:00', name:'Unconference Session #3', badge:'rw' },
+        { time:'15:10', end:'15:45', name:'Unconference Session #4', badge:'rw' },
+        { time:'16:05', end:'16:40', name:'Unconference Session #5', badge:'rw' },
+      ],
+      mon: [{ time:'All day', end:'', name:'Co-Lo 10 — WasmCon AM + KyvernoCon PM', badge:'rw' }],
+      tue: [{ time:'All day', end:'', name:'Breakout 11', badge:'rw' }],
+      wed: [{ time:'All day', end:'', name:'Breakout 11', badge:'rw' }],
+      thu: [{ time:'All day', end:'', name:'Breakout 11', badge:'rw' }],
+    },
+    'r3': { // Auditorium
+      sun: [],
+      mon: [{ time:'All day', end:'', name:'Co-Lo 11 — ArgoCon Track 1 24hr', badge:'rw' }],
+      tue: [{ time:'All day', end:'', name:'Breakout 12', badge:'rw' }],
+      wed: [{ time:'All day', end:'', name:'Breakout 12 + Lightning Talks 16:45–18:00', badge:'rw' }],
+      thu: [{ time:'All day', end:'', name:'Breakout 12', badge:'rw' }],
+    },
+  },
+  clayton: {
+    'r4': { sun:[], mon:[{time:'All day',end:'',name:'Co-Lo 1 — KeycloakCon + Agentics Day',badge:'rw'}], tue:[{time:'All day',end:'',name:'Breakout 1',badge:'rw'}], wed:[{time:'All day',end:'',name:'Breakout 1',badge:'rw'}], thu:[{time:'All day',end:'',name:'Breakout 1',badge:'rw'}] },
+    'r5': { sun:[], mon:[{time:'All day',end:'',name:'Co-Lo 2 — Cloud Native AI + KubeFlow Day (Tk 1)',badge:'rw'}], tue:[{time:'All day',end:'',name:'Breakout 2',badge:'rw'}], wed:[{time:'All day',end:'',name:'Breakout 2',badge:'rw'}], thu:[{time:'All day',end:'',name:'Breakout 2',badge:'rw'}] },
+    'r6': { sun:[], mon:[{time:'All day',end:'',name:'Co-Lo 3 — Cloud Native AI + KubeFlow Day (Tk 2)',badge:'rw'}], tue:[{time:'All day',end:'',name:'Breakout 3',badge:'rw'}], wed:[{time:'All day',end:'',name:'Breakout 3',badge:'rw'}], thu:[{time:'All day',end:'',name:'Breakout 3',badge:'rw'}] },
+  },
+  will: {
+    'r7': { sun:[], mon:[{time:'All day',end:'',name:'Co-Lo 4 — Open Source SecurityCon 24hr',badge:'rw'}], tue:[{time:'All day',end:'',name:'Breakout 4 + Keynote Overflow',badge:'rw'}], wed:[{time:'All day',end:'',name:'Breakout 4 + Keynote Overflow',badge:'rw'}], thu:[{time:'All day',end:'',name:'Breakout 4 + Keynote Overflow',badge:'rw'}] },
+    'r8': { sun:[], mon:[{time:'All day',end:'',name:'Co-Lo 5 — BackstageCon',badge:'rw'}], tue:[{time:'All day',end:'',name:'Breakout 5 + Keynote Overflow',badge:'rw'}], wed:[{time:'All day',end:'',name:'Breakout 5 + Keynote Overflow',badge:'rw'}], thu:[{time:'All day',end:'',name:'Breakout 5 + Keynote Overflow',badge:'rw'}] },
+    'r9': { sun:[], mon:[{time:'All day',end:'',name:'Co-Lo 6 — Platform Engineering Day (Tk 1)',badge:'rw'}], tue:[{time:'All day',end:'',name:'Breakout 6 + Keynote Overflow',badge:'rw'}], wed:[{time:'All day',end:'',name:'Breakout 6 + Keynote Overflow',badge:'rw'}], thu:[{time:'All day',end:'',name:'Breakout 6 + Keynote Overflow',badge:'rw'}] },
+  },
+  costmo: {
+    'r10': { sun:[], mon:[{time:'All day',end:'',name:'Co-Lo 7 — Platform Engineering Day (Tk 2)',badge:'rw'}], tue:[{time:'All day',end:'',name:'Breakout 7 + Keynote Overflow',badge:'rw'}], wed:[{time:'All day',end:'',name:'Breakout 7 + Keynote Overflow',badge:'rw'}], thu:[{time:'All day',end:'',name:'Breakout 7 + Keynote Overflow',badge:'rw'}] },
+    'r11': { sun:[], mon:[{time:'All day',end:'',name:'Keynote Rehearsals',badge:'r'}], tue:[{time:'All day',end:'',name:'Keynotes + Breakout 8',badge:'rw'}], wed:[{time:'All day',end:'',name:'Keynotes + Breakout 8',badge:'rw'}], thu:[{time:'All day',end:'',name:'Keynotes + Breakout 8',badge:'rw'}] },
+    'r12': { sun:[{time:'All day',end:'',name:'Maintainer Summit — Keynote + Breakout 1',badge:'rw'}], mon:[{time:'All day',end:'',name:'Co-Lo 8 — Observability Day (Tk 2)',badge:'rw'}], tue:[{time:'All day',end:'',name:'Breakout 9',badge:'rw'}], wed:[{time:'All day',end:'',name:'Breakout 9',badge:'rw'}], thu:[{time:'All day',end:'',name:'Breakout 9',badge:'rw'}] },
+  },
+  johnick: {
+    'r14': { sun:[], mon:[{time:'All day',end:'',name:'Co-Lo 12 — Kubernetes on Edge Day AM + OpenTofu Day PM',badge:'rw'}], tue:[{time:'All day',end:'',name:'(empty)',badge:'r'}], wed:[{time:'All day',end:'',name:'Gov Board Strategy Session',badge:'w'}], thu:[] },
+    'r15': { sun:[], mon:[{time:'All day',end:'',name:'Co-Lo 13 — ArgoCon (Tk 2) 24hr',badge:'rw'}], tue:[{time:'All day',end:'',name:'Breakout 13',badge:'rw'}], wed:[{time:'All day',end:'',name:'Breakout 13',badge:'rw'}], thu:[{time:'All day',end:'',name:'Breakout 13',badge:'rw'}] },
+    'r21': { sun:[], mon:[{time:'All day',end:'',name:'Co-Lo 14 — Cloud Native Telco Day',badge:'rw'}], tue:[{time:'All day',end:'',name:'Community Hub',badge:'w'}], wed:[{time:'All day',end:'',name:'Community Hub',badge:'w'}], thu:[{time:'All day',end:'',name:'Community Hub',badge:'w'}] },
+  },
+  brent: {
+    'r16': { sun:[], mon:[{time:'All day',end:'',name:'Co-Lo 15 — Open Sovereign Cloud Day',badge:'rw'}], tue:[{time:'All day',end:'',name:'Breakout 14',badge:'rw'}], wed:[{time:'All day',end:'',name:'Breakout 14',badge:'rw'}], thu:[{time:'All day',end:'',name:'Breakout 14',badge:'rw'}] },
+    'r17': { sun:[], mon:[], tue:[{time:'All day',end:'',name:'Breakout 17',badge:'rw'}], wed:[{time:'All day',end:'',name:'Breakout 17',badge:'rw'}], thu:[{time:'All day',end:'',name:'Breakout 17',badge:'rw'}] },
+    'r18': { sun:[], mon:[], tue:[{time:'All day',end:'',name:'CN Theater — Noise Filter',badge:'rw'}], wed:[{time:'All day',end:'',name:'CN Theater — Noise Filter',badge:'rw'}], thu:[{time:'All day',end:'',name:'CN Theater — Noise Filter',badge:'rw'}] },
+  },
+  lynda: {
+    'r19': { sun:[], mon:[{time:'All day',end:'',name:'Co-Lo 16 — FluxCon AM + CiliumCon PM 24hr',badge:'rw'}], tue:[{time:'All day',end:'',name:'Breakout 15 + Keynote Overflow',badge:'rw'}], wed:[{time:'All day',end:'',name:'Breakout 15 + Keynote Overflow',badge:'rw'}], thu:[{time:'All day',end:'',name:'Breakout 15 + Keynote Overflow',badge:'rw'}] },
+    'r20': { sun:[], mon:[{time:'All day',end:'',name:'Project Lightning Talks',badge:'rw'}], tue:[{time:'All day',end:'',name:'Breakout 16 + Keynote Overflow',badge:'rw'}], wed:[{time:'All day',end:'',name:'Breakout 16 + Keynote Overflow',badge:'rw'}], thu:[{time:'All day',end:'',name:'Breakout 16 + Keynote Overflow',badge:'rw'}] },
+  },
+};
+
+
+
 let config = JSON.parse(localStorage.getItem('kc_config')||'null') || DEFAULT_CONFIG;
 let state  = JSON.parse(localStorage.getItem('kc_state') ||'{}');
 let filter = null;
@@ -889,88 +973,6 @@ render();
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('sw.js').catch(() => {});
 }
-
-// ═══════════════════════════════
-// SCHEDULE DATA
-// ═══════════════════════════════
-const DAYS = [
-  { key:'sun', label:'Sun 22' },
-  { key:'mon', label:'Mon 23' },
-  { key:'tue', label:'Tue 24' },
-  { key:'wed', label:'Wed 25' },
-  { key:'thu', label:'Thu 26' },
-];
-
-// Schedule per crew id → room id → day → sessions
-const SCHEDULE = {
-  alex: {
-    'r1': { // E103-105
-      sun: [
-        { time:'10:05', end:'10:40', name:'Ask the Experts: Kubernetes Steering Committee', badge:'rw' },
-        { time:'10:50', end:'11:25', name:"It's 2030. What Does Prow Look Like?", badge:'rw' },
-        { time:'11:35', end:'12:10', name:'Building Bridges: OTel End User SIG', badge:'rw' },
-        { time:'13:40', end:'14:20', name:'Unconference Session #1', badge:'rw' },
-        { time:'14:25', end:'15:00', name:'Cluster Autoscaler Evolution', badge:'rw' },
-        { time:'15:10', end:'15:45', name:"Metal3.io's Path To CNCF Incubation", badge:'rw' },
-        { time:'16:05', end:'16:40', name:"The Practices That Made Me Go 'Wow'", badge:'rw' },
-      ],
-      mon: [{ time:'All day', end:'', name:'Co-Lo 9 — Observability Day Track 1', badge:'rw' }],
-      tue: [{ time:'All day', end:'', name:'Breakout 10', badge:'rw' }],
-      wed: [{ time:'All day', end:'', name:'Breakout 10', badge:'rw' }],
-      thu: [{ time:'All day', end:'', name:'Breakout 10', badge:'rw' }],
-    },
-    'r2': { // E106-108
-      sun: [
-        { time:'10:05', end:'10:40', name:'Running the Runners: How CNCF Powers GitHub Actions at Scale', badge:'rw' },
-        { time:'10:50', end:'12:10', name:'TAG Workshop', badge:'rw' },
-        { time:'13:40', end:'14:20', name:'Unconference Session #2', badge:'rw' },
-        { time:'14:25', end:'15:00', name:'Unconference Session #3', badge:'rw' },
-        { time:'15:10', end:'15:45', name:'Unconference Session #4', badge:'rw' },
-        { time:'16:05', end:'16:40', name:'Unconference Session #5', badge:'rw' },
-      ],
-      mon: [{ time:'All day', end:'', name:'Co-Lo 10 — WasmCon AM + KyvernoCon PM', badge:'rw' }],
-      tue: [{ time:'All day', end:'', name:'Breakout 11', badge:'rw' }],
-      wed: [{ time:'All day', end:'', name:'Breakout 11', badge:'rw' }],
-      thu: [{ time:'All day', end:'', name:'Breakout 11', badge:'rw' }],
-    },
-    'r3': { // Auditorium
-      sun: [],
-      mon: [{ time:'All day', end:'', name:'Co-Lo 11 — ArgoCon Track 1 24hr', badge:'rw' }],
-      tue: [{ time:'All day', end:'', name:'Breakout 12', badge:'rw' }],
-      wed: [{ time:'All day', end:'', name:'Breakout 12 + Lightning Talks 16:45–18:00', badge:'rw' }],
-      thu: [{ time:'All day', end:'', name:'Breakout 12', badge:'rw' }],
-    },
-  },
-  clayton: {
-    'r4': { sun:[], mon:[{time:'All day',end:'',name:'Co-Lo 1 — KeycloakCon + Agentics Day',badge:'rw'}], tue:[{time:'All day',end:'',name:'Breakout 1',badge:'rw'}], wed:[{time:'All day',end:'',name:'Breakout 1',badge:'rw'}], thu:[{time:'All day',end:'',name:'Breakout 1',badge:'rw'}] },
-    'r5': { sun:[], mon:[{time:'All day',end:'',name:'Co-Lo 2 — Cloud Native AI + KubeFlow Day (Tk 1)',badge:'rw'}], tue:[{time:'All day',end:'',name:'Breakout 2',badge:'rw'}], wed:[{time:'All day',end:'',name:'Breakout 2',badge:'rw'}], thu:[{time:'All day',end:'',name:'Breakout 2',badge:'rw'}] },
-    'r6': { sun:[], mon:[{time:'All day',end:'',name:'Co-Lo 3 — Cloud Native AI + KubeFlow Day (Tk 2)',badge:'rw'}], tue:[{time:'All day',end:'',name:'Breakout 3',badge:'rw'}], wed:[{time:'All day',end:'',name:'Breakout 3',badge:'rw'}], thu:[{time:'All day',end:'',name:'Breakout 3',badge:'rw'}] },
-  },
-  will: {
-    'r7': { sun:[], mon:[{time:'All day',end:'',name:'Co-Lo 4 — Open Source SecurityCon 24hr',badge:'rw'}], tue:[{time:'All day',end:'',name:'Breakout 4 + Keynote Overflow',badge:'rw'}], wed:[{time:'All day',end:'',name:'Breakout 4 + Keynote Overflow',badge:'rw'}], thu:[{time:'All day',end:'',name:'Breakout 4 + Keynote Overflow',badge:'rw'}] },
-    'r8': { sun:[], mon:[{time:'All day',end:'',name:'Co-Lo 5 — BackstageCon',badge:'rw'}], tue:[{time:'All day',end:'',name:'Breakout 5 + Keynote Overflow',badge:'rw'}], wed:[{time:'All day',end:'',name:'Breakout 5 + Keynote Overflow',badge:'rw'}], thu:[{time:'All day',end:'',name:'Breakout 5 + Keynote Overflow',badge:'rw'}] },
-    'r9': { sun:[], mon:[{time:'All day',end:'',name:'Co-Lo 6 — Platform Engineering Day (Tk 1)',badge:'rw'}], tue:[{time:'All day',end:'',name:'Breakout 6 + Keynote Overflow',badge:'rw'}], wed:[{time:'All day',end:'',name:'Breakout 6 + Keynote Overflow',badge:'rw'}], thu:[{time:'All day',end:'',name:'Breakout 6 + Keynote Overflow',badge:'rw'}] },
-  },
-  costmo: {
-    'r10': { sun:[], mon:[{time:'All day',end:'',name:'Co-Lo 7 — Platform Engineering Day (Tk 2)',badge:'rw'}], tue:[{time:'All day',end:'',name:'Breakout 7 + Keynote Overflow',badge:'rw'}], wed:[{time:'All day',end:'',name:'Breakout 7 + Keynote Overflow',badge:'rw'}], thu:[{time:'All day',end:'',name:'Breakout 7 + Keynote Overflow',badge:'rw'}] },
-    'r11': { sun:[], mon:[{time:'All day',end:'',name:'Keynote Rehearsals',badge:'r'}], tue:[{time:'All day',end:'',name:'Keynotes + Breakout 8',badge:'rw'}], wed:[{time:'All day',end:'',name:'Keynotes + Breakout 8',badge:'rw'}], thu:[{time:'All day',end:'',name:'Keynotes + Breakout 8',badge:'rw'}] },
-    'r12': { sun:[{time:'All day',end:'',name:'Maintainer Summit — Keynote + Breakout 1',badge:'rw'}], mon:[{time:'All day',end:'',name:'Co-Lo 8 — Observability Day (Tk 2)',badge:'rw'}], tue:[{time:'All day',end:'',name:'Breakout 9',badge:'rw'}], wed:[{time:'All day',end:'',name:'Breakout 9',badge:'rw'}], thu:[{time:'All day',end:'',name:'Breakout 9',badge:'rw'}] },
-  },
-  johnick: {
-    'r14': { sun:[], mon:[{time:'All day',end:'',name:'Co-Lo 12 — Kubernetes on Edge Day AM + OpenTofu Day PM',badge:'rw'}], tue:[{time:'All day',end:'',name:'(empty)',badge:'r'}], wed:[{time:'All day',end:'',name:'Gov Board Strategy Session',badge:'w'}], thu:[] },
-    'r15': { sun:[], mon:[{time:'All day',end:'',name:'Co-Lo 13 — ArgoCon (Tk 2) 24hr',badge:'rw'}], tue:[{time:'All day',end:'',name:'Breakout 13',badge:'rw'}], wed:[{time:'All day',end:'',name:'Breakout 13',badge:'rw'}], thu:[{time:'All day',end:'',name:'Breakout 13',badge:'rw'}] },
-    'r21': { sun:[], mon:[{time:'All day',end:'',name:'Co-Lo 14 — Cloud Native Telco Day',badge:'rw'}], tue:[{time:'All day',end:'',name:'Community Hub',badge:'w'}], wed:[{time:'All day',end:'',name:'Community Hub',badge:'w'}], thu:[{time:'All day',end:'',name:'Community Hub',badge:'w'}] },
-  },
-  brent: {
-    'r16': { sun:[], mon:[{time:'All day',end:'',name:'Co-Lo 15 — Open Sovereign Cloud Day',badge:'rw'}], tue:[{time:'All day',end:'',name:'Breakout 14',badge:'rw'}], wed:[{time:'All day',end:'',name:'Breakout 14',badge:'rw'}], thu:[{time:'All day',end:'',name:'Breakout 14',badge:'rw'}] },
-    'r17': { sun:[], mon:[], tue:[{time:'All day',end:'',name:'Breakout 17',badge:'rw'}], wed:[{time:'All day',end:'',name:'Breakout 17',badge:'rw'}], thu:[{time:'All day',end:'',name:'Breakout 17',badge:'rw'}] },
-    'r18': { sun:[], mon:[], tue:[{time:'All day',end:'',name:'CN Theater — Noise Filter',badge:'rw'}], wed:[{time:'All day',end:'',name:'CN Theater — Noise Filter',badge:'rw'}], thu:[{time:'All day',end:'',name:'CN Theater — Noise Filter',badge:'rw'}] },
-  },
-  lynda: {
-    'r19': { sun:[], mon:[{time:'All day',end:'',name:'Co-Lo 16 — FluxCon AM + CiliumCon PM 24hr',badge:'rw'}], tue:[{time:'All day',end:'',name:'Breakout 15 + Keynote Overflow',badge:'rw'}], wed:[{time:'All day',end:'',name:'Breakout 15 + Keynote Overflow',badge:'rw'}], thu:[{time:'All day',end:'',name:'Breakout 15 + Keynote Overflow',badge:'rw'}] },
-    'r20': { sun:[], mon:[{time:'All day',end:'',name:'Project Lightning Talks',badge:'rw'}], tue:[{time:'All day',end:'',name:'Breakout 16 + Keynote Overflow',badge:'rw'}], wed:[{time:'All day',end:'',name:'Breakout 16 + Keynote Overflow',badge:'rw'}], thu:[{time:'All day',end:'',name:'Breakout 16 + Keynote Overflow',badge:'rw'}] },
-  },
-};
 
 let schedDay = 'sun';
 let schedCrewId = null;
