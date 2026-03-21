@@ -71,7 +71,7 @@ body {
   -webkit-overflow-scrolling: touch;
 }
 .filter-bar::-webkit-scrollbar { display: none; }
-.filter-row { display: flex; gap: 6px; width: max-content; }
+.filter-row { display: flex; gap: 6px; align-items: center; width: max-content; }
 
 .fc {
   font-size: 12px; font-weight: 500;
@@ -377,7 +377,10 @@ body {
 </div>
 
 <div class="filter-bar">
-  <div class="filter-row" id="filterRow"></div>
+  <div class="filter-row">
+    <div style="font-size:10px;font-weight:600;color:var(--t3);text-transform:uppercase;letter-spacing:0.8px;padding:5px 6px 5px 0;white-space:nowrap;align-self:center;">Filter</div>
+    <div id="filterRow" style="display:flex;gap:6px;"></div>
+  </div>
 </div>
 
 <div class="top-bar">
