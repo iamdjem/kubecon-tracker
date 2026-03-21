@@ -490,7 +490,7 @@ function initFirebase(url) {
         const app = firebase.initializeApp({ databaseURL: url }, 'tr');
         fbDb = firebase.database(app).ref('tracker');
         fbDb.child('state').on('value', s => { const v=s.val(); if(v){state=v;saveState();render();} });
-        fbDb.child('config').on('value', s => { const v=s.val(); if(v){config=v;saveConfig();render();} });
+        fbDb.child('config').on('value', s => { const v=s.val(); if(v&&v.steps&&v.crew){config=v;saveConfig();render();} });
         setFbStatus(true);
       } catch(e) { setFbStatus(false); }
     }));
