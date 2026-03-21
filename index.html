@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Setup Tracker</title>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
 
@@ -258,26 +259,38 @@ body {
 .si::placeholder { color: var(--t3); }
 .si:last-child { margin-bottom: 0; }
 
+/* ── Drag handle ── */
+.drag-handle {
+  display: flex; align-items: center; justify-content: center;
+  width: 20px; height: 100%; cursor: grab; flex-shrink: 0;
+  color: var(--t3); padding: 0 2px;
+  touch-action: none;
+}
+.drag-handle:active { cursor: grabbing; }
+.drag-handle svg { width: 14px; height: 14px; pointer-events: none; }
+.sortable-ghost { opacity: 0.3; background: var(--s3) !important; }
+.sortable-drag   { opacity: 0.95; box-shadow: 0 8px 32px rgba(0,0,0,0.5); }
+
 /* Steps list */
 .step-row-s {
   display: flex; align-items: center; gap: 6px;
-  padding: 7px 0; border-top: 1px solid var(--line);
+  padding: 6px 0; border-top: 1px solid var(--line);
 }
 .step-row-s:first-child { border-top: none; }
 .si-icon {
-  width: 42px; background: var(--s2); border: 1px solid var(--line2);
+  width: 40px; background: var(--s2); border: 1px solid var(--line2);
   border-radius: 4px; color: var(--t1);
   font-family: inherit; font-size: 16px;
-  padding: 8px 6px; outline: none; text-align: center;
-  flex-shrink: 0;
+  padding: 7px 5px; outline: none; text-align: center; flex-shrink: 0;
 }
 .si-icon:focus { border-color: var(--accent); }
 .si-name {
-  flex: 1; background: transparent; border: none;
-  color: var(--t2); font-family: inherit; font-size: 13px;
-  outline: none; padding: 0;
+  flex: 1; background: var(--s2); border: 1px solid var(--line2);
+  border-radius: 4px; color: var(--t1);
+  font-family: inherit; font-size: 13px; font-weight: 500;
+  padding: 7px 10px; outline: none; transition: border-color 0.12s;
 }
-.si-name:focus { color: var(--t1); }
+.si-name:focus { border-color: var(--accent); color: var(--t1); }
 
 /* Crew list */
 .crew-item {
@@ -285,45 +298,54 @@ body {
   border-radius: 4px; margin-bottom: 6px; overflow: hidden;
 }
 .ci-hd {
-  display: flex; align-items: center; gap: 8px;
-  padding: 9px 12px; cursor: pointer;
+  display: flex; align-items: center; gap: 6px;
+  padding: 8px 10px;
 }
-.ci-arrow { color: var(--t3); font-size: 9px; margin-left: auto; flex-shrink: 0; transition: transform 0.18s; }
-.crew-item.exp .ci-arrow { transform: rotate(90deg); }
+.ci-expand-btn {
+  background: none; border: none; color: var(--t3);
+  font-size: 9px; cursor: pointer; padding: 4px; flex-shrink: 0;
+  transition: transform 0.18s; line-height: 1;
+}
+.crew-item.exp .ci-expand-btn { transform: rotate(90deg); }
 .ci-name {
   flex: 1; background: transparent; border: none;
   color: var(--t1); font-family: inherit; font-size: 13px; font-weight: 600;
-  outline: none; padding: 0;
+  outline: none; padding: 4px 6px; border-radius: 3px;
+  transition: background 0.12s;
 }
+.ci-name:focus { background: var(--s3); }
 
-.crew-rooms { padding: 0 12px 8px; display: none; }
-.crew-item.exp .crew-rooms { display: block; }
-.room-row {
-  display: flex; align-items: center; gap: 8px;
-  padding: 6px 0; border-top: 1px solid var(--line);
+.del-btn {
+  width: 28px; height: 28px; background: none; border: none;
+  color: var(--t3); cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 4px; transition: all 0.12s; flex-shrink: 0;
 }
+.del-btn:active { color: var(--red); background: rgba(192,57,43,0.1); }
+.del-btn svg { width: 14px; height: 14px; pointer-events: none; }
+
+.crew-rooms { padding: 0 10px 8px; display: none; border-top: 1px solid var(--line); }
+.crew-item.exp .crew-rooms { display: block; }
+
+.room-row {
+  display: flex; align-items: center; gap: 6px;
+  padding: 5px 0; border-bottom: 1px solid var(--line);
+}
+.room-row:last-child { border-bottom: none; }
 .rn-input {
   flex: 1; background: transparent; border: none;
   color: var(--t2); font-family: inherit; font-size: 12px;
-  outline: none; padding: 0;
+  outline: none; padding: 4px 6px; border-radius: 3px;
+  transition: background 0.12s;
 }
-.rn-input:focus { color: var(--t1); }
-
-.del-btn {
-  width: 22px; height: 22px; background: none; border: none;
-  color: var(--t3); cursor: pointer;
-  display: flex; align-items: center; justify-content: center;
-  border-radius: 3px; transition: all 0.12s; flex-shrink: 0;
-}
-.del-btn:active { color: var(--red); background: rgba(192,57,43,0.08); }
-.del-btn svg { width: 13px; height: 13px; }
+.rn-input:focus { color: var(--t1); background: var(--s3); }
 
 .add-btn {
   display: flex; align-items: center; gap: 6px;
   background: none; border: 1px dashed var(--line2);
   border-radius: 4px; color: var(--t3);
   font-family: inherit; font-size: 11px; font-weight: 500;
-  padding: 7px 10px; cursor: pointer; width: 100%; margin-top: 6px;
+  padding: 7px 10px; cursor: pointer; width: 100%; margin-top: 8px;
   transition: all 0.12s;
 }
 .add-btn:active { border-color: var(--t2); color: var(--t2); }
@@ -589,40 +611,41 @@ function closeSettings() {
   document.body.style.overflow='';
 }
 
+const DRAG_ICON = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="5" r="1" fill="currentColor" stroke="none"/><circle cx="9" cy="12" r="1" fill="currentColor" stroke="none"/><circle cx="9" cy="19" r="1" fill="currentColor" stroke="none"/><circle cx="15" cy="5" r="1" fill="currentColor" stroke="none"/><circle cx="15" cy="12" r="1" fill="currentColor" stroke="none"/><circle cx="15" cy="19" r="1" fill="currentColor" stroke="none"/></svg>`;
+const DEL_ICON  = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>`;
+const X_ICON    = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>`;
+
 function renderSettings() {
   const body=document.getElementById('shBody');
-  const stepsHtml = `<div>${config.steps.map((s,si)=>`
-    <div class="step-row-s">
+  const stepsHtml = `<div id="stepsList">${config.steps.map((s,si)=>`
+    <div class="step-row-s" data-si="${si}">
+      <div class="drag-handle">${DRAG_ICON}</div>
       <input class="si-icon" value="${s.icon}" onchange="updateStep(${si},'icon',this.value)" maxlength="2">
       <input class="si-name" value="${s.label}" onchange="updateStep(${si},'label',this.value)" placeholder="Step name">
-      <div class="del-btn" onclick="deleteStep(${si})">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-      </div>
+      <button class="del-btn" onclick="deleteStep(${si})" title="Remove">${DEL_ICON}</button>
     </div>`).join('')}</div>`;
 
-  const crewHtml = config.crew.map((c,ci)=>`
-    <div class="crew-item" id="ci_${ci}">
-      <div class="ci-hd" onclick="toggleExp(${ci})">
-        <input class="ci-name" value="${c.name}" onclick="event.stopPropagation()" onchange="renameCrew(${ci},this.value)">
-        <div class="del-btn" onclick="event.stopPropagation();delCrew(${ci})">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
-        </div>
-        <div class="ci-arrow">▶</div>
+  const crewHtml = `<div id="crewList">${config.crew.map((c,ci)=>`
+    <div class="crew-item" id="ci_${ci}" data-ci="${ci}">
+      <div class="ci-hd">
+        <div class="drag-handle">${DRAG_ICON}</div>
+        <button class="ci-expand-btn" onclick="toggleExp(${ci})">▶</button>
+        <input class="ci-name" value="${c.name}" onchange="renameCrew(${ci},this.value)">
+        <button class="del-btn" onclick="delCrew(${ci})" title="Remove">${DEL_ICON}</button>
       </div>
       <div class="crew-rooms">
-        ${c.rooms.map((r,ri)=>`
-          <div class="room-row">
+        <div id="roomList_${ci}">${c.rooms.map((r,ri)=>`
+          <div class="room-row" data-ri="${ri}">
+            <div class="drag-handle">${DRAG_ICON}</div>
             <input class="rn-input" value="${r.name}" onchange="renameRoom(${ci},${ri},this.value)">
-            <div class="del-btn" onclick="delRoom(${ci},${ri})">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-            </div>
-          </div>`).join('')}
+            <button class="del-btn" onclick="delRoom(${ci},${ri})">${X_ICON}</button>
+          </div>`).join('')}</div>
         <button class="add-btn" onclick="addRoom(${ci})">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
           Add room
         </button>
       </div>
-    </div>`).join('');
+    </div>`).join('')}</div>`;
 
   body.innerHTML=`
     <div class="sg">
@@ -653,9 +676,46 @@ function renderSettings() {
     </div>
     <button class="save-btn" onclick="saveSettings()">Save & Apply</button>
     <div style="height:8px"></div>`;
+
+  // Init drag-and-drop
+  initSortable();
 }
 
-function toggleExp(ci) { document.getElementById('ci_'+ci)?.classList.toggle('exp'); }
+function initSortable() {
+  if (typeof Sortable === 'undefined') return;
+  // Steps
+  const sl = document.getElementById('stepsList');
+  if (sl) new Sortable(sl, {
+    handle: '.drag-handle', animation: 150,
+    ghostClass: 'sortable-ghost', dragClass: 'sortable-drag',
+    onEnd: e => { const s=config.steps.splice(e.oldIndex,1)[0]; config.steps.splice(e.newIndex,0,s); }
+  });
+  // Crew
+  const cl = document.getElementById('crewList');
+  if (cl) new Sortable(cl, {
+    handle: '.ci-hd > .drag-handle', animation: 150,
+    ghostClass: 'sortable-ghost', dragClass: 'sortable-drag',
+    onEnd: e => { const c=config.crew.splice(e.oldIndex,1)[0]; config.crew.splice(e.newIndex,0,c); }
+  });
+  // Rooms per crew
+  config.crew.forEach((_,ci) => {
+    const rl = document.getElementById('roomList_'+ci);
+    if (rl) new Sortable(rl, {
+      handle: '.drag-handle', animation: 150,
+      ghostClass: 'sortable-ghost', dragClass: 'sortable-drag',
+      onEnd: e => { const r=config.crew[ci].rooms.splice(e.oldIndex,1)[0]; config.crew[ci].rooms.splice(e.newIndex,0,r); }
+    });
+  });
+}
+
+function toggleExp(ci) {
+  const el = document.getElementById('ci_'+ci);
+  if (el) {
+    el.classList.toggle('exp');
+    const btn = el.querySelector('.ci-expand-btn');
+    if (btn) btn.style.transform = el.classList.contains('exp') ? 'rotate(90deg)' : '';
+  }
+}
 function renameCrew(ci,v){ config.crew[ci].name=v.trim()||config.crew[ci].name; }
 function renameRoom(ci,ri,v){ config.crew[ci].rooms[ri].name=v.trim()||config.crew[ci].rooms[ri].name; }
 function delCrew(ci){ if(!confirm(`Remove ${config.crew[ci].name}?`))return; config.crew.splice(ci,1); renderSettings(); }
