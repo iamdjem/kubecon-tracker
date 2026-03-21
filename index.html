@@ -411,30 +411,51 @@ const DEFAULT_CONFIG = {
   subtitle: 'KubeCon EU 2026 · RAI Amsterdam',
   firebaseUrl: 'https://kubecon-tracker-default-rtdb.europe-west1.firebasedatabase.app',
   steps: [
-    { key:'setup',  icon:'🔧', label:'Setup'  },
+    { key:'setup',  icon:'🛠️', label:'Setup'  },
     { key:'ptz',    icon:'🤖', label:'PTZ'    },
     { key:'stream', icon:'🔑', label:'Keys'   },
     { key:'parsec', icon:'⚡', label:'Parsec' },
-    { key:'tested', icon:'✏️', label:'Tested' },
+    { key:'tested', icon:'🧪', label:'Tested' },
   ],
   crew: [
     { id:'alexi',   name:'Alexi',   rooms:[{id:'r1',name:'E103-105'},{id:'r2',name:'E106-108'},{id:'r3',name:'Auditorium'}] },
     { id:'clayton', name:'Clayton', rooms:[{id:'r4',name:'Hall 7A'},{id:'r5',name:'Hall 7B'},{id:'r6',name:'Hall 7C'}] },
-    { id:'will',    name:'Will',    rooms:[{id:'r7',name:'Hall 8D'},{id:'r8',name:'Hall 8E'},{id:'r9',name:'Hall 8F'},{id:'r10',name:'Hall 8G'}] },
-    { id:'costmo',  name:'Costmo',  rooms:[{id:'r11',name:'Hall 12'},{id:'r12',name:'Forum'},{id:'r13',name:'Hall 8G (co)'}] },
-    { id:'johnick', name:'Johnick', rooms:[{id:'r14',name:'Emerald'},{id:'r15',name:'G102-105'}] },
+    { id:'will',    name:'Will',    rooms:[{id:'r7',name:'Hall 8D'},{id:'r8',name:'Hall 8E'},{id:'r9',name:'Hall 8F'}] },
+    { id:'costmo',  name:'Costmo',  rooms:[{id:'r10',name:'Hall 8G'},{id:'r11',name:'Hall 12'},{id:'r12',name:'Forum'}] },
+    { id:'johnick', name:'Johnick', rooms:[{id:'r14',name:'Emerald Room'},{id:'r15',name:'G102-103'},{id:'r21',name:'G104-105'}] },
     { id:'brent',   name:'Brent',   rooms:[{id:'r16',name:'F002-005'},{id:'r17',name:'Amtrium 1+2'},{id:'r18',name:'CN Theater'}] },
     { id:'lynda',   name:'Lynda',   rooms:[{id:'r19',name:'Elicium 1'},{id:'r20',name:'Elicium 2'}] },
   ]
 };
 
 const PREFILL = {
-  r1:{setup:1,ptz:1,stream:1,parsec:1,tested:1}, r2:{setup:1,ptz:1,stream:1,parsec:1,tested:1},
-  r3:{setup:1,ptz:1,stream:0,parsec:0,tested:0}, r4:{setup:1,ptz:1,stream:1,parsec:1,tested:1},
-  r5:{setup:1,ptz:1,stream:1,parsec:1,tested:1}, r6:{setup:1,ptz:1,stream:1,parsec:1,tested:1},
-  r7:{setup:1,ptz:1,stream:1,parsec:1,tested:1}, r8:{setup:1,ptz:1,stream:1,parsec:1,tested:0},
-  r9:{setup:1,ptz:1,stream:1,parsec:1,tested:1}, r10:{setup:1,ptz:1,stream:1,parsec:1,tested:1},
-  r12:{setup:1,ptz:1,stream:1,parsec:1,tested:1}, r13:{setup:1,ptz:1,stream:1,parsec:1,tested:1},
+  // Alexi
+  r1:{setup:1,ptz:1,stream:1,parsec:1,tested:1}, // E103-105 ✅
+  r2:{setup:1,ptz:1,stream:1,parsec:1,tested:1}, // E106-108 ✅
+  r3:{setup:1,ptz:1,stream:0,parsec:0,tested:0}, // Auditorium 🛠️🤖
+  // Clayton
+  r4:{setup:1,ptz:0,stream:0,parsec:0,tested:0}, // Hall 7A 🛠️
+  r5:{setup:1,ptz:0,stream:0,parsec:0,tested:0}, // Hall 7B 🛠️
+  r6:{setup:1,ptz:0,stream:0,parsec:0,tested:0}, // Hall 7C 🛠️
+  // Will
+  r7:{setup:1,ptz:0,stream:0,parsec:0,tested:0}, // Hall 8D 🛠️
+  r8:{setup:1,ptz:1,stream:0,parsec:0,tested:0}, // Hall 8E 🛠️🤖
+  r9:{setup:1,ptz:0,stream:0,parsec:0,tested:0}, // Hall 8F 🛠️
+  // Costmo
+  r10:{setup:1,ptz:0,stream:0,parsec:1,tested:0}, // Hall 8G 🛠️⚡
+  r11:{setup:0,ptz:0,stream:0,parsec:0,tested:0}, // Hall 12 —
+  r12:{setup:1,ptz:1,stream:1,parsec:1,tested:1}, // Forum ✅
+  // Johnick
+  r14:{setup:1,ptz:0,stream:0,parsec:0,tested:0}, // Emerald Room 🛠️
+  r15:{setup:1,ptz:1,stream:0,parsec:0,tested:0}, // G102-103 🛠️🤖
+  r21:{setup:1,ptz:1,stream:0,parsec:0,tested:0}, // G104-105 🛠️🤖
+  // Brent
+  r16:{setup:1,ptz:0,stream:0,parsec:0,tested:0}, // F002-005 🛠️
+  r17:{setup:1,ptz:0,stream:0,parsec:0,tested:0}, // Amtrium 1+2 🛠️
+  r18:{setup:0,ptz:0,stream:0,parsec:0,tested:0}, // CN Theater —
+  // Lynda
+  r19:{setup:1,ptz:0,stream:0,parsec:0,tested:0}, // Elicium 1 🛠️
+  r20:{setup:1,ptz:0,stream:0,parsec:0,tested:0}, // Elicium 2 🛠️
 };
 
 let config = JSON.parse(localStorage.getItem('kc_config')||'null') || DEFAULT_CONFIG;
