@@ -1,5 +1,36 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
-  <rect width="512" height="512" rx="100" fill="#0c0c0c"/>
-  <rect x="64" y="64" width="384" height="384" rx="60" fill="#d4a843"/>
-  <polyline points="144,256 220,340 368,178" fill="none" stroke="#0c0c0c" stroke-width="52" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- Background -->
+  <rect width="512" height="512" rx="90" fill="#0c0c0c"/>
+
+  <!-- Clapperboard body -->
+  <rect x="80" y="180" width="352" height="252" rx="18" fill="#f0f0f0"/>
+
+  <!-- Clapperboard top (clapper) base -->
+  <rect x="80" y="130" width="352" height="70" rx="14" fill="#1e1e1e"/>
+
+  <!-- Diagonal stripes on clapper - amber & dark -->
+  <clipPath id="clp">
+    <rect x="80" y="130" width="352" height="70" rx="14"/>
+  </clipPath>
+  <g clip-path="url(#clp)">
+    <rect x="80" y="130" width="352" height="70" fill="#1e1e1e"/>
+    <!-- amber stripes -->
+    <polygon points="80,130 140,130 80,200" fill="#d4a843"/>
+    <polygon points="160,130 220,130 160,200 100,200" fill="#d4a843"/>
+    <polygon points="240,130 300,130 240,200 180,200" fill="#d4a843"/>
+    <polygon points="320,130 380,130 320,200 260,200" fill="#d4a843"/>
+    <polygon points="400,130 432,130 432,165 400,200 340,200" fill="#d4a843"/>
+  </g>
+
+  <!-- Hinge line between clapper and body -->
+  <rect x="80" y="193" width="352" height="8" rx="0" fill="#888"/>
+
+  <!-- Lines on body (like a clapperboard scene card) -->
+  <rect x="108" y="230" width="200" height="14" rx="4" fill="#ccc"/>
+  <rect x="108" y="258" width="140" height="12" rx="4" fill="#ddd"/>
+  <rect x="108" y="282" width="170" height="12" rx="4" fill="#ddd"/>
+
+  <!-- Red record dot -->
+  <circle cx="360" cy="270" r="42" fill="#e84040"/>
+  <circle cx="360" cy="270" r="22" fill="#0c0c0c"/>
 </svg>
