@@ -3,387 +3,336 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>KubeCon 2026 · Setup Tracker</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<title>Setup Tracker · KubeCon EU 2026</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
-  :root {
-    --bg:        #080808;
-    --surface:   #111111;
-    --surface2:  #161616;
-    --border:    rgba(255,255,255,0.06);
-    --border2:   rgba(255,255,255,0.10);
-    --accent:    #6366f1;
-    --accent-dim:rgba(99,102,241,0.12);
-    --green:     #22c55e;
-    --green-dim: rgba(34,197,94,0.10);
-    --amber:     #f59e0b;
-    --text:      #f4f4f5;
-    --text-2:    #a1a1aa;
-    --text-3:    #52525b;
-    --radius:    14px;
-    --radius-sm: 8px;
-  }
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
 
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg:       #0a0a0a;
+  --s1:       #111111;
+  --s2:       #161616;
+  --s3:       #1e1e1e;
+  --b1:       rgba(255,255,255,0.06);
+  --b2:       rgba(255,255,255,0.10);
+  --b3:       rgba(255,255,255,0.16);
+  --t1:       #ffffff;
+  --t2:       #8c8c8c;
+  --t3:       #444444;
+  --accent:   #5e6ad2;
+  --a-glow:   rgba(94,106,210,0.15);
+  --a-border: rgba(94,106,210,0.3);
+  --green:    #4caf74;
+  --g-glow:   rgba(76,175,116,0.12);
+  --g-border: rgba(76,175,116,0.25);
+  --r:        12px;
+}
 
-  body {
-    background: var(--bg);
-    color: var(--text);
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-    font-size: 14px;
-    line-height: 1.5;
-    -webkit-font-smoothing: antialiased;
-    padding-bottom: 120px;
-  }
+html { background: var(--bg); }
+body {
+  background: var(--bg);
+  color: var(--t1);
+  font-family: 'Inter', -apple-system, sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  padding-bottom: 100px;
+  min-height: 100vh;
+}
 
-  /* ── Header ── */
-  .header {
-    padding: 20px 20px 0;
-    margin-bottom: 28px;
-  }
-  .header-top {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 6px;
-  }
-  .logo {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-  }
-  .logo-icon {
-    width: 34px; height: 34px;
-    background: linear-gradient(135deg, #6366f1, #8b5cf6);
-    border-radius: 9px;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 16px;
-    box-shadow: 0 0 20px rgba(99,102,241,0.3);
-  }
-  .logo-text { font-size: 16px; font-weight: 700; letter-spacing: -0.3px; }
-  .badge {
-    background: var(--accent-dim);
-    color: var(--accent);
-    font-size: 11px;
-    font-weight: 600;
-    padding: 3px 9px;
-    border-radius: 20px;
-    border: 1px solid rgba(99,102,241,0.2);
-    letter-spacing: 0.2px;
-  }
-  .header-meta {
-    font-size: 12px;
-    color: var(--text-3);
-    font-weight: 400;
-  }
+/* ─── HEADER ─── */
+.header {
+  padding: 24px 20px 20px;
+  border-bottom: 1px solid var(--b1);
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.header-left { display: flex; flex-direction: column; gap: 2px; }
+.header-title {
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: -0.4px;
+  color: var(--t1);
+}
+.header-sub {
+  font-size: 12px;
+  color: var(--t3);
+  font-weight: 400;
+}
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.progress-ring-wrap { position: relative; width: 44px; height: 44px; }
+.progress-ring-wrap svg { transform: rotate(-90deg); }
+.progress-ring-track { fill: none; stroke: var(--s3); stroke-width: 3; }
+.progress-ring-fill  { fill: none; stroke: var(--green); stroke-width: 3; stroke-linecap: round; transition: stroke-dashoffset 0.5s cubic-bezier(.4,0,.2,1); }
+.progress-pct {
+  position: absolute; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 700; color: var(--t1);
+}
 
-  /* ── Global progress ── */
-  .global-card {
-    margin: 0 16px 24px;
-    background: linear-gradient(135deg, rgba(99,102,241,0.08), rgba(139,92,246,0.06));
-    border: 1px solid rgba(99,102,241,0.18);
-    border-radius: var(--radius);
-    padding: 16px 18px;
-  }
-  .global-row {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-end;
-    margin-bottom: 12px;
-  }
-  .global-label { font-size: 12px; color: var(--text-2); font-weight: 500; }
-  .global-count { font-size: 26px; font-weight: 700; letter-spacing: -1px; }
-  .global-count span { font-size: 14px; font-weight: 400; color: var(--text-3); }
-  .global-bar { height: 5px; background: rgba(255,255,255,0.06); border-radius: 99px; }
-  .global-fill {
-    height: 100%; border-radius: 99px;
-    background: linear-gradient(90deg, #6366f1, #8b5cf6);
-    transition: width 0.5s cubic-bezier(0.4,0,0.2,1);
-    box-shadow: 0 0 10px rgba(99,102,241,0.4);
-  }
+/* ─── FILTER CHIPS ─── */
+.filter-wrap {
+  padding: 0 20px 16px;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+.filter-wrap::-webkit-scrollbar { display: none; }
+.filter-row {
+  display: flex; gap: 6px;
+  width: max-content;
+}
+.filter-chip {
+  display: flex; align-items: center; gap: 5px;
+  padding: 5px 12px;
+  background: var(--s1);
+  border: 1px solid var(--b1);
+  border-radius: 99px;
+  font-size: 12px; font-weight: 500; color: var(--t2);
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+  user-select: none;
+}
+.filter-chip:active { transform: scale(0.94); }
+.filter-chip.on {
+  background: var(--a-glow);
+  border-color: var(--a-border);
+  color: var(--t1);
+}
+.filter-chip .dot {
+  width: 5px; height: 5px; border-radius: 50%;
+  background: var(--t3); flex-shrink: 0;
+  transition: background 0.15s;
+}
+.filter-chip.on .dot { background: var(--accent); }
 
-  /* ── Section ── */
-  .section { margin-bottom: 8px; }
-  .section-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 0 20px;
-    margin-bottom: 8px;
-  }
-  .section-crew {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
-  .avatar {
-    width: 26px; height: 26px;
-    border-radius: 50%;
-    background: linear-gradient(135deg, var(--accent), #8b5cf6);
-    display: flex; align-items: center; justify-content: center;
-    font-size: 10px; font-weight: 700; color: #fff;
-    flex-shrink: 0;
-  }
-  .crew-label { font-size: 13px; font-weight: 600; }
-  .crew-progress { font-size: 11px; color: var(--text-3); }
+/* ─── FILTER BANNER ─── */
+.filter-banner {
+  margin: 0 16px 12px;
+  padding: 9px 14px;
+  background: var(--a-glow);
+  border: 1px solid var(--a-border);
+  border-radius: 10px;
+  display: flex; align-items: center; justify-content: space-between;
+  font-size: 12px; color: #a5b4fc;
+}
+.filter-banner-clear {
+  font-size: 12px; font-weight: 500; color: #818cf8;
+  cursor: pointer; padding: 2px 0;
+}
 
-  /* ── Room card ── */
-  .room-card {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    padding: 14px 16px;
-    margin: 0 16px 8px;
-    transition: border-color 0.2s;
-  }
-  .room-card.complete {
-    background: var(--green-dim);
-    border-color: rgba(34,197,94,0.18);
-  }
-  .room-top {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 12px;
-  }
-  .room-name {
-    font-size: 14px;
-    font-weight: 600;
-    letter-spacing: -0.2px;
-  }
-  .room-tag {
-    font-size: 10px;
-    font-weight: 600;
-    padding: 2px 8px;
-    border-radius: 20px;
-    letter-spacing: 0.3px;
-    text-transform: uppercase;
-  }
-  .room-tag.done  { background: var(--green-dim); color: var(--green); border: 1px solid rgba(34,197,94,0.2); }
-  .room-tag.wip   { background: rgba(245,158,11,0.1); color: var(--amber); border: 1px solid rgba(245,158,11,0.2); }
-  .room-tag.todo  { background: rgba(255,255,255,0.04); color: var(--text-3); border: 1px solid var(--border); }
+/* ─── SECTION ─── */
+.section { margin-bottom: 4px; }
+.section-label {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 10px 20px 6px;
+}
+.section-name {
+  font-size: 11px; font-weight: 600;
+  color: var(--t3);
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+}
+.section-count { font-size: 11px; color: var(--t3); }
 
-  /* ── Step pills ── */
-  .steps { display: flex; gap: 6px; }
-  .step { flex: 1; }
-  .step input { display: none; }
-  .step-label {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 4px;
-    padding: 8px 4px;
-    background: var(--surface2);
-    border: 1px solid var(--border);
-    border-radius: var(--radius-sm);
-    cursor: pointer;
-    transition: all 0.15s cubic-bezier(0.4,0,0.2,1);
-    user-select: none;
-    -webkit-tap-highlight-color: transparent;
-  }
-  .step-label:active { transform: scale(0.93); }
-  .step-icon { font-size: 16px; line-height: 1; min-height: 16px; }
-  .step-icon.empty { display: block; width: 6px; height: 6px; border-radius: 50%; background: var(--border2); margin: 5px auto 5px; }
-  .step-name { font-size: 9px; font-weight: 500; color: var(--text-3); letter-spacing: 0.3px; }
+/* ─── ROOM CARD ─── */
+.card {
+  background: var(--s1);
+  border: 1px solid var(--b1);
+  border-radius: var(--r);
+  margin: 0 12px 6px;
+  overflow: hidden;
+  transition: border-color 0.2s;
+}
+.card.done { border-color: var(--g-border); background: var(--g-glow); }
 
-  .step input:checked + .step-label {
-    background: var(--green-dim);
-    border-color: rgba(34,197,94,0.3);
-  }
-  .step input:checked + .step-label .step-name { color: var(--green); }
+.card-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 14px 10px;
+}
+.card-name {
+  font-size: 14px; font-weight: 600;
+  letter-spacing: -0.2px;
+}
+.card-status {
+  font-size: 11px; font-weight: 500;
+  padding: 2px 8px; border-radius: 99px;
+}
+.card-status.s-done  { background: var(--g-glow); color: var(--green); border: 1px solid var(--g-border); }
+.card-status.s-wip   { background: rgba(245,158,11,0.08); color: #d97706; border: 1px solid rgba(245,158,11,0.2); }
+.card-status.s-empty { background: var(--s2); color: var(--t3); border: 1px solid var(--b1); }
 
-  /* ── Room bar ── */
-  .room-bar { height: 3px; background: rgba(255,255,255,0.05); border-radius: 99px; margin-top: 10px; }
-  .room-fill {
-    height: 100%; border-radius: 99px;
-    background: linear-gradient(90deg, var(--green), #16a34a);
-    transition: width 0.35s cubic-bezier(0.4,0,0.2,1);
-  }
+/* ─── STEP ROW ─── */
+.step-row {
+  display: flex;
+  padding: 0 14px 12px;
+  gap: 6px;
+}
+.step {
+  flex: 1;
+  display: flex; flex-direction: column; align-items: center; gap: 5px;
+}
+.step input { display: none; }
+.step-btn {
+  width: 100%;
+  aspect-ratio: 1;
+  max-width: 48px;
+  background: var(--s2);
+  border: 1px solid var(--b1);
+  border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  transition: all 0.15s cubic-bezier(.4,0,.2,1);
+  font-size: 17px;
+  position: relative;
+  overflow: hidden;
+}
+.step-btn::after {
+  content: '';
+  position: absolute; inset: 0;
+  background: var(--green);
+  opacity: 0;
+  transition: opacity 0.15s;
+  border-radius: inherit;
+}
+.step-btn:active { transform: scale(0.88); }
+.step input:checked + .step-btn {
+  background: var(--g-glow);
+  border-color: var(--g-border);
+}
+.step-icon {
+  position: relative; z-index: 1;
+  font-size: 17px; line-height: 1;
+  transition: opacity 0.15s;
+}
+/* unchecked: show icon faded */
+.step-icon { opacity: 0.2; }
+.step input:checked + .step-btn .step-icon { opacity: 1; }
 
-  /* ── Divider ── */
-  .divider { height: 1px; background: var(--border); margin: 16px 20px; }
+.step-label {
+  font-size: 9px; font-weight: 500;
+  color: var(--t3); letter-spacing: 0.2px;
+  text-align: center;
+}
+.step input:checked ~ .step-label { color: var(--green); }
 
-  /* ── Footer CTA ── */
-  .footer {
-    position: fixed;
-    bottom: 0; left: 0; right: 0;
-    padding: 12px 16px calc(12px + env(safe-area-inset-bottom));
-    background: linear-gradient(to top, var(--bg) 80%, transparent);
-  }
-  .copy-btn {
-    width: 100%;
-    padding: 15px;
-    background: #25D366;
-    color: #000;
-    font-family: 'Inter', sans-serif;
-    font-size: 15px;
-    font-weight: 700;
-    letter-spacing: -0.2px;
-    border: none;
-    border-radius: var(--radius);
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    transition: opacity 0.15s, transform 0.15s;
-    box-shadow: 0 8px 24px rgba(37,211,102,0.25);
-  }
-  .copy-btn:active { opacity: 0.85; transform: scale(0.98); }
+/* ─── TRACK BAR ─── */
+.card-track { height: 2px; background: var(--b1); }
+.card-track-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--green), #38a169);
+  transition: width 0.4s cubic-bezier(.4,0,.2,1);
+}
 
-  /* ── Toast ── */
-  /* ── User picker ── */
-  .user-picker {
-    margin: 0 16px 20px;
-  }
-  .user-picker-label {
-    font-size: 11px; font-weight: 600; color: var(--text-3);
-    text-transform: uppercase; letter-spacing: 0.8px;
-    margin-bottom: 10px;
-  }
-  .user-chips {
-    display: flex; gap: 8px; flex-wrap: wrap;
-  }
-  .user-chip {
-    display: flex; align-items: center; gap: 6px;
-    padding: 6px 12px;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 99px;
-    cursor: pointer;
-    font-size: 13px; font-weight: 500; color: var(--text-2);
-    transition: all 0.15s;
-    -webkit-tap-highlight-color: transparent;
-    user-select: none;
-  }
-  .user-chip:active { transform: scale(0.95); }
-  .user-chip.active {
-    background: var(--accent-dim);
-    border-color: rgba(99,102,241,0.35);
-    color: var(--text);
-  }
-  .user-chip.filtered {
-    background: rgba(99,102,241,0.25);
-    border-color: var(--accent);
-    color: var(--text);
-    box-shadow: 0 0 0 1px var(--accent);
-  }
-  .user-chip .chip-dot {
-    width: 7px; height: 7px; border-radius: 50%;
-    background: var(--text-3);
-    flex-shrink: 0;
-  }
-  .user-chip.active .chip-dot { background: var(--accent); }
-  .user-chip.filtered .chip-dot { background: var(--accent); }
+/* ─── RESET ─── */
+.top-actions {
+  display: flex; justify-content: flex-end;
+  padding: 0 16px 8px;
+}
+.reset-btn {
+  display: flex; align-items: center; gap: 5px;
+  background: none; border: 1px solid rgba(239,68,68,0.15);
+  color: rgba(239,68,68,0.6); font-family: inherit;
+  font-size: 11px; font-weight: 500;
+  padding: 5px 10px; border-radius: 8px;
+  cursor: pointer; transition: all 0.15s;
+}
+.reset-btn:active { background: rgba(239,68,68,0.06); }
 
-  /* ── Reset button ── */
-  .reset-btn {
-    display: flex; align-items: center; gap: 6px;
-    margin: 0 16px 8px auto;
-    width: fit-content;
-    background: none;
-    border: 1px solid rgba(239,68,68,0.2);
-    color: #ef4444;
-    font-family: 'Inter', sans-serif;
-    font-size: 12px; font-weight: 500;
-    padding: 6px 12px;
-    border-radius: 8px;
-    cursor: pointer;
-    transition: all 0.15s;
-    -webkit-tap-highlight-color: transparent;
-  }
-  .reset-btn:active { background: rgba(239,68,68,0.08); transform: scale(0.96); }
+/* ─── FOOTER ─── */
+.footer {
+  position: fixed; bottom: 0; left: 0; right: 0;
+  padding: 10px 14px calc(10px + env(safe-area-inset-bottom));
+  background: linear-gradient(to top, var(--bg) 70%, transparent);
+}
+.wa-btn {
+  width: 100%;
+  background: #25D366;
+  color: #000;
+  font-family: inherit; font-size: 15px; font-weight: 700;
+  letter-spacing: -0.2px;
+  border: none; border-radius: var(--r);
+  padding: 15px 20px;
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  cursor: pointer;
+  box-shadow: 0 4px 20px rgba(37,211,102,0.2);
+  transition: opacity 0.15s, transform 0.1s;
+}
+.wa-btn:active { opacity: 0.88; transform: scale(0.98); }
 
-  /* ── Section highlight ── */
-  .section.mine .room-card {
-    border-color: rgba(99,102,241,0.2);
-  }
-  .section.mine .section-header .crew-label::after {
-    content: ' · You';
-    color: var(--accent);
-    font-size: 11px;
-    font-weight: 400;
-  }
+/* ─── TOAST ─── */
+.toast {
+  position: fixed; bottom: 84px;
+  left: 50%; transform: translateX(-50%) translateY(8px);
+  background: var(--s3); border: 1px solid var(--b2);
+  color: var(--t1); font-size: 13px; font-weight: 500;
+  padding: 9px 18px; border-radius: 99px;
+  opacity: 0; pointer-events: none;
+  transition: all 0.2s cubic-bezier(.4,0,.2,1);
+  white-space: nowrap;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.6);
+}
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 
-  .toast {
-    position: fixed;
-    bottom: 90px;
-    left: 50%; transform: translateX(-50%) translateY(20px);
-    background: var(--surface);
-    border: 1px solid var(--border2);
-    color: var(--text);
-    font-size: 13px;
-    font-weight: 500;
-    padding: 10px 18px;
-    border-radius: 99px;
-    opacity: 0;
-    transition: all 0.25s cubic-bezier(0.4,0,0.2,1);
-    white-space: nowrap;
-    box-shadow: 0 8px 32px rgba(0,0,0,0.5);
-    pointer-events: none;
-  }
-  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+/* ─── DIVIDER ─── */
+.sep { height: 1px; background: var(--b1); margin: 10px 20px; }
 </style>
 </head>
 <body>
 
 <div class="header">
-  <div class="header-top">
-    <div class="logo">
-      <div class="logo-icon">🎬</div>
-      <div class="logo-text">KubeCon 2026</div>
-    </div>
-    <div class="badge">RAI Amsterdam</div>
+  <div class="header-left">
+    <div class="header-title">Setup Tracker</div>
+    <div class="header-sub">KubeCon EU 2026 · RAI Amsterdam</div>
   </div>
-  <div class="header-meta">Room Setup Tracker · March 21–22</div>
-</div>
-
-<div class="global-card">
-  <div class="global-row">
-    <div>
-      <div class="global-label">Overall Progress</div>
-      <div class="global-count" id="globalCount">0 <span>/ 0 rooms done</span></div>
-    </div>
-    <div style="text-align:right">
-      <div class="global-label">Completion</div>
-      <div style="font-size:20px;font-weight:700;letter-spacing:-0.5px" id="globalPct">0%</div>
+  <div class="header-right">
+    <div class="progress-ring-wrap">
+      <svg width="44" height="44" viewBox="0 0 44 44">
+        <circle class="progress-ring-track" cx="22" cy="22" r="18"/>
+        <circle class="progress-ring-fill" id="ringFill" cx="22" cy="22" r="18"
+          stroke-dasharray="113.1" stroke-dashoffset="113.1"/>
+      </svg>
+      <div class="progress-pct" id="ringPct">0%</div>
     </div>
   </div>
-  <div class="global-bar"><div class="global-fill" id="globalFill" style="width:0%"></div></div>
 </div>
 
-<!-- User picker -->
-<div class="user-picker">
-  <div class="user-picker-label">Tap to filter by crew member</div>
-  <div class="user-chips" id="userChips"></div>
+<div class="filter-wrap">
+  <div class="filter-row" id="filterRow"></div>
 </div>
 
-<!-- Reset -->
-<button class="reset-btn" onclick="confirmReset()">
-  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.5"/></svg>
-  Reset all
-</button>
+<div class="top-actions">
+  <button class="reset-btn" onclick="confirmReset()">
+    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.5"/></svg>
+    Reset all
+  </button>
+</div>
 
 <div id="tracker"></div>
 
 <div class="footer">
-  <button class="copy-btn" onclick="copyStatus()">
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z"/></svg>
-    Copy Status for WhatsApp
+  <button class="wa-btn" onclick="copyStatus()">
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 2C6.48 2 2 6.48 2 12c0 1.85.5 3.58 1.37 5.07L2 22l5.1-1.35C8.5 21.52 10.22 22 12 22c5.52 0 10-4.48 10-10S17.52 2 12 2zm0 18c-1.67 0-3.22-.46-4.55-1.26l-.32-.19-3.02.8.81-2.96-.21-.34A7.944 7.944 0 014 12c0-4.41 3.59-8 8-8s8 3.59 8 8-3.59 8-8 8z"/></svg>
+    Copy for WhatsApp
   </button>
 </div>
 
-<div class="toast" id="toast">✅ Copied to clipboard</div>
+<div class="toast" id="toast"></div>
 
 <script>
 const STEPS = [
-  { key: 'setup',   icon: '🔧', name: 'Setup'  },
-  { key: 'ptz',     icon: '🤖', name: 'PTZ'    },
-  { key: 'stream',  icon: '🔑', name: 'Keys'   },
-  { key: 'parsec',  icon: '⚡', name: 'Parsec' },
-  { key: 'tested',  icon: '✏️', name: 'Tested' },
+  { key: 'setup',  icon: '🔧', label: 'Setup'  },
+  { key: 'ptz',    icon: '🤖', label: 'PTZ'    },
+  { key: 'stream', icon: '🔑', label: 'Keys'   },
+  { key: 'parsec', icon: '⚡', label: 'Parsec' },
+  { key: 'tested', icon: '✏️', label: 'Tested' },
 ];
 
 const CREW = [
@@ -397,105 +346,85 @@ const CREW = [
 ];
 
 const PREFILL = {
-  'E103-105':    { setup:1, ptz:1, stream:1, parsec:1, tested:1 },
-  'E106-108':    { setup:1, ptz:1, stream:1, parsec:1, tested:1 },
-  'Auditorium':  { setup:1, ptz:1, stream:0, parsec:0, tested:0 },
-  'Hall 7A':     { setup:1, ptz:1, stream:1, parsec:1, tested:1 },
-  'Hall 7B':     { setup:1, ptz:1, stream:1, parsec:1, tested:1 },
-  'Hall 7C':     { setup:1, ptz:1, stream:1, parsec:1, tested:1 },
-  'Hall 8D':     { setup:1, ptz:1, stream:1, parsec:1, tested:1 },
-  'Hall 8E':     { setup:1, ptz:1, stream:1, parsec:1, tested:0 },
-  'Hall 8F':     { setup:1, ptz:1, stream:1, parsec:1, tested:1 },
-  'Hall 8G':     { setup:1, ptz:1, stream:1, parsec:1, tested:1 },
-  'Hall 12':     { setup:0, ptz:0, stream:0, parsec:0, tested:0 },
-  'Forum':       { setup:1, ptz:1, stream:1, parsec:1, tested:1 },
-  'Hall 8G (co)':{ setup:1, ptz:1, stream:1, parsec:1, tested:1 },
-  'Emerald':     { setup:1, ptz:0, stream:0, parsec:0, tested:0 },
-  'G102-105':    { setup:1, ptz:0, stream:0, parsec:0, tested:0 },
-  'F002-005':    { setup:1, ptz:0, stream:0, parsec:0, tested:0 },
-  'Amtrium 1+2': { setup:1, ptz:0, stream:0, parsec:0, tested:0 },
-  'CN Theater':  { setup:1, ptz:0, stream:0, parsec:0, tested:0 },
-  'Elicium 1':   { setup:1, ptz:0, stream:0, parsec:0, tested:0 },
-  'Elicium 2':   { setup:1, ptz:0, stream:0, parsec:0, tested:0 },
+  'E103-105':    {setup:1,ptz:1,stream:1,parsec:1,tested:1},
+  'E106-108':    {setup:1,ptz:1,stream:1,parsec:1,tested:1},
+  'Auditorium':  {setup:1,ptz:1,stream:0,parsec:0,tested:0},
+  'Hall 7A':     {setup:1,ptz:1,stream:1,parsec:1,tested:1},
+  'Hall 7B':     {setup:1,ptz:1,stream:1,parsec:1,tested:1},
+  'Hall 7C':     {setup:1,ptz:1,stream:1,parsec:1,tested:1},
+  'Hall 8D':     {setup:1,ptz:1,stream:1,parsec:1,tested:1},
+  'Hall 8E':     {setup:1,ptz:1,stream:1,parsec:1,tested:0},
+  'Hall 8F':     {setup:1,ptz:1,stream:1,parsec:1,tested:1},
+  'Hall 8G':     {setup:1,ptz:1,stream:1,parsec:1,tested:1},
+  'Hall 12':     {setup:0,ptz:0,stream:0,parsec:0,tested:0},
+  'Forum':       {setup:1,ptz:1,stream:1,parsec:1,tested:1},
+  'Hall 8G (co)':{setup:1,ptz:1,stream:1,parsec:1,tested:1},
+  'Emerald':     {setup:1,ptz:0,stream:0,parsec:0,tested:0},
+  'G102-105':    {setup:1,ptz:0,stream:0,parsec:0,tested:0},
+  'F002-005':    {setup:1,ptz:0,stream:0,parsec:0,tested:0},
+  'Amtrium 1+2': {setup:1,ptz:0,stream:0,parsec:0,tested:0},
+  'CN Theater':  {setup:1,ptz:0,stream:0,parsec:0,tested:0},
+  'Elicium 1':   {setup:1,ptz:0,stream:0,parsec:0,tested:0},
+  'Elicium 2':   {setup:1,ptz:0,stream:0,parsec:0,tested:0},
 };
 
-let currentUser = localStorage.getItem('kc26_user') || null;
-let filterUser = null; // which crew is being filtered/focused
+let filterUser = null;
 
-function setUser(name) {
-  currentUser = name;
-  localStorage.setItem('kc26_user', name);
-  renderUserChips();
-}
-
-function toggleFilter(name) {
-  filterUser = (filterUser === name) ? null : name;
-  render();
-  renderUserChips();
-}
-
-function renderUserChips() {
-  const el = document.getElementById('userChips');
-  el.innerHTML = CREW.map(c => {
-    const isMe = currentUser === c.name;
-    const isFiltered = filterUser === c.name;
-    return `<div class="user-chip ${isFiltered ? 'filtered' : ''} ${isMe && !isFiltered ? 'active' : ''}"
-      onclick="toggleFilter('${c.name}')"
-      onlongpress="setUser('${c.name}')">
-      <span class="chip-dot"></span>${c.name}${isMe ? ' · You' : ''}
-    </div>`;
-  }).join('');
-}
-
-function confirmReset() {
-  if (confirm('Reset ALL rooms to empty? This cannot be undone.')) {
-    localStorage.removeItem('kc26');
-    showToast('🔄 All rooms reset');
-    render();
-  }
-}
-
-function getState() {
-  try { return JSON.parse(localStorage.getItem('kc26') || '{}'); } catch { return {}; }
-}
+function getState() { try { return JSON.parse(localStorage.getItem('kc26')||'{}'); } catch { return {}; } }
 function saveState(s) { localStorage.setItem('kc26', JSON.stringify(s)); }
-function rk(crew, room) { return crew + '::' + room; }
-function getVal(state, crew, room, step) {
-  const k = rk(crew, room);
+function rk(crew,room) { return crew+'::'+room; }
+function getVal(state,crew,room,step) {
+  const k = rk(crew,room);
   if (state[k]?.[step] !== undefined) return state[k][step];
   return PREFILL[room]?.[step] || 0;
 }
-function isDone(state, crew, room) { return STEPS.every(s => getVal(state, crew, room, s.key)); }
-function countDone(state, crew, room) { return STEPS.filter(s => getVal(state, crew, room, s.key)).length; }
+function isDone(state,crew,room) { return STEPS.every(s => getVal(state,crew,room,s.key)); }
+function countDone(state,crew,room) { return STEPS.filter(s => getVal(state,crew,room,s.key)).length; }
 
-function toggle(crew, room, step) {
+function toggle(crew,room,step) {
   const state = getState();
-  const k = rk(crew, room);
-  if (!state[k]) { state[k] = {}; STEPS.forEach(s => state[k][s.key] = getVal({}, crew, room, s.key)); }
+  const k = rk(crew,room);
+  if (!state[k]) { state[k]={}; STEPS.forEach(s => state[k][s.key]=getVal({},crew,room,s.key)); }
   state[k][step] = state[k][step] ? 0 : 1;
   saveState(state);
   render();
 }
 
-function avatarInitials(name) { return name.slice(0, 2).toUpperCase(); }
+function toggleFilter(name) {
+  filterUser = filterUser === name ? null : name;
+  render();
+}
+
+function confirmReset() {
+  if (confirm('Reset ALL rooms to empty?')) {
+    localStorage.removeItem('kc26');
+    showToast('Reset complete');
+    render();
+  }
+}
 
 function render() {
   const state = getState();
   const el = document.getElementById('tracker');
   el.innerHTML = '';
 
-  let totalRooms = 0, doneRooms = 0;
+  // Filter chips
+  const fr = document.getElementById('filterRow');
+  fr.innerHTML = CREW.map(c => `
+    <div class="filter-chip ${filterUser===c.name?'on':''}" onclick="toggleFilter('${c.name}')">
+      <span class="dot"></span>${c.name}
+    </div>`).join('');
 
-  // Filter hint banner
-  const existingHint = document.getElementById('filterHint');
-  if (existingHint) existingHint.remove();
+  // Filter banner
   if (filterUser) {
-    const hint = document.createElement('div');
-    hint.id = 'filterHint';
-    hint.style.cssText = 'margin: 0 16px 16px; padding: 10px 14px; background: rgba(99,102,241,0.1); border: 1px solid rgba(99,102,241,0.25); border-radius: 10px; font-size: 12px; color: #a5b4fc; display: flex; justify-content: space-between; align-items: center;';
-    hint.innerHTML = `<span>Showing <strong>${filterUser}</strong>'s rooms only</span><span style="cursor:pointer;font-size:13px;opacity:0.7" onclick="toggleFilter('${filterUser}')">✕ Show all</span>`;
-    el.parentNode.insertBefore(hint, el);
+    const b = document.createElement('div');
+    b.className = 'filter-banner';
+    b.innerHTML = `<span>Showing <strong>${filterUser}</strong> only</span>
+      <span class="filter-banner-clear" onclick="toggleFilter('${filterUser}')">Show all</span>`;
+    el.appendChild(b);
   }
+
+  let totalRooms = 0, doneRooms = 0;
 
   CREW.forEach((c, ci) => {
     if (filterUser && filterUser !== c.name) return;
@@ -505,95 +434,83 @@ function render() {
     doneRooms += crewDone;
 
     const sec = document.createElement('div');
-    sec.className = `section${currentUser === c.name ? ' mine' : ''}`;
-
-    sec.innerHTML = `
-      <div class="section-header">
-        <div class="section-crew">
-          <div class="avatar">${avatarInitials(c.name)}</div>
-          <div class="crew-label">${c.name}</div>
-        </div>
-        <div class="crew-progress">${crewDone} / ${c.rooms.length} done</div>
-      </div>`;
+    sec.className = 'section';
+    sec.innerHTML = `<div class="section-label">
+      <span class="section-name">${c.name}</span>
+      <span class="section-count">${crewDone}/${c.rooms.length}</span>
+    </div>`;
 
     c.rooms.forEach(room => {
       const done = isDone(state, c.name, room);
       const n = countDone(state, c.name, room);
       const pct = Math.round(n / STEPS.length * 100);
-      const tag = done ? 'done' : n > 0 ? 'wip' : 'todo';
-      const tagLabel = done ? 'Done' : n > 0 ? `${n}/5` : 'Todo';
+      const statusClass = done ? 's-done' : n > 0 ? 's-wip' : 's-empty';
+      const statusText  = done ? 'Done' : n > 0 ? `${n} / ${STEPS.length}` : 'Pending';
 
       const card = document.createElement('div');
-      card.className = `room-card${done ? ' complete' : ''}`;
+      card.className = `card${done ? ' done' : ''}`;
       card.innerHTML = `
-        <div class="room-top">
-          <div class="room-name">${room}</div>
-          <div class="room-tag ${tag}">${tagLabel}</div>
+        <div class="card-header">
+          <div class="card-name">${room}</div>
+          <div class="card-status ${statusClass}">${statusText}</div>
         </div>
-        <div class="steps">
+        <div class="step-row">
           ${STEPS.map(s => {
             const checked = getVal(state, c.name, room, s.key);
-            const id = `${c.name}_${room}_${s.key}`.replace(/[\s()+]/g,'_');
+            const id = `${c.name}_${room}_${s.key}`.replace(/[\s()]/g,'_');
             return `<div class="step">
               <input type="checkbox" id="${id}" ${checked?'checked':''} onchange="toggle('${c.name}','${room}','${s.key}')">
-              <label class="step-label" for="${id}">
-                <span class="step-icon">${s.icon}</span>
-                <span class="step-name">${s.name}</span>
-              </label>
+              <label class="step-btn" for="${id}"><span class="step-icon">${s.icon}</span></label>
+              <span class="step-label">${s.label}</span>
             </div>`;
           }).join('')}
         </div>
-        <div class="room-bar"><div class="room-fill" style="width:${pct}%"></div></div>`;
+        <div class="card-track"><div class="card-track-fill" style="width:${pct}%"></div></div>`;
       sec.appendChild(card);
     });
 
-    if (ci < CREW.length - 1) {
+    if (!filterUser && ci < CREW.length - 1) {
       const d = document.createElement('div');
-      d.className = 'divider';
+      d.className = 'sep';
       sec.appendChild(d);
     }
 
     el.appendChild(sec);
   });
 
-  // Global stats
-  const gPct = totalRooms ? Math.round(doneRooms / totalRooms * 100) : 0;
-  document.getElementById('globalCount').innerHTML = `${doneRooms} <span>/ ${totalRooms} rooms done</span>`;
-  document.getElementById('globalPct').textContent = gPct + '%';
-  document.getElementById('globalFill').style.width = gPct + '%';
+  // Ring progress
+  const pct = totalRooms ? Math.round(doneRooms / totalRooms * 100) : 0;
+  const circ = 2 * Math.PI * 18;
+  document.getElementById('ringFill').style.strokeDashoffset = circ - (circ * pct / 100);
+  document.getElementById('ringPct').textContent = pct + '%';
 }
 
 function copyStatus() {
   const state = getState();
   const lines = ['SET UP MASTER LIST:'];
-
   CREW.forEach(c => {
     c.rooms.forEach(room => {
-      const checks = STEPS.filter(s => getVal(state, c.name, room, s.key)).map(s => s.icon).join('');
-      lines.push(`${room}-${c.name}${checks ? ' ' + checks : ''}`);
+      const checks = STEPS.filter(s => getVal(state,c.name,room,s.key)).map(s=>s.icon).join('');
+      lines.push(`${room}-${c.name}${checks?' '+checks:''}`);
     });
   });
-
   lines.push('');
-  lines.push('🔧 = set up');
-  lines.push('🔑 = Stream keys');
-  lines.push('🤖 = Update PTZ');
+  lines.push('🔧 = set up  🤖 = Update PTZ');
+  lines.push('🔑 = Stream keys  ⚡ = Parsec');
   lines.push('✏️ = Tested');
-  lines.push('⚡ = Parsec set up');
 
-  const text = lines.join('\n');
-  navigator.clipboard.writeText(text).then(() => showToast('✅ Copied to clipboard'))
-    .catch(() => { prompt('Copy this:', text); });
+  navigator.clipboard.writeText(lines.join('\n'))
+    .then(() => showToast('Copied to clipboard'))
+    .catch(() => prompt('Copy:', lines.join('\n')));
 }
 
 function showToast(msg) {
   const t = document.getElementById('toast');
   t.textContent = msg;
   t.classList.add('show');
-  setTimeout(() => t.classList.remove('show'), 2200);
+  setTimeout(() => t.classList.remove('show'), 2000);
 }
 
-renderUserChips();
 render();
 </script>
 </body>
