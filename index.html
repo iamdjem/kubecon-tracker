@@ -264,12 +264,19 @@
     border-color: rgba(99,102,241,0.35);
     color: var(--text);
   }
+  .user-chip.filtered {
+    background: rgba(99,102,241,0.25);
+    border-color: var(--accent);
+    color: var(--text);
+    box-shadow: 0 0 0 1px var(--accent);
+  }
   .user-chip .chip-dot {
     width: 7px; height: 7px; border-radius: 50%;
     background: var(--text-3);
     flex-shrink: 0;
   }
   .user-chip.active .chip-dot { background: var(--accent); }
+  .user-chip.filtered .chip-dot { background: var(--accent); }
 
   /* ── Reset button ── */
   .reset-btn {
@@ -349,7 +356,7 @@
 
 <!-- User picker -->
 <div class="user-picker">
-  <div class="user-picker-label">Who are you?</div>
+  <div class="user-picker-label">Tap to filter by crew member</div>
   <div class="user-chips" id="userChips"></div>
 </div>
 
@@ -413,19 +420,31 @@ const PREFILL = {
 };
 
 let currentUser = localStorage.getItem('kc26_user') || null;
+let filterUser = null; // which crew is being filtered/focused
 
 function setUser(name) {
   currentUser = name;
   localStorage.setItem('kc26_user', name);
+  renderUserChips();
+}
+
+function toggleFilter(name) {
+  filterUser = (filterUser === name) ? null : name;
   render();
+  renderUserChips();
 }
 
 function renderUserChips() {
   const el = document.getElementById('userChips');
-  el.innerHTML = CREW.map(c => `
-    <div class="user-chip ${currentUser === c.name ? 'active' : ''}" onclick="setUser('${c.name}')">
-      <span class="chip-dot"></span>${c.name}
-    </div>`).join('');
+  el.innerHTML = CREW.map(c => {
+    const isMe = currentUser === c.name;
+    const isFiltered = filterUser === c.name;
+    return `<div class="user-chip ${isFiltered ? 'filtered' : ''} ${isMe && !isFiltered ? 'active' : ''}"
+      onclick="toggleFilter('${c.name}')"
+      onlongpress="setUser('${c.name}')">
+      <span class="chip-dot"></span>${c.name}${isMe ? ' · You' : ''}
+    </div>`;
+  }).join('');
 }
 
 function confirmReset() {
@@ -467,7 +486,20 @@ function render() {
 
   let totalRooms = 0, doneRooms = 0;
 
+  // Filter hint banner
+  const existingHint = document.getElementById('filterHint');
+  if (existingHint) existingHint.remove();
+  if (filterUser) {
+    const hint = document.createElement('div');
+    hint.id = 'filterHint';
+    hint.style.cssText = 'margin: 0 16px 16px; padding: 10px 14px; background: rgba(99,102,241,0.1); border: 1px solid rgba(99,102,241,0.25); border-radius: 10px; font-size: 12px; color: #a5b4fc; display: flex; justify-content: space-between; align-items: center;';
+    hint.innerHTML = `<span>Showing <strong>${filterUser}</strong>'s rooms only</span><span style="cursor:pointer;font-size:13px;opacity:0.7" onclick="toggleFilter('${filterUser}')">✕ Show all</span>`;
+    el.parentNode.insertBefore(hint, el);
+  }
+
   CREW.forEach((c, ci) => {
+    if (filterUser && filterUser !== c.name) return;
+
     const crewDone = c.rooms.filter(r => isDone(state, c.name, r)).length;
     totalRooms += c.rooms.length;
     doneRooms += crewDone;
