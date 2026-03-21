@@ -1564,11 +1564,12 @@ function render() {
 
     const sec = document.createElement('div'); sec.className='section';
     sec.innerHTML=`<div class="sec-hd" onclick="openSchedule('${c.id}')" style="cursor:pointer;">
-      <div class="sec-hd-left">${avatarHtml(c.name, 28)}<span class="sec-name">${c.name}</span></div>
-      <div style="display:flex;align-items:center;gap:8px;">
-        <span class="sec-count">${cd}/${c.rooms.length}</span>
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="${c.id in SCHEDULE ? 'var(--accent)' : 'var(--t3)'}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+      <div class="sec-hd-left">
+        ${avatarHtml(c.name, 28)}
+        <span class="sec-name">${c.name}</span>
+        <span style="font-size:10px;font-weight:600;color:var(--accent);letter-spacing:0.3px;margin-left:6px;opacity:0.85;">See schedule</span>
       </div>
+      <span class="sec-count">${cd}/${c.rooms.length}</span>
     </div>`;
 
     c.rooms.forEach(room => {
