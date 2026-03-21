@@ -505,7 +505,7 @@ function render() {
             return `<div class="step">
               <input type="checkbox" id="${id}" ${checked?'checked':''} onchange="toggle('${c.name}','${room}','${s.key}')">
               <label class="step-label" for="${id}">
-                ${checked ? `<span class="step-icon">${s.icon}</span>` : `<span class="step-icon empty"></span>`}
+                <span class="step-icon">${s.icon}</span>
                 <span class="step-name">${s.name}</span>
               </label>
             </div>`;
@@ -540,7 +540,7 @@ function copyStatus() {
     lines.push(`*${c.name}* · ${doneCount}/${c.rooms.length}`);
     c.rooms.forEach(room => {
       const done = isDone(state, c.name, room);
-      const checks = STEPS.map(s => getVal(state, c.name, room, s.key) ? '🟢' : '⚪').join('');
+      const checks = STEPS.map(s => getVal(state, c.name, room, s.key) ? s.icon : '·').join(' ');
       lines.push(`  ${done ? '✅' : '🔄'} ${room} ${checks}`);
     });
     lines.push('');
