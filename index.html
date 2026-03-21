@@ -234,6 +234,72 @@
   .copy-btn:active { opacity: 0.85; transform: scale(0.98); }
 
   /* ── Toast ── */
+  /* ── User picker ── */
+  .user-picker {
+    margin: 0 16px 20px;
+  }
+  .user-picker-label {
+    font-size: 11px; font-weight: 600; color: var(--text-3);
+    text-transform: uppercase; letter-spacing: 0.8px;
+    margin-bottom: 10px;
+  }
+  .user-chips {
+    display: flex; gap: 8px; flex-wrap: wrap;
+  }
+  .user-chip {
+    display: flex; align-items: center; gap: 6px;
+    padding: 6px 12px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 99px;
+    cursor: pointer;
+    font-size: 13px; font-weight: 500; color: var(--text-2);
+    transition: all 0.15s;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+  }
+  .user-chip:active { transform: scale(0.95); }
+  .user-chip.active {
+    background: var(--accent-dim);
+    border-color: rgba(99,102,241,0.35);
+    color: var(--text);
+  }
+  .user-chip .chip-dot {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: var(--text-3);
+    flex-shrink: 0;
+  }
+  .user-chip.active .chip-dot { background: var(--accent); }
+
+  /* ── Reset button ── */
+  .reset-btn {
+    display: flex; align-items: center; gap: 6px;
+    margin: 0 16px 8px auto;
+    width: fit-content;
+    background: none;
+    border: 1px solid rgba(239,68,68,0.2);
+    color: #ef4444;
+    font-family: 'Inter', sans-serif;
+    font-size: 12px; font-weight: 500;
+    padding: 6px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.15s;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .reset-btn:active { background: rgba(239,68,68,0.08); transform: scale(0.96); }
+
+  /* ── Section highlight ── */
+  .section.mine .room-card {
+    border-color: rgba(99,102,241,0.2);
+  }
+  .section.mine .section-header .crew-label::after {
+    content: ' · You';
+    color: var(--accent);
+    font-size: 11px;
+    font-weight: 400;
+  }
+
   .toast {
     position: fixed;
     bottom: 90px;
@@ -280,6 +346,18 @@
   </div>
   <div class="global-bar"><div class="global-fill" id="globalFill" style="width:0%"></div></div>
 </div>
+
+<!-- User picker -->
+<div class="user-picker">
+  <div class="user-picker-label">Who are you?</div>
+  <div class="user-chips" id="userChips"></div>
+</div>
+
+<!-- Reset -->
+<button class="reset-btn" onclick="confirmReset()">
+  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.5"/></svg>
+  Reset all
+</button>
 
 <div id="tracker"></div>
 
@@ -334,6 +412,30 @@ const PREFILL = {
   'Elicium 2':   { setup:1, ptz:0, stream:0, parsec:0, tested:0 },
 };
 
+let currentUser = localStorage.getItem('kc26_user') || null;
+
+function setUser(name) {
+  currentUser = name;
+  localStorage.setItem('kc26_user', name);
+  render();
+}
+
+function renderUserChips() {
+  const el = document.getElementById('userChips');
+  el.innerHTML = CREW.map(c => `
+    <div class="user-chip ${currentUser === c.name ? 'active' : ''}" onclick="setUser('${c.name}')">
+      <span class="chip-dot"></span>${c.name}
+    </div>`).join('');
+}
+
+function confirmReset() {
+  if (confirm('Reset ALL rooms to empty? This cannot be undone.')) {
+    localStorage.removeItem('kc26');
+    showToast('🔄 All rooms reset');
+    render();
+  }
+}
+
 function getState() {
   try { return JSON.parse(localStorage.getItem('kc26') || '{}'); } catch { return {}; }
 }
@@ -371,7 +473,7 @@ function render() {
     doneRooms += crewDone;
 
     const sec = document.createElement('div');
-    sec.className = 'section';
+    sec.className = `section${currentUser === c.name ? ' mine' : ''}`;
 
     sec.innerHTML = `
       <div class="section-header">
@@ -458,6 +560,7 @@ function showToast(msg) {
   setTimeout(() => t.classList.remove('show'), 2200);
 }
 
+renderUserChips();
 render();
 </script>
 </body>
