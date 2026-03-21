@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>KubeCon 2026 — Setup Tracker</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #0f0f0f; color: #f0f0f0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; padding: 16px; }
+  h1 { font-size: 18px; font-weight: 700; margin-bottom: 4px; }
+  .subtitle { font-size: 12px; color: #666; margin-bottom: 20px; }
+
+  .crew-section { margin-bottom: 24px; }
+  .crew-name { font-size: 13px; font-weight: 600; color: #888; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+
+  .room-card { background: #1a1a1a; border-radius: 12px; padding: 12px 14px; margin-bottom: 8px; }
+  .room-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+  .room-name { font-size: 15px; font-weight: 600; }
+  .room-status { font-size: 12px; color: #666; }
+  .room-status.done { color: #4caf50; }
+
+  .checks { display: flex; gap: 6px; flex-wrap: wrap; }
+  .check-item { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+  .check-item input[type=checkbox] { display: none; }
+  .check-label {
+    display: flex; flex-direction: column; align-items: center; gap: 3px;
+    background: #2a2a2a; border-radius: 8px; padding: 8px 10px;
+    cursor: pointer; min-width: 52px; transition: background 0.15s;
+    border: 2px solid transparent;
+  }
+  .check-label:active { transform: scale(0.95); }
+  .check-emoji { font-size: 18px; }
+  .check-text { font-size: 9px; color: #666; text-align: center; line-height: 1.2; }
+  input[type=checkbox]:checked + .check-label {
+    background: #1e3a1e; border-color: #4caf50;
+  }
+  input[type=checkbox]:checked + .check-label .check-text { color: #4caf50; }
+
+  .copy-btn {
+    display: block; width: 100%; padding: 16px;
+    background: #25D366; color: #000; font-size: 16px; font-weight: 700;
+    border: none; border-radius: 14px; cursor: pointer; margin-top: 24px;
+    letter-spacing: 0.3px;
+  }
+  .copy-btn:active { opacity: 0.85; transform: scale(0.98); }
+
+  .copied-toast {
+    display: none; text-align: center; color: #4caf50;
+    font-size: 14px; margin-top: 12px; font-weight: 600;
+  }
+
+  .progress-bar { height: 4px; background: #2a2a2a; border-radius: 2px; margin-top: 6px; }
+  .progress-fill { height: 100%; background: #4caf50; border-radius: 2px; transition: width 0.3s; }
+</style>
+</head>
+<body>
+
+<h1>🎬 KubeCon 2026</h1>
+<p class="subtitle">RAI Amsterdam · Setup Tracker · Tap to toggle</p>
+
+<div id="tracker"></div>
+
+<button class="copy-btn" onclick="copyStatus()">📋 Copy Status for WhatsApp</button>
+<div class="copied-toast" id="toast">✅ Copied! Paste into WhatsApp</div>
+
+<script>
+const STEPS = [
+  { key: 'setup',   emoji: '🔧', label: 'Set Up'  },
+  { key: 'ptz',     emoji: '🎥', label: 'PTZ'     },
+  { key: 'stream',  emoji: '🔑', label: 'Stream'  },
+  { key: 'parsec',  emoji: '💻', label: 'Parsec'  },
+  { key: 'tested',  emoji: '✅', label: 'Tested'  },
+];
+
+const CREW = [
+  { name: 'Alexi',   rooms: ['E103-105', 'E106-108', 'Auditorium'] },
+  { name: 'Clayton', rooms: ['Hall 7A', 'Hall 7B', 'Hall 7C'] },
+  { name: 'Will',    rooms: ['Hall 8D', 'Hall 8E', 'Hall 8F', 'Hall 8G'] },
+  { name: 'Costmo',  rooms: ['Hall 12', 'Forum', 'Hall 8G (co)'] },
+  { name: 'Johnick', rooms: ['Emerald', 'G102-105'] },
+  { name: 'Brent',   rooms: ['F002-005', 'Amtrium 1+2', 'CN Theater'] },
+  { name: 'Lynda',   rooms: ['Elicium 1', 'Elicium 2'] },
+];
+
+// Pre-fill from screenshot
+const PREFILL = {
+  'E103-105':   { setup:1, ptz:1, stream:1, parsec:1, tested:1 },
+  'E106-108':   { setup:1, ptz:1, stream:1, parsec:1, tested:1 },
+  'Auditorium': { setup:1, ptz:1, stream:0, parsec:0, tested:0 },
+  'Hall 7A':    { setup:1, ptz:1, stream:1, parsec:1, tested:1 },
+  'Hall 7B':    { setup:1, ptz:1, stream:1, parsec:1, tested:1 },
+  'Hall 7C':    { setup:1, ptz:1, stream:1, parsec:1, tested:1 },
+  'Hall 8D':    { setup:1, ptz:1, stream:1, parsec:1, tested:1 },
+  'Hall 8E':    { setup:1, ptz:1, stream:1, parsec:1, tested:0 },
+  'Hall 8F':    { setup:1, ptz:1, stream:1, parsec:1, tested:1 },
+  'Hall 8G':    { setup:1, ptz:1, stream:1, parsec:1, tested:1 },
+  'Emerald':    { setup:1, ptz:0, stream:0, parsec:0, tested:0 },
+  'G102-105':   { setup:1, ptz:0, stream:0, parsec:0, tested:0 },
+  'F002-005':   { setup:1, ptz:0, stream:0, parsec:0, tested:0 },
+  'Amtrium 1+2':{ setup:1, ptz:0, stream:0, parsec:0, tested:0 },
+  'CN Theater': { setup:1, ptz:0, stream:0, parsec:0, tested:0 },
+  'Elicium 1':  { setup:1, ptz:0, stream:0, parsec:0, tested:0 },
+  'Elicium 2':  { setup:1, ptz:0, stream:0, parsec:0, tested:0 },
+};
+
+function getState() {
+  try { return JSON.parse(localStorage.getItem('kubecon26') || '{}'); } catch { return {}; }
+}
+function saveState(s) { localStorage.setItem('kubecon26', JSON.stringify(s)); }
+
+function roomKey(crew, room) { return crew + '::' + room; }
+
+function getChecked(state, crew, room, step) {
+  const k = roomKey(crew, room);
+  if (state[k] !== undefined && state[k][step] !== undefined) return state[k][step];
+  return (PREFILL[room] && PREFILL[room][step]) ? 1 : 0;
+}
+
+function toggle(crew, room, step) {
+  const state = getState();
+  const k = roomKey(crew, room);
+  if (!state[k]) {
+    state[k] = {};
+    STEPS.forEach(s => state[k][s.key] = getChecked({}, crew, room, s.key));
+  }
+  state[k][step] = state[k][step] ? 0 : 1;
+  saveState(state);
+  render();
+}
+
+function roomDone(state, crew, room) {
+  return STEPS.every(s => getChecked(state, crew, room, s.key));
+}
+
+function render() {
+  const state = getState();
+  const el = document.getElementById('tracker');
+  el.innerHTML = '';
+
+  CREW.forEach(c => {
+    const doneCount = c.rooms.filter(r => roomDone(state, c.name, r)).length;
+    const div = document.createElement('div');
+    div.className = 'crew-section';
+    div.innerHTML = `<div class="crew-name">${c.name} · ${doneCount}/${c.rooms.length}</div>`;
+
+    c.rooms.forEach(room => {
+      const done = roomDone(state, c.name, room);
+      const totalChecked = STEPS.filter(s => getChecked(state, c.name, room, s.key)).length;
+      const pct = Math.round(totalChecked / STEPS.length * 100);
+
+      const card = document.createElement('div');
+      card.className = 'room-card';
+      card.innerHTML = `
+        <div class="room-header">
+          <div class="room-name">${done ? '✅ ' : ''}${room}</div>
+          <div class="room-status ${done ? 'done' : ''}">${totalChecked}/${STEPS.length}</div>
+        </div>
+        <div class="checks">
+          ${STEPS.map(s => {
+            const checked = getChecked(state, c.name, room, s.key);
+            const id = `${c.name}_${room}_${s.key}`.replace(/\s+/g,'_');
+            return `<div class="check-item">
+              <input type="checkbox" id="${id}" ${checked ? 'checked' : ''} onchange="toggle('${c.name}','${room}','${s.key}')">
+              <label class="check-label" for="${id}">
+                <span class="check-emoji">${s.emoji}</span>
+                <span class="check-text">${s.label}</span>
+              </label>
+            </div>`;
+          }).join('')}
+        </div>
+        <div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div>
+      `;
+      div.appendChild(card);
+    });
+    el.appendChild(div);
+  });
+}
+
+function copyStatus() {
+  const state = getState();
+  const lines = ['🎬 *KubeCon 2026 — Setup Status*\n'];
+
+  CREW.forEach(c => {
+    const doneCount = c.rooms.filter(r => roomDone(state, c.name, r)).length;
+    lines.push(`*${c.name}* (${doneCount}/${c.rooms.length})`);
+    c.rooms.forEach(room => {
+      const checks = STEPS.map(s => getChecked(state, c.name, room, s.key) ? s.emoji : '⬜').join('');
+      const done = roomDone(state, c.name, room);
+      lines.push(`  ${done ? '✅' : '🔄'} ${room} ${checks}`);
+    });
+  });
+
+  const text = lines.join('\n');
+  navigator.clipboard.writeText(text).then(() => {
+    const toast = document.getElementById('toast');
+    toast.style.display = 'block';
+    setTimeout(() => toast.style.display = 'none', 2500);
+  }).catch(() => {
+    prompt('Copy this:', text);
+  });
+}
+
+render();
+</script>
+</body>
+</html>
