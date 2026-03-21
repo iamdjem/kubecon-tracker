@@ -184,7 +184,8 @@
     -webkit-tap-highlight-color: transparent;
   }
   .step-label:active { transform: scale(0.93); }
-  .step-icon { font-size: 16px; line-height: 1; }
+  .step-icon { font-size: 16px; line-height: 1; min-height: 16px; }
+  .step-icon.empty { display: block; width: 6px; height: 6px; border-radius: 50%; background: var(--border2); margin: 5px auto 5px; }
   .step-name { font-size: 9px; font-weight: 500; color: var(--text-3); letter-spacing: 0.3px; }
 
   .step input:checked + .step-label {
@@ -402,7 +403,7 @@ function render() {
             return `<div class="step">
               <input type="checkbox" id="${id}" ${checked?'checked':''} onchange="toggle('${c.name}','${room}','${s.key}')">
               <label class="step-label" for="${id}">
-                <span class="step-icon">${s.icon}</span>
+                ${checked ? `<span class="step-icon">${s.icon}</span>` : `<span class="step-icon empty"></span>`}
                 <span class="step-name">${s.name}</span>
               </label>
             </div>`;
