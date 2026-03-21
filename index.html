@@ -540,7 +540,7 @@ function copyStatus() {
     lines.push(`*${c.name}* · ${doneCount}/${c.rooms.length}`);
     c.rooms.forEach(room => {
       const done = isDone(state, c.name, room);
-      const checks = STEPS.map(s => getVal(state, c.name, room, s.key) ? s.icon : '·').join(' ');
+      const checks = STEPS.filter(s => getVal(state, c.name, room, s.key)).map(s => s.icon).join('');
       lines.push(`  ${done ? '✅' : '🔄'} ${room} ${checks}`);
     });
     lines.push('');
