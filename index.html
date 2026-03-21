@@ -120,8 +120,8 @@ body {
   display: flex; align-items: center; justify-content: space-between;
   padding: 10px 18px 6px;
 }
-.sec-name { font-size: 16px; font-weight: 700; color: #ffffff; letter-spacing: -0.3px; }
-.sec-count { font-size: 11px; color: var(--t2); }
+.sec-name { font-size: 15px; font-weight: 700; color: #ffffff; letter-spacing: -0.3px; }
+.sec-count { font-size: 11px; color: var(--t3); }
 
 /* ── ROOM ROW ── */
 .room {
@@ -131,10 +131,10 @@ body {
   gap: 12px;
   transition: background 0.1s;
 }
-.room.done { opacity: 0.55; }
+.room.done .room-name { color: var(--t3); }
 .room-name {
-  font-size: 13px; font-weight: 600; color: #b0b0b0;
-  flex: 0 0 108px; letter-spacing: -0.1px;
+  font-size: 12px; font-weight: 500; color: #707070;
+  flex: 0 0 108px; letter-spacing: 0;
 }
 .steps-wrap { display: flex; gap: 5px; flex: 1; }
 .step { display: flex; flex-direction: column; align-items: center; gap: 3px; flex: 1; max-width: 48px; }
