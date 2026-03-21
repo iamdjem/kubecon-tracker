@@ -1028,7 +1028,13 @@ function renderSchedule() {
           </div>`).join('')
       : `<div class="sched-empty">No sessions scheduled</div>`;
     return `<div class="room-sched">
-      <div class="room-sched-hd">${room.name}</div>
+      <div class="room-sched-hd" style="display:flex;align-items:center;justify-content:space-between;">
+        <span>${room.name}</span>
+        <a href="https://maintainersummiteu2026.sched.com/venue/${encodeURIComponent(room.name)}" target="_blank"
+          style="font-size:10px;color:var(--accent);text-decoration:none;font-weight:600;letter-spacing:0.3px;" onclick="event.stopPropagation()">
+          Sched ↗
+        </a>
+      </div>
       ${tilesHtml}
     </div>`;
   }).join('');
