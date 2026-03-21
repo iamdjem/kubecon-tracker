@@ -4,665 +4,597 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Setup Tracker</title>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
 
 :root {
-  --bg:     #0a0a0a;
-  --s1:     #111111;
-  --s2:     #161616;
-  --s3:     #1e1e1e;
-  --s4:     #242424;
-  --b1:     rgba(255,255,255,0.06);
-  --b2:     rgba(255,255,255,0.10);
-  --b3:     rgba(255,255,255,0.18);
-  --t1:     #ffffff;
-  --t2:     #8c8c8c;
-  --t3:     #444444;
-  --accent: #5e6ad2;
-  --a-dim:  rgba(94,106,210,0.14);
-  --a-bdr:  rgba(94,106,210,0.3);
-  --green:  #4caf74;
-  --g-dim:  rgba(76,175,116,0.10);
-  --g-bdr:  rgba(76,175,116,0.22);
-  --red:    #ef4444;
-  --r:      12px;
+  --bg:      #0c0c0c;
+  --s1:      #121212;
+  --s2:      #181818;
+  --s3:      #1f1f1f;
+  --s4:      #272727;
+  --line:    #1f1f1f;
+  --line2:   #2a2a2a;
+  --t1:      #e8e8e8;
+  --t2:      #666666;
+  --t3:      #333333;
+  --accent:  #d4a843;
+  --green:   #3d9970;
+  --red:     #c0392b;
 }
 
-html, body { background: var(--bg); }
+html, body { background: var(--bg); height: 100%; }
 body {
   color: var(--t1);
-  font-family: 'Inter', -apple-system, sans-serif;
+  font-family: 'Space Grotesk', -apple-system, sans-serif;
   font-size: 14px; line-height: 1.5;
   -webkit-font-smoothing: antialiased;
-  padding-bottom: 100px;
-  min-height: 100vh;
-  overflow-x: hidden;
+  padding-bottom: 88px;
 }
 
 /* ── HEADER ── */
-.header {
-  padding: 24px 20px 18px;
-  border-bottom: 1px solid var(--b1);
-  margin-bottom: 16px;
+.hd {
   display: flex; align-items: center; justify-content: space-between;
+  padding: 22px 18px 14px;
+  border-bottom: 1px solid var(--line);
 }
-.header-left { flex: 1; }
-.header-title { font-size: 17px; font-weight: 700; letter-spacing: -0.4px; }
-.header-sub { font-size: 12px; color: var(--t3); margin-top: 1px; }
-.header-right { display: flex; align-items: center; gap: 10px; }
+.hd-left {}
+.hd-title { font-size: 15px; font-weight: 700; letter-spacing: -0.2px; color: var(--t1); }
+.hd-sub   { font-size: 11px; color: var(--t3); margin-top: 1px; font-weight: 400; }
+.hd-right { display: flex; align-items: center; gap: 10px; }
 
-.icon-btn {
-  width: 36px; height: 36px;
-  background: var(--s2); border: 1px solid var(--b1);
-  border-radius: 10px; cursor: pointer;
+.stat {
+  text-align: right;
+}
+.stat-num  { font-size: 22px; font-weight: 700; letter-spacing: -1px; color: var(--t1); line-height: 1; }
+.stat-lbl  { font-size: 10px; color: var(--t3); font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px; margin-top: 2px; }
+
+.gear-btn {
+  width: 34px; height: 34px;
+  background: var(--s2);
+  border: 1px solid var(--line2);
+  border-radius: 6px;
+  cursor: pointer;
   display: flex; align-items: center; justify-content: center;
-  color: var(--t2); transition: all 0.15s;
+  color: var(--t2); transition: background 0.12s, color 0.12s;
   flex-shrink: 0;
 }
-.icon-btn:active { background: var(--s3); transform: scale(0.93); }
-.icon-btn svg { width: 16px; height: 16px; }
+.gear-btn:active { background: var(--s3); color: var(--t1); }
+.gear-btn svg { width: 15px; height: 15px; }
 
-/* progress ring */
-.ring-wrap { position: relative; width: 40px; height: 40px; flex-shrink: 0; }
-.ring-wrap svg { transform: rotate(-90deg); }
-.ring-track { fill: none; stroke: var(--s3); stroke-width: 3; }
-.ring-fill  { fill: none; stroke: var(--green); stroke-width: 3; stroke-linecap: round; transition: stroke-dashoffset 0.5s cubic-bezier(.4,0,.2,1); }
-.ring-pct { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 700; }
-
-/* ── FILTER CHIPS ── */
-.filter-wrap {
-  padding: 0 20px 14px;
-  overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none;
+/* ── FILTER BAR ── */
+.filter-bar {
+  padding: 12px 18px;
+  border-bottom: 1px solid var(--line);
+  overflow-x: auto; scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
 }
-.filter-wrap::-webkit-scrollbar { display: none; }
-.chips { display: flex; gap: 6px; width: max-content; }
-.chip {
-  display: flex; align-items: center; gap: 5px;
-  padding: 5px 12px;
-  background: var(--s1); border: 1px solid var(--b1);
-  border-radius: 99px; font-size: 12px; font-weight: 500; color: var(--t2);
-  cursor: pointer; transition: all 0.15s; white-space: nowrap; user-select: none;
-}
-.chip:active { transform: scale(0.93); }
-.chip.on { background: var(--a-dim); border-color: var(--a-bdr); color: var(--t1); }
-.chip .dot { width: 5px; height: 5px; border-radius: 50%; background: var(--t3); flex-shrink: 0; transition: background 0.15s; }
-.chip.on .dot { background: var(--accent); }
+.filter-bar::-webkit-scrollbar { display: none; }
+.filter-row { display: flex; gap: 6px; width: max-content; }
 
-/* filter banner */
-.f-banner {
-  margin: 0 14px 10px;
-  padding: 8px 13px;
-  background: var(--a-dim); border: 1px solid var(--a-bdr); border-radius: 10px;
+.fc {
+  font-size: 12px; font-weight: 500;
+  padding: 4px 11px;
+  border: 1px solid var(--line2);
+  border-radius: 3px;
+  color: var(--t2);
+  background: transparent;
+  cursor: pointer; user-select: none;
+  transition: all 0.12s;
+  white-space: nowrap;
+}
+.fc:active { transform: scale(0.95); }
+.fc.on {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #000;
+}
+
+/* ── FILTER NOTICE ── */
+.f-notice {
   display: flex; align-items: center; justify-content: space-between;
-  font-size: 12px; color: #a5b4fc;
+  padding: 8px 18px;
+  border-bottom: 1px solid var(--line);
+  font-size: 12px; color: var(--t2);
 }
-.f-banner-clear { font-size: 12px; font-weight: 500; color: #818cf8; cursor: pointer; }
+.f-notice strong { color: var(--t1); font-weight: 600; }
+.f-clear { font-size: 12px; color: var(--accent); cursor: pointer; font-weight: 500; }
 
-/* top actions */
-.top-actions { display: flex; justify-content: flex-end; padding: 0 14px 8px; }
-.reset-btn {
-  display: flex; align-items: center; gap: 5px;
-  background: none; border: 1px solid rgba(239,68,68,0.15);
-  color: rgba(239,68,68,0.55); font-family: inherit;
-  font-size: 11px; font-weight: 500;
-  padding: 5px 10px; border-radius: 8px; cursor: pointer; transition: all 0.15s;
+/* ── TOP BAR ── */
+.top-bar {
+  display: flex; justify-content: flex-end;
+  padding: 8px 18px 4px;
 }
-.reset-btn:active { background: rgba(239,68,68,0.06); }
+.rst-btn {
+  font-family: inherit; font-size: 11px; font-weight: 500;
+  color: var(--t3); background: none;
+  border: 1px solid var(--line2); border-radius: 3px;
+  padding: 4px 10px; cursor: pointer; transition: all 0.12s;
+}
+.rst-btn:active { color: var(--red); border-color: var(--red); }
 
 /* ── SECTION ── */
-.section { margin-bottom: 4px; }
-.section-label {
+.section { border-bottom: 1px solid var(--line); }
+.sec-hd {
   display: flex; align-items: center; justify-content: space-between;
-  padding: 10px 20px 6px;
+  padding: 10px 18px 6px;
 }
-.section-name { font-size: 11px; font-weight: 600; color: var(--t3); text-transform: uppercase; letter-spacing: 0.8px; }
-.section-count { font-size: 11px; color: var(--t3); }
+.sec-name { font-size: 11px; font-weight: 600; color: var(--t3); text-transform: uppercase; letter-spacing: 0.8px; }
+.sec-count { font-size: 11px; color: var(--t3); }
 
-/* ── ROOM CARD ── */
-.card {
-  background: var(--s1); border: 1px solid var(--b1);
-  border-radius: var(--r); margin: 0 12px 6px; overflow: hidden; transition: border-color 0.2s;
+/* ── ROOM ROW ── */
+.room {
+  display: flex; align-items: center;
+  padding: 10px 18px;
+  border-top: 1px solid var(--line);
+  gap: 12px;
+  transition: background 0.1s;
 }
-.card.done { border-color: var(--g-bdr); background: var(--g-dim); }
-.card-header { display: flex; align-items: center; justify-content: space-between; padding: 12px 14px 10px; }
-.card-name { font-size: 14px; font-weight: 600; letter-spacing: -0.2px; }
-.card-status { font-size: 11px; font-weight: 500; padding: 2px 8px; border-radius: 99px; }
-.card-status.s-done  { background: var(--g-dim); color: var(--green); border: 1px solid var(--g-bdr); }
-.card-status.s-wip   { background: rgba(245,158,11,0.08); color: #d97706; border: 1px solid rgba(245,158,11,0.2); }
-.card-status.s-empty { background: var(--s2); color: var(--t3); border: 1px solid var(--b1); }
-
-.step-row { display: flex; padding: 0 14px 12px; gap: 6px; }
-.step { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.room.done { opacity: 0.55; }
+.room-name {
+  font-size: 13px; font-weight: 600; color: var(--t1);
+  flex: 0 0 100px; letter-spacing: -0.1px;
+}
+.steps-wrap { display: flex; gap: 5px; flex: 1; }
+.step { display: flex; flex-direction: column; align-items: center; gap: 3px; flex: 1; max-width: 48px; }
 .step input { display: none; }
-.step-btn {
-  width: 100%; aspect-ratio: 1; max-width: 48px;
-  background: var(--s2); border: 1px solid var(--b1); border-radius: 10px;
+.step-box {
+  width: 100%; aspect-ratio: 1; max-width: 40px;
+  border: 1px solid var(--line2);
+  border-radius: 4px;
+  background: var(--s2);
   display: flex; align-items: center; justify-content: center;
-  cursor: pointer; transition: all 0.15s cubic-bezier(.4,0,.2,1);
+  cursor: pointer;
+  transition: all 0.12s;
+  font-size: 15px;
+  position: relative;
 }
-.step-btn:active { transform: scale(0.87); }
-.step input:checked + .step-btn { background: var(--g-dim); border-color: var(--g-bdr); }
-.step-icon { font-size: 17px; line-height: 1; opacity: 0.2; transition: opacity 0.15s; }
-.step input:checked + .step-btn .step-icon { opacity: 1; }
-.step-lbl { font-size: 9px; font-weight: 500; color: var(--t3); letter-spacing: 0.2px; }
-.step input:checked ~ .step-lbl { color: var(--green); }
+.step-box:active { transform: scale(0.87); }
+.step-icon { opacity: 0.15; line-height: 1; transition: opacity 0.12s; }
+.step input:checked + .step-box { background: var(--s3); border-color: var(--green); }
+.step input:checked + .step-box .step-icon { opacity: 1; }
+.step-txt {
+  font-size: 8px; font-weight: 500; color: var(--t3);
+  letter-spacing: 0.2px; text-align: center; line-height: 1.2;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 40px;
+}
+.step input:checked ~ .step-txt { color: var(--green); }
 
-.card-track { height: 2px; background: var(--b1); }
-.card-track-fill { height: 100%; background: linear-gradient(90deg, var(--green), #38a169); transition: width 0.4s cubic-bezier(.4,0,.2,1); }
-
-.sep { height: 1px; background: var(--b1); margin: 10px 20px; }
+.room-tag {
+  flex-shrink: 0;
+  font-size: 10px; font-weight: 600;
+  padding: 2px 7px; border-radius: 2px;
+  letter-spacing: 0.3px; text-transform: uppercase;
+}
+.room-tag.done  { background: rgba(61,153,112,0.12); color: var(--green); }
+.room-tag.wip   { background: rgba(212,168,67,0.10); color: var(--accent); }
+.room-tag.empty { color: var(--t3); }
 
 /* ── FOOTER ── */
 .footer {
   position: fixed; bottom: 0; left: 0; right: 0;
   padding: 10px 14px calc(10px + env(safe-area-inset-bottom));
-  background: linear-gradient(to top, var(--bg) 70%, transparent);
+  background: var(--bg);
+  border-top: 1px solid var(--line);
 }
 .wa-btn {
-  width: 100%; background: #25D366; color: #000;
-  font-family: inherit; font-size: 15px; font-weight: 700; letter-spacing: -0.2px;
-  border: none; border-radius: var(--r); padding: 15px 20px;
+  width: 100%;
+  background: #25D366; color: #000;
+  font-family: inherit; font-size: 14px; font-weight: 700;
+  border: none; border-radius: 4px; padding: 13px;
   display: flex; align-items: center; justify-content: center; gap: 8px;
-  cursor: pointer; box-shadow: 0 4px 20px rgba(37,211,102,0.2);
-  transition: opacity 0.15s, transform 0.1s;
+  cursor: pointer; transition: opacity 0.12s;
 }
-.wa-btn:active { opacity: 0.88; transform: scale(0.98); }
+.wa-btn:active { opacity: 0.8; }
 
 /* ── TOAST ── */
 .toast {
-  position: fixed; bottom: 84px;
-  left: 50%; transform: translateX(-50%) translateY(8px);
-  background: var(--s3); border: 1px solid var(--b2); color: var(--t1);
-  font-size: 13px; font-weight: 500; padding: 9px 18px; border-radius: 99px;
-  opacity: 0; pointer-events: none; transition: all 0.2s cubic-bezier(.4,0,.2,1);
-  white-space: nowrap; box-shadow: 0 8px 32px rgba(0,0,0,0.6);
+  position: fixed; bottom: 76px;
+  left: 50%; transform: translateX(-50%) translateY(6px);
+  background: var(--s3); border: 1px solid var(--line2);
+  color: var(--t1); font-size: 12px; font-weight: 500;
+  padding: 8px 16px; border-radius: 3px;
+  opacity: 0; pointer-events: none;
+  transition: all 0.18s; white-space: nowrap;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.5);
 }
 .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 
-/* ══════════════════════════════════════
+/* ════════════════════════════
    SETTINGS SHEET
-══════════════════════════════════════ */
-.sheet-overlay {
+════════════════════════════ */
+.overlay {
   position: fixed; inset: 0;
-  background: rgba(0,0,0,0.6);
-  backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px);
-  z-index: 100;
-  opacity: 0; pointer-events: none;
-  transition: opacity 0.3s;
+  background: rgba(0,0,0,0.7);
+  z-index: 100; opacity: 0; pointer-events: none;
+  transition: opacity 0.25s;
 }
-.sheet-overlay.open { opacity: 1; pointer-events: all; }
+.overlay.open { opacity: 1; pointer-events: all; }
 
 .sheet {
   position: fixed; bottom: 0; left: 0; right: 0;
   background: var(--s1);
-  border-radius: 20px 20px 0 0;
-  border-top: 1px solid var(--b2);
+  border-top: 1px solid var(--line2);
   z-index: 101;
-  max-height: 90vh;
+  max-height: 88vh;
   display: flex; flex-direction: column;
   transform: translateY(100%);
-  transition: transform 0.35s cubic-bezier(.32,0,.15,1);
+  transition: transform 0.3s cubic-bezier(.32,0,.15,1);
   padding-bottom: env(safe-area-inset-bottom);
 }
 .sheet.open { transform: translateY(0); }
 
-.sheet-handle {
-  width: 36px; height: 4px;
-  background: var(--b3); border-radius: 99px;
-  margin: 12px auto 0; flex-shrink: 0;
-}
-
-.sheet-header {
+.sh-handle { width: 32px; height: 3px; background: var(--line2); border-radius: 99px; margin: 10px auto 0; flex-shrink: 0; }
+.sh-hd {
   display: flex; align-items: center; justify-content: space-between;
-  padding: 14px 20px 10px; flex-shrink: 0;
-  border-bottom: 1px solid var(--b1);
+  padding: 12px 18px; border-bottom: 1px solid var(--line); flex-shrink: 0;
 }
-.sheet-title { font-size: 16px; font-weight: 700; letter-spacing: -0.3px; }
-.sheet-close {
-  width: 28px; height: 28px;
-  background: var(--s3); border: none; border-radius: 99px;
-  color: var(--t2); cursor: pointer;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 14px; transition: background 0.15s;
+.sh-title { font-size: 15px; font-weight: 700; letter-spacing: -0.2px; }
+.sh-close {
+  width: 26px; height: 26px; background: var(--s3); border: none; border-radius: 3px;
+  color: var(--t2); cursor: pointer; font-family: inherit; font-size: 13px;
+  display: flex; align-items: center; justify-content: center; transition: background 0.12s;
 }
-.sheet-close:active { background: var(--s4); }
+.sh-close:active { background: var(--s4); }
 
-.sheet-body { overflow-y: auto; -webkit-overflow-scrolling: touch; flex: 1; padding: 16px 20px 24px; }
+.sh-body { overflow-y: auto; -webkit-overflow-scrolling: touch; flex: 1; padding: 16px 18px 24px; }
 
-/* Settings sections */
-.setting-group { margin-bottom: 22px; }
-.setting-group-label {
+.sg { margin-bottom: 20px; }
+.sg-lbl {
   font-size: 10px; font-weight: 600; color: var(--t3);
-  text-transform: uppercase; letter-spacing: 1px;
+  text-transform: uppercase; letter-spacing: 0.8px;
   margin-bottom: 8px; padding-left: 2px;
 }
 
-/* Input field */
-.s-input-row { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
-.s-input {
-  flex: 1; background: var(--s2); border: 1px solid var(--b2);
-  border-radius: 10px; color: var(--t1);
+.si {
+  width: 100%; background: var(--s2); border: 1px solid var(--line2);
+  border-radius: 4px; color: var(--t1);
   font-family: inherit; font-size: 14px; font-weight: 500;
-  padding: 10px 13px; outline: none; transition: border-color 0.15s;
+  padding: 10px 12px; outline: none; transition: border-color 0.12s;
+  margin-bottom: 6px;
 }
-.s-input:focus { border-color: var(--accent); }
-.s-input::placeholder { color: var(--t3); }
+.si:focus { border-color: var(--accent); }
+.si::placeholder { color: var(--t3); }
+.si:last-child { margin-bottom: 0; }
 
-/* Crew list */
-.crew-item {
-  background: var(--s2); border: 1px solid var(--b1);
-  border-radius: var(--r); margin-bottom: 8px; overflow: hidden;
+/* Steps list */
+.step-row-s {
+  display: flex; align-items: center; gap: 6px;
+  padding: 7px 0; border-top: 1px solid var(--line);
 }
-.crew-item-header {
-  display: flex; align-items: center; gap: 8px;
-  padding: 10px 12px;
-  cursor: pointer;
+.step-row-s:first-child { border-top: none; }
+.si-icon {
+  width: 42px; background: var(--s2); border: 1px solid var(--line2);
+  border-radius: 4px; color: var(--t1);
+  font-family: inherit; font-size: 16px;
+  padding: 8px 6px; outline: none; text-align: center;
+  flex-shrink: 0;
 }
-.crew-item-arrow {
-  color: var(--t3); font-size: 10px; transition: transform 0.2s;
-  margin-left: auto; flex-shrink: 0;
-}
-.crew-item.expanded .crew-item-arrow { transform: rotate(90deg); }
-.crew-item-name { font-size: 14px; font-weight: 600; flex: 1; }
-.crew-name-input {
-  flex: 1; background: transparent; border: none;
-  color: var(--t1); font-family: inherit; font-size: 14px; font-weight: 600;
-  outline: none; padding: 0;
-}
-
-.crew-rooms { padding: 0 12px 10px; display: none; }
-.crew-item.expanded .crew-rooms { display: block; }
-
-.room-item {
-  display: flex; align-items: center; gap: 8px;
-  padding: 7px 0; border-top: 1px solid var(--b1);
-}
-.room-name-input {
+.si-icon:focus { border-color: var(--accent); }
+.si-name {
   flex: 1; background: transparent; border: none;
   color: var(--t2); font-family: inherit; font-size: 13px;
   outline: none; padding: 0;
 }
-.room-name-input:focus { color: var(--t1); }
+.si-name:focus { color: var(--t1); }
+
+/* Crew list */
+.crew-item {
+  background: var(--s2); border: 1px solid var(--line);
+  border-radius: 4px; margin-bottom: 6px; overflow: hidden;
+}
+.ci-hd {
+  display: flex; align-items: center; gap: 8px;
+  padding: 9px 12px; cursor: pointer;
+}
+.ci-arrow { color: var(--t3); font-size: 9px; margin-left: auto; flex-shrink: 0; transition: transform 0.18s; }
+.crew-item.exp .ci-arrow { transform: rotate(90deg); }
+.ci-name {
+  flex: 1; background: transparent; border: none;
+  color: var(--t1); font-family: inherit; font-size: 13px; font-weight: 600;
+  outline: none; padding: 0;
+}
+
+.crew-rooms { padding: 0 12px 8px; display: none; }
+.crew-item.exp .crew-rooms { display: block; }
+.room-row {
+  display: flex; align-items: center; gap: 8px;
+  padding: 6px 0; border-top: 1px solid var(--line);
+}
+.rn-input {
+  flex: 1; background: transparent; border: none;
+  color: var(--t2); font-family: inherit; font-size: 12px;
+  outline: none; padding: 0;
+}
+.rn-input:focus { color: var(--t1); }
 
 .del-btn {
-  width: 24px; height: 24px; border-radius: 6px;
-  background: none; border: none; cursor: pointer;
+  width: 22px; height: 22px; background: none; border: none;
+  color: var(--t3); cursor: pointer;
   display: flex; align-items: center; justify-content: center;
-  color: rgba(239,68,68,0.4); transition: all 0.15s; flex-shrink: 0;
+  border-radius: 3px; transition: all 0.12s; flex-shrink: 0;
 }
-.del-btn:active { color: var(--red); background: rgba(239,68,68,0.08); }
-.del-btn svg { width: 14px; height: 14px; }
+.del-btn:active { color: var(--red); background: rgba(192,57,43,0.08); }
+.del-btn svg { width: 13px; height: 13px; }
 
 .add-btn {
   display: flex; align-items: center; gap: 6px;
-  background: none; border: 1px dashed var(--b2);
-  border-radius: 8px; color: var(--t3);
-  font-family: inherit; font-size: 12px; font-weight: 500;
+  background: none; border: 1px dashed var(--line2);
+  border-radius: 4px; color: var(--t3);
+  font-family: inherit; font-size: 11px; font-weight: 500;
   padding: 7px 10px; cursor: pointer; width: 100%; margin-top: 6px;
-  transition: all 0.15s;
+  transition: all 0.12s;
 }
-.add-btn:active { background: var(--s3); color: var(--t2); }
-.add-btn svg { width: 13px; height: 13px; flex-shrink: 0; }
+.add-btn:active { border-color: var(--t2); color: var(--t2); }
+.add-btn svg { width: 12px; height: 12px; flex-shrink: 0; }
 
 .add-crew-btn {
+  width: 100%; padding: 10px;
+  background: var(--s2); border: 1px solid var(--line2);
+  border-radius: 4px; color: var(--t2);
+  font-family: inherit; font-size: 12px; font-weight: 600;
+  cursor: pointer; transition: all 0.12s; margin-top: 4px;
   display: flex; align-items: center; justify-content: center; gap: 6px;
-  width: 100%; padding: 11px;
-  background: var(--a-dim); border: 1px solid var(--a-bdr);
-  border-radius: var(--r); color: #a5b4fc;
-  font-family: inherit; font-size: 13px; font-weight: 600;
-  cursor: pointer; transition: all 0.15s; margin-top: 4px;
 }
-.add-crew-btn:active { opacity: 0.7; }
+.add-crew-btn:active { background: var(--s3); color: var(--t1); }
 
-/* Firebase section */
-.firebase-status {
-  display: flex; align-items: center; gap: 6px;
-  font-size: 12px; color: var(--t2); margin-top: 8px;
-}
-.fb-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--t3); flex-shrink: 0; }
-.fb-dot.connected { background: var(--green); box-shadow: 0 0 6px rgba(76,175,116,0.5); }
-.fb-dot.connecting { background: var(--amber, #f59e0b); animation: pulse 1s infinite; }
-@keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.4; } }
+/* Firebase */
+.fb-row { display: flex; align-items: center; gap: 6px; margin-top: 8px; }
+.fb-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--t3); flex-shrink: 0; }
+.fb-dot.ok { background: var(--green); }
+.fb-txt { font-size: 11px; color: var(--t3); }
 
 .save-btn {
-  width: 100%; padding: 13px;
-  background: var(--accent); border: none; border-radius: var(--r);
-  color: #fff; font-family: inherit; font-size: 14px; font-weight: 700;
-  cursor: pointer; margin-top: 16px; transition: opacity 0.15s;
+  width: 100%; padding: 12px;
+  background: var(--accent); color: #000;
+  font-family: inherit; font-size: 14px; font-weight: 700;
+  border: none; border-radius: 4px; cursor: pointer;
+  margin-top: 16px; transition: opacity 0.12s;
 }
 .save-btn:active { opacity: 0.8; }
 </style>
 </head>
 <body>
 
-<!-- MAIN UI -->
-<div class="header">
-  <div class="header-left">
-    <div class="header-title" id="confTitle">Setup Tracker</div>
-    <div class="header-sub" id="confSub">Loading…</div>
+<div class="hd">
+  <div class="hd-left">
+    <div class="hd-title" id="confTitle">Setup Tracker</div>
+    <div class="hd-sub" id="confSub">—</div>
   </div>
-  <div class="header-right">
-    <div class="ring-wrap">
-      <svg width="40" height="40" viewBox="0 0 40 40">
-        <circle class="ring-track" cx="20" cy="20" r="16"/>
-        <circle class="ring-fill" id="ringFill" cx="20" cy="20" r="16" stroke-dasharray="100.5" stroke-dashoffset="100.5"/>
-      </svg>
-      <div class="ring-pct" id="ringPct">0%</div>
+  <div class="hd-right">
+    <div class="stat">
+      <div class="stat-num" id="statNum">0/0</div>
+      <div class="stat-lbl">Rooms Done</div>
     </div>
-    <div class="icon-btn" onclick="openSettings()" title="Settings">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+    <div class="gear-btn" onclick="openSettings()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="3"/>
+        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
       </svg>
     </div>
   </div>
 </div>
 
-<div class="filter-wrap"><div class="chips" id="chips"></div></div>
-<div class="top-actions">
-  <button class="reset-btn" onclick="confirmReset()">
-    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.5"/></svg>
-    Reset all
-  </button>
+<div class="filter-bar">
+  <div class="filter-row" id="filterRow"></div>
+</div>
+
+<div class="top-bar">
+  <button class="rst-btn" onclick="confirmReset()">Reset all</button>
 </div>
 
 <div id="tracker"></div>
 
 <div class="footer">
   <button class="wa-btn" onclick="copyStatus()">
-    <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 2C6.48 2 2 6.48 2 12c0 1.85.5 3.58 1.37 5.07L2 22l5.1-1.35C8.5 21.52 10.22 22 12 22c5.52 0 10-4.48 10-10S17.52 2 12 2zm0 18c-1.67 0-3.22-.46-4.55-1.26l-.32-.19-3.02.8.81-2.96-.21-.34A7.944 7.944 0 014 12c0-4.41 3.59-8 8-8s8 3.59 8 8-3.59 8-8 8z"/></svg>
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 2C6.48 2 2 6.48 2 12c0 1.85.5 3.58 1.37 5.07L2 22l5.1-1.35C8.5 21.52 10.22 22 12 22c5.52 0 10-4.48 10-10S17.52 2 12 2zm0 18c-1.67 0-3.22-.46-4.55-1.26l-.32-.19-3.02.8.81-2.96-.21-.34A7.944 7.944 0 014 12c0-4.41 3.59-8 8-8s8 3.59 8 8-3.59 8-8 8z"/></svg>
     Copy for WhatsApp
   </button>
 </div>
 
 <div class="toast" id="toast"></div>
 
-<!-- SETTINGS SHEET -->
-<div class="sheet-overlay" id="overlay" onclick="closeSettings()"></div>
+<div class="overlay" id="overlay" onclick="closeSettings()"></div>
 <div class="sheet" id="sheet">
-  <div class="sheet-handle"></div>
-  <div class="sheet-header">
-    <div class="sheet-title">Settings</div>
-    <button class="sheet-close" onclick="closeSettings()">✕</button>
+  <div class="sh-handle"></div>
+  <div class="sh-hd">
+    <div class="sh-title">Settings</div>
+    <button class="sh-close" onclick="closeSettings()">✕</button>
   </div>
-  <div class="sheet-body" id="sheetBody"></div>
+  <div class="sh-body" id="shBody"></div>
 </div>
 
 <script>
-// ═══════════════════════════════
-// DEFAULT CONFIG
-// ═══════════════════════════════
 const DEFAULT_CONFIG = {
   title: 'Setup Tracker',
   subtitle: 'KubeCon EU 2026 · RAI Amsterdam',
   firebaseUrl: 'https://kubecon-tracker-default-rtdb.europe-west1.firebasedatabase.app',
   steps: [
-    { key: 'setup',  icon: '🔧', label: 'Setup'  },
-    { key: 'ptz',    icon: '🤖', label: 'PTZ'    },
-    { key: 'stream', icon: '🔑', label: 'Keys'   },
-    { key: 'parsec', icon: '⚡', label: 'Parsec' },
-    { key: 'tested', icon: '✏️', label: 'Tested' },
+    { key:'setup',  icon:'🔧', label:'Setup'  },
+    { key:'ptz',    icon:'🤖', label:'PTZ'    },
+    { key:'stream', icon:'🔑', label:'Keys'   },
+    { key:'parsec', icon:'⚡', label:'Parsec' },
+    { key:'tested', icon:'✏️', label:'Tested' },
   ],
   crew: [
-    { id: 'alexi',   name: 'Alexi',   rooms: [{id:'r1',name:'E103-105'},{id:'r2',name:'E106-108'},{id:'r3',name:'Auditorium'}] },
-    { id: 'clayton', name: 'Clayton', rooms: [{id:'r4',name:'Hall 7A'},{id:'r5',name:'Hall 7B'},{id:'r6',name:'Hall 7C'}] },
-    { id: 'will',    name: 'Will',    rooms: [{id:'r7',name:'Hall 8D'},{id:'r8',name:'Hall 8E'},{id:'r9',name:'Hall 8F'},{id:'r10',name:'Hall 8G'}] },
-    { id: 'costmo',  name: 'Costmo',  rooms: [{id:'r11',name:'Hall 12'},{id:'r12',name:'Forum'},{id:'r13',name:'Hall 8G (co)'}] },
-    { id: 'johnick', name: 'Johnick', rooms: [{id:'r14',name:'Emerald'},{id:'r15',name:'G102-105'}] },
-    { id: 'brent',   name: 'Brent',   rooms: [{id:'r16',name:'F002-005'},{id:'r17',name:'Amtrium 1+2'},{id:'r18',name:'CN Theater'}] },
-    { id: 'lynda',   name: 'Lynda',   rooms: [{id:'r19',name:'Elicium 1'},{id:'r20',name:'Elicium 2'}] },
+    { id:'alexi',   name:'Alexi',   rooms:[{id:'r1',name:'E103-105'},{id:'r2',name:'E106-108'},{id:'r3',name:'Auditorium'}] },
+    { id:'clayton', name:'Clayton', rooms:[{id:'r4',name:'Hall 7A'},{id:'r5',name:'Hall 7B'},{id:'r6',name:'Hall 7C'}] },
+    { id:'will',    name:'Will',    rooms:[{id:'r7',name:'Hall 8D'},{id:'r8',name:'Hall 8E'},{id:'r9',name:'Hall 8F'},{id:'r10',name:'Hall 8G'}] },
+    { id:'costmo',  name:'Costmo',  rooms:[{id:'r11',name:'Hall 12'},{id:'r12',name:'Forum'},{id:'r13',name:'Hall 8G (co)'}] },
+    { id:'johnick', name:'Johnick', rooms:[{id:'r14',name:'Emerald'},{id:'r15',name:'G102-105'}] },
+    { id:'brent',   name:'Brent',   rooms:[{id:'r16',name:'F002-005'},{id:'r17',name:'Amtrium 1+2'},{id:'r18',name:'CN Theater'}] },
+    { id:'lynda',   name:'Lynda',   rooms:[{id:'r19',name:'Elicium 1'},{id:'r20',name:'Elicium 2'}] },
   ]
 };
 
 const PREFILL = {
-  'r1':{setup:1,ptz:1,stream:1,parsec:1,tested:1},
-  'r2':{setup:1,ptz:1,stream:1,parsec:1,tested:1},
-  'r3':{setup:1,ptz:1,stream:0,parsec:0,tested:0},
-  'r4':{setup:1,ptz:1,stream:1,parsec:1,tested:1},
-  'r5':{setup:1,ptz:1,stream:1,parsec:1,tested:1},
-  'r6':{setup:1,ptz:1,stream:1,parsec:1,tested:1},
-  'r7':{setup:1,ptz:1,stream:1,parsec:1,tested:1},
-  'r8':{setup:1,ptz:1,stream:1,parsec:1,tested:0},
-  'r9':{setup:1,ptz:1,stream:1,parsec:1,tested:1},
-  'r10':{setup:1,ptz:1,stream:1,parsec:1,tested:1},
-  'r11':{setup:0,ptz:0,stream:0,parsec:0,tested:0},
-  'r12':{setup:1,ptz:1,stream:1,parsec:1,tested:1},
-  'r13':{setup:1,ptz:1,stream:1,parsec:1,tested:1},
+  r1:{setup:1,ptz:1,stream:1,parsec:1,tested:1}, r2:{setup:1,ptz:1,stream:1,parsec:1,tested:1},
+  r3:{setup:1,ptz:1,stream:0,parsec:0,tested:0}, r4:{setup:1,ptz:1,stream:1,parsec:1,tested:1},
+  r5:{setup:1,ptz:1,stream:1,parsec:1,tested:1}, r6:{setup:1,ptz:1,stream:1,parsec:1,tested:1},
+  r7:{setup:1,ptz:1,stream:1,parsec:1,tested:1}, r8:{setup:1,ptz:1,stream:1,parsec:1,tested:0},
+  r9:{setup:1,ptz:1,stream:1,parsec:1,tested:1}, r10:{setup:1,ptz:1,stream:1,parsec:1,tested:1},
+  r12:{setup:1,ptz:1,stream:1,parsec:1,tested:1}, r13:{setup:1,ptz:1,stream:1,parsec:1,tested:1},
 };
 
-// ═══════════════════════════════
-// STATE
-// ═══════════════════════════════
-let config = JSON.parse(localStorage.getItem('kc_config') || 'null') || DEFAULT_CONFIG;
-let state  = JSON.parse(localStorage.getItem('kc_state')  || '{}');
-let filterUser = null;
-let fbDb = null; // Firebase ref
+let config = JSON.parse(localStorage.getItem('kc_config')||'null') || DEFAULT_CONFIG;
+let state  = JSON.parse(localStorage.getItem('kc_state') ||'{}');
+let filter = null;
+let fbDb   = null;
 
 function saveConfig() { localStorage.setItem('kc_config', JSON.stringify(config)); }
 function saveState()  { localStorage.setItem('kc_state',  JSON.stringify(state)); }
-
-function getVal(roomId, stepKey) {
-  if (state[roomId]?.[stepKey] !== undefined) return state[roomId][stepKey];
-  return PREFILL[roomId]?.[stepKey] || 0;
+function getVal(rid, sk) {
+  if (state[rid]?.[sk] !== undefined) return state[rid][sk];
+  return PREFILL[rid]?.[sk] || 0;
 }
-function isDone(roomId) { return config.steps.every(s => getVal(roomId, s.key)); }
-function countDone(roomId) { return config.steps.filter(s => getVal(roomId, s.key)).length; }
+function isDone(rid)   { return config.steps.every(s => getVal(rid, s.key)); }
+function countDone(rid){ return config.steps.filter(s => getVal(rid, s.key)).length; }
 
-function toggle(roomId, stepKey) {
-  if (!state[roomId]) {
-    state[roomId] = {};
-    config.steps.forEach(s => state[roomId][s.key] = getVal(roomId, s.key));
-  }
-  state[roomId][stepKey] ^= 1;
+function toggle(rid, sk) {
+  if (!state[rid]) { state[rid]={}; config.steps.forEach(s => state[rid][s.key]=getVal(rid,s.key)); }
+  state[rid][sk] ^= 1;
   saveState();
-  if (fbDb) fbDb.child('state/' + roomId).set(state[roomId]);
+  if (fbDb) fbDb.child('state/'+rid).set(state[rid]);
   render();
 }
 
-// ═══════════════════════════════
-// FIREBASE
-// ═══════════════════════════════
+// Firebase
 function initFirebase(url) {
   if (!url) return;
-  const script = document.createElement('script');
-  script.src = 'https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js';
-  script.onload = () => {
-    const s2 = document.createElement('script');
-    s2.src = 'https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js';
-    s2.onload = () => connectFirebase(url);
-    document.head.appendChild(s2);
-  };
-  document.head.appendChild(script);
+  const load = (src, cb) => { const s=document.createElement('script'); s.src=src; s.onload=cb; document.head.appendChild(s); };
+  load('https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js', () =>
+    load('https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js', () => {
+      try {
+        const app = firebase.initializeApp({ databaseURL: url }, 'tr');
+        fbDb = firebase.database(app).ref('tracker');
+        fbDb.child('state').on('value', s => { const v=s.val(); if(v){state=v;saveState();render();} });
+        fbDb.child('config').on('value', s => { const v=s.val(); if(v){config=v;saveConfig();render();} });
+        setFbStatus(true);
+      } catch(e) { setFbStatus(false); }
+    }));
+}
+function setFbStatus(ok) {
+  const d=document.getElementById('fbDot'), t=document.getElementById('fbTxt');
+  if(!d) return;
+  d.className='fb-dot'+(ok?' ok':'');
+  t.textContent=ok?'Connected — live sync active':'Not connected — local only';
 }
 
-function connectFirebase(url) {
-  try {
-    const app = firebase.initializeApp({ databaseURL: url }, 'tracker');
-    fbDb = firebase.database(app).ref('tracker');
-
-    // Sync state from Firebase
-    fbDb.child('state').on('value', snap => {
-      const remote = snap.val();
-      if (remote) { state = remote; saveState(); render(); }
-    });
-
-    // Sync config from Firebase
-    fbDb.child('config').on('value', snap => {
-      const remote = snap.val();
-      if (remote) { config = remote; saveConfig(); render(); }
-    });
-
-    updateFirebaseStatus(true);
-  } catch(e) {
-    console.error('Firebase error:', e);
-    updateFirebaseStatus(false);
-  }
-}
-
-function updateFirebaseStatus(connected) {
-  const dot = document.getElementById('fbDot');
-  const txt = document.getElementById('fbTxt');
-  if (!dot) return;
-  dot.className = 'fb-dot ' + (connected ? 'connected' : '');
-  txt.textContent = connected ? 'Connected — syncing in real time' : 'Not connected — local only';
-}
-
-// ═══════════════════════════════
-// RENDER
-// ═══════════════════════════════
+// Render
 function render() {
-  // Header
   document.getElementById('confTitle').textContent = config.title;
   document.getElementById('confSub').textContent   = config.subtitle;
 
-  // Filter chips
-  document.getElementById('chips').innerHTML = config.crew.map(c => `
-    <div class="chip ${filterUser===c.id?'on':''}" onclick="toggleFilter('${c.id}')">
-      <span class="dot"></span>${c.name}
-    </div>`).join('');
+  // Chips
+  document.getElementById('filterRow').innerHTML = config.crew.map(c =>
+    `<div class="fc${filter===c.id?' on':''}" onclick="toggleFilter('${c.id}')">${c.name}</div>`
+  ).join('');
 
   const el = document.getElementById('tracker');
   el.innerHTML = '';
 
-  // Filter banner
-  if (filterUser) {
-    const crew = config.crew.find(c => c.id === filterUser);
-    const b = document.createElement('div');
-    b.className = 'f-banner';
-    b.innerHTML = `<span>Showing <strong>${crew?.name}</strong> only</span>
-      <span class="f-banner-clear" onclick="toggleFilter('${filterUser}')">Show all</span>`;
-    el.appendChild(b);
+  if (filter) {
+    const crew = config.crew.find(c=>c.id===filter);
+    const n = document.createElement('div'); n.className='f-notice';
+    n.innerHTML=`<span>Showing <strong>${crew?.name}</strong></span><span class="f-clear" onclick="toggleFilter('${filter}')">Show all</span>`;
+    el.appendChild(n);
   }
 
-  let total = 0, done = 0;
+  let total=0, done=0;
 
-  config.crew.forEach((c, ci) => {
-    if (filterUser && filterUser !== c.id) return;
+  config.crew.forEach((c,ci) => {
+    if (filter && filter!==c.id) return;
+    const cd = c.rooms.filter(r=>isDone(r.id)).length;
+    total += c.rooms.length; done += cd;
 
-    const crewDone = c.rooms.filter(r => isDone(r.id)).length;
-    total += c.rooms.length;
-    done  += crewDone;
-
-    const sec = document.createElement('div');
-    sec.className = 'section';
-    sec.innerHTML = `<div class="section-label">
-      <span class="section-name">${c.name}</span>
-      <span class="section-count">${crewDone}/${c.rooms.length}</span>
-    </div>`;
+    const sec = document.createElement('div'); sec.className='section';
+    sec.innerHTML=`<div class="sec-hd"><span class="sec-name">${c.name}</span><span class="sec-count">${cd}/${c.rooms.length}</span></div>`;
 
     c.rooms.forEach(room => {
-      const d  = isDone(room.id);
-      const n  = countDone(room.id);
-      const pct = Math.round(n / config.steps.length * 100);
-      const sc  = d ? 's-done' : n > 0 ? 's-wip' : 's-empty';
-      const st  = d ? 'Done' : n > 0 ? `${n} / ${config.steps.length}` : 'Pending';
-
-      const card = document.createElement('div');
-      card.className = `card${d ? ' done' : ''}`;
-      card.innerHTML = `
-        <div class="card-header">
-          <div class="card-name">${room.name}</div>
-          <div class="card-status ${sc}">${st}</div>
-        </div>
-        <div class="step-row">
-          ${config.steps.map(s => {
-            const checked = getVal(room.id, s.key);
-            const id = `${room.id}_${s.key}`;
+      const d=isDone(room.id), n=countDone(room.id);
+      const tag = d?'done':n>0?'wip':'empty';
+      const tagTxt = d?'Done':n>0?`${n}/${config.steps.length}`:'—';
+      const row = document.createElement('div'); row.className=`room${d?' done':''}`;
+      row.innerHTML=`
+        <div class="room-name">${room.name}</div>
+        <div class="steps-wrap">
+          ${config.steps.map(s=>{
+            const checked=getVal(room.id,s.key), id=`${room.id}_${s.key}`;
             return `<div class="step">
               <input type="checkbox" id="${id}" ${checked?'checked':''} onchange="toggle('${room.id}','${s.key}')">
-              <label class="step-btn" for="${id}"><span class="step-icon">${s.icon}</span></label>
-              <span class="step-lbl">${s.label}</span>
+              <label class="step-box" for="${id}"><span class="step-icon">${s.icon}</span></label>
+              <span class="step-txt">${s.label}</span>
             </div>`;
           }).join('')}
         </div>
-        <div class="card-track"><div class="card-track-fill" style="width:${pct}%"></div></div>`;
-      sec.appendChild(card);
+        <div class="room-tag ${tag}">${tagTxt}</div>`;
+      sec.appendChild(row);
     });
-
-    if (!filterUser && ci < config.crew.length - 1) {
-      const d = document.createElement('div'); d.className = 'sep';
-      sec.appendChild(d);
-    }
     el.appendChild(sec);
   });
 
-  // Ring
-  const pct = total ? Math.round(done / total * 100) : 0;
-  const circ = 2 * Math.PI * 16;
-  document.getElementById('ringFill').style.strokeDashoffset = circ - (circ * pct / 100);
-  document.getElementById('ringPct').textContent = pct + '%';
+  document.getElementById('statNum').textContent = `${done}/${total}`;
 }
 
-function toggleFilter(id) {
-  filterUser = filterUser === id ? null : id;
-  render();
-}
+function toggleFilter(id) { filter=filter===id?null:id; render(); }
 
 function confirmReset() {
-  if (confirm('Reset ALL room progress?')) {
-    state = {};
-    saveState();
-    if (fbDb) fbDb.child('state').set({});
-    showToast('Progress reset');
-    render();
-  }
+  if (!confirm('Reset all progress?')) return;
+  state={}; saveState();
+  if (fbDb) fbDb.child('state').set({});
+  showToast('Progress reset'); render();
 }
 
-// ═══════════════════════════════
-// COPY
-// ═══════════════════════════════
 function copyStatus() {
-  const lines = ['SET UP MASTER LIST:'];
-  config.crew.forEach(c => {
-    c.rooms.forEach(room => {
-      const checks = config.steps.filter(s => getVal(room.id, s.key)).map(s => s.icon).join('');
-      lines.push(`${room.name}-${c.name}${checks?' '+checks:''}`);
-    });
-  });
+  const lines=['SET UP MASTER LIST:'];
+  config.crew.forEach(c => c.rooms.forEach(room => {
+    const checks=config.steps.filter(s=>getVal(room.id,s.key)).map(s=>s.icon).join('');
+    lines.push(`${room.name}-${c.name}${checks?' '+checks:''}`);
+  }));
   lines.push('');
-  lines.push(config.steps.map(s => `${s.icon} = ${s.label}`).join('  '));
-
-  navigator.clipboard.writeText(lines.join('\n'))
-    .then(() => showToast('Copied to clipboard'))
-    .catch(() => prompt('Copy:', lines.join('\n')));
+  lines.push(config.steps.map(s=>`${s.icon} = ${s.label}`).join('  '));
+  navigator.clipboard.writeText(lines.join('\n')).then(()=>showToast('Copied')).catch(()=>prompt('Copy:',lines.join('\n')));
 }
 
-// ═══════════════════════════════
-// SETTINGS SHEET
-// ═══════════════════════════════
+// Settings
 function openSettings() {
   renderSettings();
   document.getElementById('overlay').classList.add('open');
   document.getElementById('sheet').classList.add('open');
-  document.body.style.overflow = 'hidden';
+  document.body.style.overflow='hidden';
 }
 function closeSettings() {
   document.getElementById('overlay').classList.remove('open');
   document.getElementById('sheet').classList.remove('open');
-  document.body.style.overflow = '';
+  document.body.style.overflow='';
 }
 
 function renderSettings() {
-  const body = document.getElementById('sheetBody');
+  const body=document.getElementById('shBody');
+  const stepsHtml = `<div>${config.steps.map((s,si)=>`
+    <div class="step-row-s">
+      <input class="si-icon" value="${s.icon}" onchange="updateStep(${si},'icon',this.value)" maxlength="2">
+      <input class="si-name" value="${s.label}" onchange="updateStep(${si},'label',this.value)" placeholder="Step name">
+      <div class="del-btn" onclick="deleteStep(${si})">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </div>
+    </div>`).join('')}</div>`;
 
-  let crewHtml = config.crew.map((c, ci) => `
+  const crewHtml = config.crew.map((c,ci)=>`
     <div class="crew-item" id="ci_${ci}">
-      <div class="crew-item-header" onclick="toggleCrewExpand(${ci})">
-        <input class="crew-name-input" value="${c.name}" onclick="event.stopPropagation()"
-          onchange="renameCrew(${ci}, this.value)" placeholder="Crew name">
-        <div class="del-btn" onclick="event.stopPropagation(); deleteCrew(${ci})" title="Remove">
+      <div class="ci-hd" onclick="toggleExp(${ci})">
+        <input class="ci-name" value="${c.name}" onclick="event.stopPropagation()" onchange="renameCrew(${ci},this.value)">
+        <div class="del-btn" onclick="event.stopPropagation();delCrew(${ci})">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
         </div>
-        <div class="crew-item-arrow">▶</div>
+        <div class="ci-arrow">▶</div>
       </div>
       <div class="crew-rooms">
-        ${c.rooms.map((r, ri) => `
-          <div class="room-item">
-            <input class="room-name-input" value="${r.name}"
-              onchange="renameRoom(${ci},${ri},this.value)" placeholder="Room name">
-            <div class="del-btn" onclick="deleteRoom(${ci},${ri})">
+        ${c.rooms.map((r,ri)=>`
+          <div class="room-row">
+            <input class="rn-input" value="${r.name}" onchange="renameRoom(${ci},${ri},this.value)">
+            <div class="del-btn" onclick="delRoom(${ci},${ri})">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
             </div>
           </div>`).join('')}
@@ -673,134 +605,66 @@ function renderSettings() {
       </div>
     </div>`).join('');
 
-  const isConnected = fbDb !== null;
-
-  body.innerHTML = `
-    <div class="setting-group">
-      <div class="setting-group-label">Conference</div>
-      <input class="s-input" id="s_title" value="${config.title}" placeholder="Conference name" style="margin-bottom:6px">
-      <input class="s-input" id="s_sub" value="${config.subtitle}" placeholder="Location / date">
+  body.innerHTML=`
+    <div class="sg">
+      <div class="sg-lbl">Conference</div>
+      <input class="si" id="s_title" value="${config.title}" placeholder="Name">
+      <input class="si" id="s_sub" value="${config.subtitle}" placeholder="Location / date">
     </div>
-
-    <div class="setting-group">
-      <div class="setting-group-label">Live Sync (Firebase)</div>
-      <input class="s-input" id="s_fburl" value="${config.firebaseUrl||''}"
-        placeholder="https://your-db-default-rtdb.firebaseio.com">
-      <div class="firebase-status">
-        <div class="fb-dot ${isConnected?'connected':''}" id="fbDot"></div>
-        <span id="fbTxt">${isConnected ? 'Connected — syncing in real time' : 'Not connected — local only'}</span>
-      </div>
+    <div class="sg">
+      <div class="sg-lbl">Live Sync</div>
+      <input class="si" id="s_fb" value="${config.firebaseUrl||''}" placeholder="Firebase Realtime DB URL" style="margin-bottom:0">
+      <div class="fb-row"><div class="fb-dot${fbDb?' ok':''}" id="fbDot"></div><span class="fb-txt" id="fbTxt">${fbDb?'Connected — live sync active':'Not connected — local only'}</span></div>
     </div>
-
-    <div class="setting-group">
-      <div class="setting-group-label">Checklist Steps</div>
-      <div id="stepsEditor">
-        ${config.steps.map((s, si) => `
-          <div class="room-item" style="background:var(--s2);border-radius:10px;padding:8px 10px;margin-bottom:6px;border:1px solid var(--b1);">
-            <input class="s-input" style="width:52px;padding:6px 8px;text-align:center;font-size:16px;flex:0 0 52px;margin-right:6px"
-              value="${s.icon}" onchange="updateStep(${si},'icon',this.value)" placeholder="🔧" maxlength="2">
-            <input class="s-input" style="flex:1;padding:8px 10px"
-              value="${s.label}" onchange="updateStep(${si},'label',this.value)" placeholder="Step name">
-            <div class="del-btn" onclick="deleteStep(${si})" style="margin-left:6px">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-            </div>
-          </div>`).join('')}
-      </div>
-      <button class="add-btn" onclick="addStep()" style="margin-top:2px">
+    <div class="sg">
+      <div class="sg-lbl">Steps</div>
+      ${stepsHtml}
+      <button class="add-btn" onclick="addStep()">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
         Add step
       </button>
     </div>
-
-    <div class="setting-group">
-      <div class="setting-group-label">Crew &amp; Rooms</div>
+    <div class="sg">
+      <div class="sg-lbl">Crew & Rooms</div>
       ${crewHtml}
       <button class="add-crew-btn" onclick="addCrew()">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
         Add crew member
       </button>
     </div>
-
-    <button class="save-btn" onclick="saveSettings()">Save &amp; Apply</button>
-    <div style="height:8px"></div>
-  `;
+    <button class="save-btn" onclick="saveSettings()">Save & Apply</button>
+    <div style="height:8px"></div>`;
 }
 
-function toggleCrewExpand(ci) {
-  document.getElementById('ci_' + ci)?.classList.toggle('expanded');
-}
-
-function renameCrew(ci, val) {
-  config.crew[ci].name = val.trim() || config.crew[ci].name;
-}
-function renameRoom(ci, ri, val) {
-  config.crew[ci].rooms[ri].name = val.trim() || config.crew[ci].rooms[ri].name;
-}
-function deleteCrew(ci) {
-  if (!confirm(`Remove ${config.crew[ci].name} and all their rooms?`)) return;
-  config.crew.splice(ci, 1);
-  renderSettings();
-}
-function deleteRoom(ci, ri) {
-  config.crew[ci].rooms.splice(ri, 1);
-  renderSettings();
-}
-function addRoom(ci) {
-  const id = 'r_' + Date.now();
-  config.crew[ci].rooms.push({ id, name: 'New Room' });
-  renderSettings();
-  setTimeout(() => document.getElementById('ci_' + ci)?.classList.add('expanded'), 10);
-}
-function addCrew() {
-  const id = 'c_' + Date.now();
-  config.crew.push({ id, name: 'New Person', rooms: [] });
-  renderSettings();
-}
-
-function updateStep(si, field, val) {
-  config.steps[si][field] = val.trim() || config.steps[si][field];
-}
-function deleteStep(si) {
-  if (config.steps.length <= 1) { showToast('Need at least one step'); return; }
-  config.steps.splice(si, 1);
-  renderSettings();
-}
-function addStep() {
-  config.steps.push({ key: 'step_' + Date.now(), icon: '⭐', label: 'New Step' });
-  renderSettings();
-}
+function toggleExp(ci) { document.getElementById('ci_'+ci)?.classList.toggle('exp'); }
+function renameCrew(ci,v){ config.crew[ci].name=v.trim()||config.crew[ci].name; }
+function renameRoom(ci,ri,v){ config.crew[ci].rooms[ri].name=v.trim()||config.crew[ci].rooms[ri].name; }
+function delCrew(ci){ if(!confirm(`Remove ${config.crew[ci].name}?`))return; config.crew.splice(ci,1); renderSettings(); }
+function delRoom(ci,ri){ config.crew[ci].rooms.splice(ri,1); renderSettings(); }
+function addRoom(ci){ config.crew[ci].rooms.push({id:'r_'+Date.now(),name:'New Room'}); renderSettings(); setTimeout(()=>document.getElementById('ci_'+ci)?.classList.add('exp'),10); }
+function addCrew(){ config.crew.push({id:'c_'+Date.now(),name:'New Person',rooms:[]}); renderSettings(); }
+function updateStep(si,f,v){ config.steps[si][f]=v.trim()||config.steps[si][f]; }
+function deleteStep(si){ if(config.steps.length<=1){showToast('Need at least one step');return;} config.steps.splice(si,1); renderSettings(); }
+function addStep(){ config.steps.push({key:'s_'+Date.now(),icon:'⭐',label:'New Step'}); renderSettings(); }
 
 function saveSettings() {
-  config.title    = document.getElementById('s_title').value.trim() || config.title;
-  config.subtitle = document.getElementById('s_sub').value.trim()   || config.subtitle;
-  // Normalise step keys
-  config.steps = config.steps.map(s => ({ ...s, key: s.key || 'step_' + Date.now() }));
-  const fbUrl     = document.getElementById('s_fburl').value.trim();
-
-  if (fbUrl && fbUrl !== config.firebaseUrl) {
-    config.firebaseUrl = fbUrl;
-    initFirebase(fbUrl);
-  }
+  config.title    = document.getElementById('s_title').value.trim()||config.title;
+  config.subtitle = document.getElementById('s_sub').value.trim()||config.subtitle;
+  const fbUrl     = document.getElementById('s_fb').value.trim();
+  if (fbUrl && fbUrl!==config.firebaseUrl) { config.firebaseUrl=fbUrl; initFirebase(fbUrl); }
   config.firebaseUrl = fbUrl;
-
+  config.steps = config.steps.map(s=>({...s, key:s.key||'s_'+Date.now()}));
   saveConfig();
   if (fbDb) fbDb.child('config').set(config);
-  render();
-  closeSettings();
-  showToast('Settings saved');
+  render(); closeSettings(); showToast('Saved');
 }
 
-// ═══════════════════════════════
-// UTILS
-// ═══════════════════════════════
 function showToast(msg) {
-  const t = document.getElementById('toast');
-  t.textContent = msg;
-  t.classList.add('show');
-  setTimeout(() => t.classList.remove('show'), 2000);
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),2000);
 }
 
-// INIT
 if (config.firebaseUrl) initFirebase(config.firebaseUrl);
 render();
 </script>
