@@ -693,6 +693,26 @@ function renderSettings() {
     </div>
 
     <div class="setting-group">
+      <div class="setting-group-label">Checklist Steps</div>
+      <div id="stepsEditor">
+        ${config.steps.map((s, si) => `
+          <div class="room-item" style="background:var(--s2);border-radius:10px;padding:8px 10px;margin-bottom:6px;border:1px solid var(--b1);">
+            <input class="s-input" style="width:52px;padding:6px 8px;text-align:center;font-size:16px;flex:0 0 52px;margin-right:6px"
+              value="${s.icon}" onchange="updateStep(${si},'icon',this.value)" placeholder="🔧" maxlength="2">
+            <input class="s-input" style="flex:1;padding:8px 10px"
+              value="${s.label}" onchange="updateStep(${si},'label',this.value)" placeholder="Step name">
+            <div class="del-btn" onclick="deleteStep(${si})" style="margin-left:6px">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </div>
+          </div>`).join('')}
+      </div>
+      <button class="add-btn" onclick="addStep()" style="margin-top:2px">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Add step
+      </button>
+    </div>
+
+    <div class="setting-group">
       <div class="setting-group-label">Crew &amp; Rooms</div>
       ${crewHtml}
       <button class="add-crew-btn" onclick="addCrew()">
@@ -737,9 +757,24 @@ function addCrew() {
   renderSettings();
 }
 
+function updateStep(si, field, val) {
+  config.steps[si][field] = val.trim() || config.steps[si][field];
+}
+function deleteStep(si) {
+  if (config.steps.length <= 1) { showToast('Need at least one step'); return; }
+  config.steps.splice(si, 1);
+  renderSettings();
+}
+function addStep() {
+  config.steps.push({ key: 'step_' + Date.now(), icon: '⭐', label: 'New Step' });
+  renderSettings();
+}
+
 function saveSettings() {
   config.title    = document.getElementById('s_title').value.trim() || config.title;
   config.subtitle = document.getElementById('s_sub').value.trim()   || config.subtitle;
+  // Normalise step keys
+  config.steps = config.steps.map(s => ({ ...s, key: s.key || 'step_' + Date.now() }));
   const fbUrl     = document.getElementById('s_fburl').value.trim();
 
   if (fbUrl && fbUrl !== config.firebaseUrl) {
