@@ -115,12 +115,21 @@ body {
 }
 .rst-btn:active { color: var(--red); border-color: var(--red); }
 
+/* ── AVATAR ── */
+.avatar {
+  width: 26px; height: 26px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 10px; font-weight: 700; color: #000;
+  flex-shrink: 0; letter-spacing: 0;
+}
+
 /* ── SECTION ── */
 .section { border-bottom: 1px solid var(--line); }
 .sec-hd {
-  display: flex; align-items: center; justify-content: space-between;
+  display: flex; align-items: center; gap: 10px; justify-content: space-between;
   padding: 10px 18px 6px;
 }
+.sec-hd-left { display: flex; align-items: center; gap: 8px; }
 .sec-name { font-size: 15px; font-weight: 700; color: #ffffff; letter-spacing: -0.3px; }
 .sec-count { font-size: 11px; color: var(--t3); }
 
@@ -426,6 +435,19 @@ body {
 </div>
 
 <script>
+const AVATAR_COLORS = ['#e8c547','#e87d47','#e84774','#a347e8','#478ce8','#47e8a0','#e8476b','#47e8d4','#c8e847','#e88347'];
+function avatarColor(name) {
+  let h = 0; for (let i=0; i<name.length; i++) h = name.charCodeAt(i) + ((h<<5)-h);
+  return AVATAR_COLORS[Math.abs(h) % AVATAR_COLORS.length];
+}
+function avatarInitials(name) {
+  const parts = name.trim().split(' ');
+  return parts.length > 1 ? parts[0][0]+parts[1][0] : name.slice(0,2).toUpperCase();
+}
+function avatarHtml(name, size=26) {
+  return `<div class="avatar" style="width:${size}px;height:${size}px;background:${avatarColor(name)}">${avatarInitials(name)}</div>`;
+}
+
 const DEFAULT_CONFIG = {
   title: 'Setup Tracker',
   subtitle: 'KubeCon EU 2026 · RAI Amsterdam',
@@ -529,7 +551,9 @@ function render() {
 
   // Chips
   document.getElementById('filterRow').innerHTML = config.crew.map(c =>
-    `<div class="fc${filter===c.id?' on':''}" onclick="toggleFilter('${c.id}')">${c.name}</div>`
+    `<div class="fc${filter===c.id?' on':''}" onclick="toggleFilter('${c.id}')" style="gap:6px;display:flex;align-items:center;">
+      ${avatarHtml(c.name, 18)}${c.name}
+    </div>`
   ).join('');
 
   const el = document.getElementById('tracker');
@@ -550,7 +574,10 @@ function render() {
     total += c.rooms.length; done += cd;
 
     const sec = document.createElement('div'); sec.className='section';
-    sec.innerHTML=`<div class="sec-hd"><span class="sec-name">${c.name}</span><span class="sec-count">${cd}/${c.rooms.length}</span></div>`;
+    sec.innerHTML=`<div class="sec-hd">
+      <div class="sec-hd-left">${avatarHtml(c.name, 28)}<span class="sec-name">${c.name}</span></div>
+      <span class="sec-count">${cd}/${c.rooms.length}</span>
+    </div>`;
 
     c.rooms.forEach(room => {
       const d=isDone(room.id), n=countDone(room.id);
