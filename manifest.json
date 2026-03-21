@@ -1,0 +1,18 @@
+{
+  "name": "Setup Tracker",
+  "short_name": "Tracker",
+  "description": "AV crew setup checklist — KubeCon EU 2026",
+  "start_url": "/kubecon-tracker/",
+  "display": "standalone",
+  "background_color": "#0c0c0c",
+  "theme_color": "#0c0c0c",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
