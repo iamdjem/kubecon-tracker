@@ -373,10 +373,10 @@
 <script>
 const STEPS = [
   { key: 'setup',   icon: '🔧', name: 'Setup'  },
-  { key: 'ptz',     icon: '🎥', name: 'PTZ'    },
+  { key: 'ptz',     icon: '🤖', name: 'PTZ'    },
   { key: 'stream',  icon: '🔑', name: 'Keys'   },
-  { key: 'parsec',  icon: '💻', name: 'Parsec' },
-  { key: 'tested',  icon: '✅', name: 'Tested' },
+  { key: 'parsec',  icon: '⚡', name: 'Parsec' },
+  { key: 'tested',  icon: '✏️', name: 'Tested' },
 ];
 
 const CREW = [
@@ -533,20 +533,21 @@ function render() {
 
 function copyStatus() {
   const state = getState();
-  const lines = ['🎬 *KubeCon 2026 — Setup Status*', `📍 RAI Amsterdam · ${new Date().toLocaleDateString('en-GB',{day:'numeric',month:'short'})}`, ''];
+  const lines = ['SET UP MASTER LIST:'];
 
   CREW.forEach(c => {
-    const doneCount = c.rooms.filter(r => isDone(state, c.name, r)).length;
-    lines.push(`*${c.name}* · ${doneCount}/${c.rooms.length}`);
     c.rooms.forEach(room => {
-      const done = isDone(state, c.name, room);
       const checks = STEPS.filter(s => getVal(state, c.name, room, s.key)).map(s => s.icon).join('');
-      lines.push(`  ${done ? '✅' : '🔄'} ${room} ${checks}`);
+      lines.push(`${room}-${c.name}${checks ? ' ' + checks : ''}`);
     });
-    lines.push('');
   });
 
-  lines.push(`_🔧 Setup · 🎥 PTZ · 🔑 Keys · 💻 Parsec · ✅ Tested_`);
+  lines.push('');
+  lines.push('🔧 = set up');
+  lines.push('🔑 = Stream keys');
+  lines.push('🤖 = Update PTZ');
+  lines.push('✏️ = Tested');
+  lines.push('⚡ = Parsec set up');
 
   const text = lines.join('\n');
   navigator.clipboard.writeText(text).then(() => showToast('✅ Copied to clipboard'))
