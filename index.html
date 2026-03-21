@@ -393,6 +393,90 @@ body {
   margin-top: 16px; transition: opacity 0.12s;
 }
 .save-btn:active { opacity: 0.8; }
+
+/* ── SCHEDULE SHEET ── */
+.sched-sheet {
+  position: fixed; inset: 0;
+  background: var(--bg);
+  z-index: 200;
+  display: flex; flex-direction: column;
+  transform: translateX(100%);
+  transition: transform 0.3s cubic-bezier(.32,0,.15,1);
+}
+.sched-sheet.open { transform: translateX(0); }
+
+.sched-hd {
+  display: flex; align-items: center; gap: 10px;
+  padding: 20px 18px 12px;
+  border-bottom: 1px solid var(--line);
+  flex-shrink: 0;
+}
+.sched-back {
+  width: 32px; height: 32px;
+  background: var(--s2); border: 1px solid var(--line2);
+  border-radius: 6px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--t2); flex-shrink: 0; transition: all 0.12s;
+}
+.sched-back:active { background: var(--s3); }
+.sched-back svg { width: 16px; height: 16px; }
+.sched-title { font-size: 16px; font-weight: 700; letter-spacing: -0.3px; }
+.sched-sub { font-size: 11px; color: var(--t3); margin-top: 1px; }
+
+.day-tabs {
+  display: flex; gap: 0;
+  border-bottom: 1px solid var(--line);
+  flex-shrink: 0; overflow-x: auto; scrollbar-width: none;
+}
+.day-tabs::-webkit-scrollbar { display: none; }
+.day-tab {
+  flex: 1; min-width: 64px;
+  padding: 10px 4px;
+  font-size: 11px; font-weight: 600; color: var(--t3);
+  text-align: center; cursor: pointer;
+  border-bottom: 2px solid transparent;
+  transition: all 0.12s; white-space: nowrap;
+  text-transform: uppercase; letter-spacing: 0.5px;
+}
+.day-tab.on { color: var(--accent); border-bottom-color: var(--accent); }
+
+.sched-body { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+
+.room-sched { border-bottom: 1px solid var(--line); }
+.room-sched-hd {
+  padding: 10px 18px 6px;
+  font-size: 11px; font-weight: 600; color: var(--t3);
+  text-transform: uppercase; letter-spacing: 0.8px;
+  background: var(--s1);
+}
+
+.sched-tile {
+  display: flex; align-items: flex-start; gap: 12px;
+  padding: 10px 18px;
+  border-top: 1px solid var(--line);
+}
+.sched-tile-time {
+  font-size: 11px; font-weight: 600; color: var(--accent);
+  flex-shrink: 0; padding-top: 2px; min-width: 38px;
+}
+.sched-tile-body { flex: 1; }
+.sched-tile-name { font-size: 13px; font-weight: 600; color: var(--t1); letter-spacing: -0.1px; line-height: 1.4; }
+.sched-tile-meta { font-size: 11px; color: var(--t3); margin-top: 3px; }
+.sched-tile-badge {
+  font-size: 9px; font-weight: 700;
+  padding: 2px 6px; border-radius: 2px;
+  text-transform: uppercase; letter-spacing: 0.4px;
+  display: inline-block; margin-top: 4px;
+}
+.badge-rw { background: rgba(212,168,67,0.15); color: var(--accent); }
+.badge-r  { background: rgba(76,175,116,0.12); color: var(--green); }
+.badge-w  { background: rgba(94,106,210,0.15); color: #818cf8; }
+.badge-s  { background: rgba(239,68,68,0.12); color: #f87171; }
+
+.sched-empty {
+  padding: 24px 18px;
+  font-size: 13px; color: var(--t3); text-align: center;
+}
 </style>
 </head>
 <body>
@@ -432,6 +516,21 @@ body {
 
 
 <div class="toast" id="toast"></div>
+
+<!-- SCHEDULE SHEET -->
+<div class="sched-sheet" id="schedSheet">
+  <div class="sched-hd">
+    <div class="sched-back" onclick="closeSchedule()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+    </div>
+    <div>
+      <div class="sched-title" id="schedTitle">Schedule</div>
+      <div class="sched-sub" id="schedSub"></div>
+    </div>
+  </div>
+  <div class="day-tabs" id="dayTabs"></div>
+  <div class="sched-body" id="schedBody"></div>
+</div>
 
 <div class="overlay" id="overlay" onclick="closeSettings()"></div>
 <div class="sheet" id="sheet">
@@ -583,9 +682,12 @@ function render() {
     total += c.rooms.length; done += cd;
 
     const sec = document.createElement('div'); sec.className='section';
-    sec.innerHTML=`<div class="sec-hd">
+    sec.innerHTML=`<div class="sec-hd" onclick="openSchedule('${c.id}')" style="cursor:pointer;">
       <div class="sec-hd-left">${avatarHtml(c.name, 28)}<span class="sec-name">${c.name}</span></div>
-      <span class="sec-count">${cd}/${c.rooms.length}</span>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <span class="sec-count">${cd}/${c.rooms.length}</span>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="${c.id in SCHEDULE ? 'var(--accent)' : 'var(--t3)'}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+      </div>
     </div>`;
 
     c.rooms.forEach(room => {
@@ -786,6 +888,153 @@ render();
 // Register service worker for PWA
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('sw.js').catch(() => {});
+}
+
+// ═══════════════════════════════
+// SCHEDULE DATA
+// ═══════════════════════════════
+const DAYS = [
+  { key:'sun', label:'Sun 22' },
+  { key:'mon', label:'Mon 23' },
+  { key:'tue', label:'Tue 24' },
+  { key:'wed', label:'Wed 25' },
+  { key:'thu', label:'Thu 26' },
+];
+
+// Schedule per crew id → room id → day → sessions
+const SCHEDULE = {
+  alex: {
+    'r1': { // E103-105
+      sun: [
+        { time:'10:05', end:'10:40', name:'Ask the Experts: Kubernetes Steering Committee', badge:'rw' },
+        { time:'10:50', end:'11:25', name:"It's 2030. What Does Prow Look Like?", badge:'rw' },
+        { time:'11:35', end:'12:10', name:'Building Bridges: OTel End User SIG', badge:'rw' },
+        { time:'13:40', end:'14:20', name:'Unconference Session #1', badge:'rw' },
+        { time:'14:25', end:'15:00', name:'Cluster Autoscaler Evolution', badge:'rw' },
+        { time:'15:10', end:'15:45', name:"Metal3.io's Path To CNCF Incubation", badge:'rw' },
+        { time:'16:05', end:'16:40', name:"The Practices That Made Me Go 'Wow'", badge:'rw' },
+      ],
+      mon: [{ time:'All day', end:'', name:'Co-Lo 9 — Observability Day Track 1', badge:'rw' }],
+      tue: [{ time:'All day', end:'', name:'Breakout 10', badge:'rw' }],
+      wed: [{ time:'All day', end:'', name:'Breakout 10', badge:'rw' }],
+      thu: [{ time:'All day', end:'', name:'Breakout 10', badge:'rw' }],
+    },
+    'r2': { // E106-108
+      sun: [
+        { time:'10:05', end:'10:40', name:'Running the Runners: How CNCF Powers GitHub Actions at Scale', badge:'rw' },
+        { time:'10:50', end:'12:10', name:'TAG Workshop', badge:'rw' },
+        { time:'13:40', end:'14:20', name:'Unconference Session #2', badge:'rw' },
+        { time:'14:25', end:'15:00', name:'Unconference Session #3', badge:'rw' },
+        { time:'15:10', end:'15:45', name:'Unconference Session #4', badge:'rw' },
+        { time:'16:05', end:'16:40', name:'Unconference Session #5', badge:'rw' },
+      ],
+      mon: [{ time:'All day', end:'', name:'Co-Lo 10 — WasmCon AM + KyvernoCon PM', badge:'rw' }],
+      tue: [{ time:'All day', end:'', name:'Breakout 11', badge:'rw' }],
+      wed: [{ time:'All day', end:'', name:'Breakout 11', badge:'rw' }],
+      thu: [{ time:'All day', end:'', name:'Breakout 11', badge:'rw' }],
+    },
+    'r3': { // Auditorium
+      sun: [],
+      mon: [{ time:'All day', end:'', name:'Co-Lo 11 — ArgoCon Track 1 24hr', badge:'rw' }],
+      tue: [{ time:'All day', end:'', name:'Breakout 12', badge:'rw' }],
+      wed: [{ time:'All day', end:'', name:'Breakout 12 + Lightning Talks 16:45–18:00', badge:'rw' }],
+      thu: [{ time:'All day', end:'', name:'Breakout 12', badge:'rw' }],
+    },
+  },
+  clayton: {
+    'r4': { sun:[], mon:[{time:'All day',end:'',name:'Co-Lo 1 — KeycloakCon + Agentics Day',badge:'rw'}], tue:[{time:'All day',end:'',name:'Breakout 1',badge:'rw'}], wed:[{time:'All day',end:'',name:'Breakout 1',badge:'rw'}], thu:[{time:'All day',end:'',name:'Breakout 1',badge:'rw'}] },
+    'r5': { sun:[], mon:[{time:'All day',end:'',name:'Co-Lo 2 — Cloud Native AI + KubeFlow Day (Tk 1)',badge:'rw'}], tue:[{time:'All day',end:'',name:'Breakout 2',badge:'rw'}], wed:[{time:'All day',end:'',name:'Breakout 2',badge:'rw'}], thu:[{time:'All day',end:'',name:'Breakout 2',badge:'rw'}] },
+    'r6': { sun:[], mon:[{time:'All day',end:'',name:'Co-Lo 3 — Cloud Native AI + KubeFlow Day (Tk 2)',badge:'rw'}], tue:[{time:'All day',end:'',name:'Breakout 3',badge:'rw'}], wed:[{time:'All day',end:'',name:'Breakout 3',badge:'rw'}], thu:[{time:'All day',end:'',name:'Breakout 3',badge:'rw'}] },
+  },
+  will: {
+    'r7': { sun:[], mon:[{time:'All day',end:'',name:'Co-Lo 4 — Open Source SecurityCon 24hr',badge:'rw'}], tue:[{time:'All day',end:'',name:'Breakout 4 + Keynote Overflow',badge:'rw'}], wed:[{time:'All day',end:'',name:'Breakout 4 + Keynote Overflow',badge:'rw'}], thu:[{time:'All day',end:'',name:'Breakout 4 + Keynote Overflow',badge:'rw'}] },
+    'r8': { sun:[], mon:[{time:'All day',end:'',name:'Co-Lo 5 — BackstageCon',badge:'rw'}], tue:[{time:'All day',end:'',name:'Breakout 5 + Keynote Overflow',badge:'rw'}], wed:[{time:'All day',end:'',name:'Breakout 5 + Keynote Overflow',badge:'rw'}], thu:[{time:'All day',end:'',name:'Breakout 5 + Keynote Overflow',badge:'rw'}] },
+    'r9': { sun:[], mon:[{time:'All day',end:'',name:'Co-Lo 6 — Platform Engineering Day (Tk 1)',badge:'rw'}], tue:[{time:'All day',end:'',name:'Breakout 6 + Keynote Overflow',badge:'rw'}], wed:[{time:'All day',end:'',name:'Breakout 6 + Keynote Overflow',badge:'rw'}], thu:[{time:'All day',end:'',name:'Breakout 6 + Keynote Overflow',badge:'rw'}] },
+  },
+  costmo: {
+    'r10': { sun:[], mon:[{time:'All day',end:'',name:'Co-Lo 7 — Platform Engineering Day (Tk 2)',badge:'rw'}], tue:[{time:'All day',end:'',name:'Breakout 7 + Keynote Overflow',badge:'rw'}], wed:[{time:'All day',end:'',name:'Breakout 7 + Keynote Overflow',badge:'rw'}], thu:[{time:'All day',end:'',name:'Breakout 7 + Keynote Overflow',badge:'rw'}] },
+    'r11': { sun:[], mon:[{time:'All day',end:'',name:'Keynote Rehearsals',badge:'r'}], tue:[{time:'All day',end:'',name:'Keynotes + Breakout 8',badge:'rw'}], wed:[{time:'All day',end:'',name:'Keynotes + Breakout 8',badge:'rw'}], thu:[{time:'All day',end:'',name:'Keynotes + Breakout 8',badge:'rw'}] },
+    'r12': { sun:[{time:'All day',end:'',name:'Maintainer Summit — Keynote + Breakout 1',badge:'rw'}], mon:[{time:'All day',end:'',name:'Co-Lo 8 — Observability Day (Tk 2)',badge:'rw'}], tue:[{time:'All day',end:'',name:'Breakout 9',badge:'rw'}], wed:[{time:'All day',end:'',name:'Breakout 9',badge:'rw'}], thu:[{time:'All day',end:'',name:'Breakout 9',badge:'rw'}] },
+  },
+  johnick: {
+    'r14': { sun:[], mon:[{time:'All day',end:'',name:'Co-Lo 12 — Kubernetes on Edge Day AM + OpenTofu Day PM',badge:'rw'}], tue:[{time:'All day',end:'',name:'(empty)',badge:'r'}], wed:[{time:'All day',end:'',name:'Gov Board Strategy Session',badge:'w'}], thu:[] },
+    'r15': { sun:[], mon:[{time:'All day',end:'',name:'Co-Lo 13 — ArgoCon (Tk 2) 24hr',badge:'rw'}], tue:[{time:'All day',end:'',name:'Breakout 13',badge:'rw'}], wed:[{time:'All day',end:'',name:'Breakout 13',badge:'rw'}], thu:[{time:'All day',end:'',name:'Breakout 13',badge:'rw'}] },
+    'r21': { sun:[], mon:[{time:'All day',end:'',name:'Co-Lo 14 — Cloud Native Telco Day',badge:'rw'}], tue:[{time:'All day',end:'',name:'Community Hub',badge:'w'}], wed:[{time:'All day',end:'',name:'Community Hub',badge:'w'}], thu:[{time:'All day',end:'',name:'Community Hub',badge:'w'}] },
+  },
+  brent: {
+    'r16': { sun:[], mon:[{time:'All day',end:'',name:'Co-Lo 15 — Open Sovereign Cloud Day',badge:'rw'}], tue:[{time:'All day',end:'',name:'Breakout 14',badge:'rw'}], wed:[{time:'All day',end:'',name:'Breakout 14',badge:'rw'}], thu:[{time:'All day',end:'',name:'Breakout 14',badge:'rw'}] },
+    'r17': { sun:[], mon:[], tue:[{time:'All day',end:'',name:'Breakout 17',badge:'rw'}], wed:[{time:'All day',end:'',name:'Breakout 17',badge:'rw'}], thu:[{time:'All day',end:'',name:'Breakout 17',badge:'rw'}] },
+    'r18': { sun:[], mon:[], tue:[{time:'All day',end:'',name:'CN Theater — Noise Filter',badge:'rw'}], wed:[{time:'All day',end:'',name:'CN Theater — Noise Filter',badge:'rw'}], thu:[{time:'All day',end:'',name:'CN Theater — Noise Filter',badge:'rw'}] },
+  },
+  lynda: {
+    'r19': { sun:[], mon:[{time:'All day',end:'',name:'Co-Lo 16 — FluxCon AM + CiliumCon PM 24hr',badge:'rw'}], tue:[{time:'All day',end:'',name:'Breakout 15 + Keynote Overflow',badge:'rw'}], wed:[{time:'All day',end:'',name:'Breakout 15 + Keynote Overflow',badge:'rw'}], thu:[{time:'All day',end:'',name:'Breakout 15 + Keynote Overflow',badge:'rw'}] },
+    'r20': { sun:[], mon:[{time:'All day',end:'',name:'Project Lightning Talks',badge:'rw'}], tue:[{time:'All day',end:'',name:'Breakout 16 + Keynote Overflow',badge:'rw'}], wed:[{time:'All day',end:'',name:'Breakout 16 + Keynote Overflow',badge:'rw'}], thu:[{time:'All day',end:'',name:'Breakout 16 + Keynote Overflow',badge:'rw'}] },
+  },
+};
+
+let schedDay = 'sun';
+let schedCrewId = null;
+
+function openSchedule(crewId) {
+  const crew = config.crew.find(c => c.id === crewId);
+  if (!crew) return;
+  schedCrewId = crewId;
+
+  // Default to today's day
+  const today = new Date();
+  const march = [22,23,24,25,26];
+  const dayKeys = ['sun','mon','tue','wed','thu'];
+  const idx = march.indexOf(today.getDate());
+  if (idx >= 0 && today.getMonth() === 2) schedDay = dayKeys[idx];
+  else schedDay = 'sun';
+
+  document.getElementById('schedTitle').textContent = crew.name;
+  document.getElementById('schedSub').textContent = 'Room schedule — KubeCon EU 2026';
+  renderSchedule();
+  document.getElementById('schedSheet').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeSchedule() {
+  document.getElementById('schedSheet').classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+function renderSchedule() {
+  const crew = config.crew.find(c => c.id === schedCrewId);
+  if (!crew) return;
+  const crewSched = SCHEDULE[schedCrewId] || {};
+
+  // Day tabs
+  document.getElementById('dayTabs').innerHTML = DAYS.map(d =>
+    `<div class="day-tab${schedDay===d.key?' on':''}" onclick="setSchedDay('${d.key}')">${d.label}</div>`
+  ).join('');
+
+  // Body
+  const body = document.getElementById('schedBody');
+  body.innerHTML = crew.rooms.map(room => {
+    const sessions = crewSched[room.id]?.[schedDay] || [];
+    const tilesHtml = sessions.length
+      ? sessions.map(s => `
+          <div class="sched-tile">
+            <div class="sched-tile-time">${s.time}</div>
+            <div class="sched-tile-body">
+              <div class="sched-tile-name">${s.name}</div>
+              ${s.end ? `<div class="sched-tile-meta">Until ${s.end}</div>` : ''}
+              <span class="sched-tile-badge badge-${s.badge}">${s.badge==='rw'?'Record + Wordly':s.badge==='r'?'Record only':s.badge==='w'?'Wordly only':'Streaming'}</span>
+            </div>
+          </div>`).join('')
+      : `<div class="sched-empty">No sessions scheduled</div>`;
+    return `<div class="room-sched">
+      <div class="room-sched-hd">${room.name}</div>
+      ${tilesHtml}
+    </div>`;
+  }).join('');
+}
+
+function setSchedDay(day) {
+  schedDay = day;
+  renderSchedule();
 }
 </script>
 </body>
