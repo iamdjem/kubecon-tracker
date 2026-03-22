@@ -260,7 +260,7 @@ body {
 }
 .sh-close:active { background: var(--s4); }
 
-.sh-body { overflow-y: auto; -webkit-overflow-scrolling: touch; flex: 1; padding: 16px 18px 80px; }
+.sh-body { overflow-y: auto; -webkit-overflow-scrolling: touch; flex: 1; padding: 16px 18px 120px; }
 
 .sg { margin-bottom: 20px; }
 .sg-lbl {
@@ -689,6 +689,9 @@ body { padding-bottom: 58px; }
     <button class="sh-close" onclick="closeSettings()">✕</button>
   </div>
   <div class="sh-body" id="shBody"></div>
+  <div style="position:sticky;bottom:0;padding:12px 18px 16px;background:var(--bg);border-top:1px solid var(--line);">
+    <button class="save-btn" onclick="saveSettings()" style="margin-top:0;width:100%;">Save & Apply</button>
+  </div>
 </div>
 
 <script>
@@ -1863,8 +1866,8 @@ function renderSettings() {
         Add crew member
       </button>
     </div>
-    <button class="save-btn" onclick="saveSettings()">Save & Apply</button>
     <div style="height:8px"></div>`;
+  // Sticky save button outside scroll area
 
   // Init drag-and-drop
   initSortable();
