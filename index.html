@@ -421,22 +421,23 @@ body { padding-bottom: 58px; }
 .page.active { display: block; }
 
 .ov-grid {
-  padding: 14px 12px;
-  display: grid; grid-template-columns: 1fr 1fr;
-  gap: 10px;
+  padding: 10px 8px;
+  display: grid; grid-template-columns: 1fr 1fr 1fr;
+  gap: 6px;
 }
 .ov-card {
   background: var(--s2); border: 1px solid var(--line2);
-  border-radius: 10px; padding: 12px 12px 10px;
+  border-radius: 8px; padding: 8px 8px 6px;
   cursor: pointer; transition: border-color 0.12s;
 }
 .ov-card:active { border-color: var(--accent); }
-.ov-crew { font-size: 10px; font-weight: 600; color: var(--t3); text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 6px; }
-.ov-room { font-size: 13px; font-weight: 700; color: var(--t1); margin-bottom: 6px; letter-spacing: -0.2px; }
-.ov-bar { height: 4px; background: var(--line); border-radius: 2px; overflow: hidden; margin-bottom: 5px; }
+.ov-card.complete { border-color: rgba(76,175,116,0.4); background: rgba(76,175,116,0.06); }
+.ov-crew { font-size: 9px; font-weight: 600; color: var(--t3); text-transform: uppercase; letter-spacing: 0.4px; margin-bottom: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ov-room { font-size: 11px; font-weight: 700; color: var(--t1); margin-bottom: 5px; letter-spacing: -0.2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ov-bar { height: 3px; background: var(--line); border-radius: 2px; overflow: hidden; margin-bottom: 5px; }
 .ov-fill { height: 100%; border-radius: 2px; transition: width 0.3s; }
-.ov-steps { display: flex; gap: 3px; flex-wrap: wrap; }
-.ov-step { font-size: 14px; opacity: 0.25; transition: opacity 0.15s; }
+.ov-steps { display: flex; gap: 2px; flex-wrap: nowrap; }
+.ov-step { font-size: 11px; opacity: 0.2; transition: opacity 0.15s; }
 .ov-step.on { opacity: 1; }
 
 /* ── TODAY PAGE ── */
@@ -1961,24 +1962,31 @@ function switchPage(page) {
 
 function renderOverview() {
   const grid = document.getElementById('ovGrid');
-  grid.innerHTML = config.crew.flatMap(c =>
-    c.rooms.map(room => {
+  let html = '';
+  config.crew.forEach(c => {
+    // Crew header spans all 3 columns
+    html += `<div style="grid-column:1/-1;display:flex;align-items:center;gap:8px;padding:4px 2px 0;">
+      ${avatarHtml(c.name,20)}
+      <span style="font-size:10px;font-weight:700;color:var(--t2);letter-spacing:0.3px;">${c.name}</span>
+    </div>`;
+    c.rooms.forEach(room => {
       const done = countDone(room.id);
       const total = config.steps.length;
       const pct = total ? Math.round(done/total*100) : 0;
-      const color = pct===100 ? 'var(--green)' : pct>0 ? 'var(--accent)' : 'var(--line2)';
+      const complete = pct === 100;
+      const color = complete ? 'var(--green)' : pct>0 ? 'var(--accent)' : 'var(--line2)';
       const stepsIcons = config.steps.map(s => {
         const val = getVal(room.id, s.key);
         return `<span class="ov-step${val?' on':''}">${s.icon}</span>`;
       }).join('');
-      return `<div class="ov-card" onclick="openSchedule('${c.id}')">
-        <div class="ov-crew">${c.name}</div>
+      html += `<div class="ov-card${complete?' complete':''}" onclick="openSchedule('${c.id}')">
         <div class="ov-room">${room.name}</div>
         <div class="ov-bar"><div class="ov-fill" style="width:${pct}%;background:${color};"></div></div>
         <div class="ov-steps">${stepsIcons}</div>
       </div>`;
-    })
-  ).join('');
+    });
+  });
+  grid.innerHTML = html;
 }
 
 function renderToday() {
