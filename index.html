@@ -457,13 +457,17 @@ body {
   display: flex; align-items: flex-start; gap: 12px;
   padding: 10px 18px;
   border-top: 1px solid var(--line);
+  transition: background 0.1s;
 }
+.sched-tile.done { background: rgba(76,175,116,0.05); }
 .sched-tile-time {
   font-size: 11px; font-weight: 600; color: var(--accent);
   flex-shrink: 0; padding-top: 2px; min-width: 38px;
 }
+.sched-tile.done .sched-tile-time { color: var(--green); }
 .sched-tile-body { flex: 1; }
 .sched-tile-name { font-size: 13px; font-weight: 600; color: var(--t1); letter-spacing: -0.1px; line-height: 1.4; }
+.sched-tile.done .sched-tile-name { color: var(--t3); text-decoration: line-through; }
 .sched-tile-meta { font-size: 11px; color: var(--t3); margin-top: 3px; }
 .sched-tile-badge {
   font-size: 9px; font-weight: 700;
@@ -475,6 +479,28 @@ body {
 .badge-r  { background: rgba(76,175,116,0.12); color: var(--green); }
 .badge-w  { background: rgba(94,106,210,0.15); color: #818cf8; }
 .badge-s  { background: rgba(239,68,68,0.12); color: #f87171; }
+
+.sched-cb {
+  width: 20px; height: 20px; flex-shrink: 0;
+  border: 2px solid var(--line2); border-radius: 4px;
+  margin-top: 1px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: all 0.12s; background: transparent;
+}
+.sched-cb.checked { background: var(--green); border-color: var(--green); }
+.sched-cb svg { width: 12px; height: 12px; display: none; }
+.sched-cb.checked svg { display: block; }
+
+.sched-progress {
+  padding: 6px 18px 2px;
+  display: flex; align-items: center; gap: 8px;
+}
+.sched-progress-bar {
+  flex: 1; height: 3px; background: var(--line);
+  border-radius: 2px; overflow: hidden;
+}
+.sched-progress-fill { height: 100%; background: var(--green); border-radius: 2px; transition: width 0.3s; }
+.sched-progress-txt { font-size: 10px; color: var(--t3); font-weight: 600; flex-shrink: 0; }
 
 .sched-empty {
   padding: 24px 18px;
@@ -1832,16 +1858,26 @@ function renderSchedule() {
                     : schedDay === 'mon' ? 'colocatedeventseu2026'
                     : 'kccnceu2026';
     const schedUrl = `https://${schedBase}.sched.com/venue/${encodeURIComponent(room.name.replace(/ /g,'+'))}`;
+    const doneCount = sessions.filter((_,i) => getSchedDone(schedCrewId, room.id, schedDay, i)).length;
+    const progressHtml = sessions.length > 0 ? `
+      <div class="sched-progress">
+        <div class="sched-progress-bar"><div class="sched-progress-fill" style="width:${Math.round(doneCount/sessions.length*100)}%"></div></div>
+        <span class="sched-progress-txt">${doneCount}/${sessions.length}</span>
+      </div>` : '';
     const tilesHtml = sessions.length
-      ? sessions.map(s => `
-          <div class="sched-tile">
+      ? sessions.map((s,i) => {
+          const done = getSchedDone(schedCrewId, room.id, schedDay, i);
+          return `<div class="sched-tile${done?' done':''}" id="stile_${schedCrewId}_${room.id}_${schedDay}_${i}">
+            <div class="sched-cb${done?' checked':''}" onclick="toggleSchedDone('${schedCrewId}','${room.id}','${schedDay}',${i})">
+              <svg viewBox="0 0 12 12" fill="none" stroke="#000" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2,6 5,9 10,3"/></svg>
+            </div>
             <div class="sched-tile-time">${s.time}</div>
             <div class="sched-tile-body">
               <div class="sched-tile-name">${s.name}</div>
               ${s.end ? `<div class="sched-tile-meta">Until ${s.end}</div>` : ''}
               <span class="sched-tile-badge badge-${s.badge}">${s.badge==='rw'?'Record + Wordly':s.badge==='r'?'Record only':s.badge==='w'?'Wordly only':'Streaming'}</span>
             </div>
-          </div>`).join('')
+          </div>`;}).join('')
       : `<div class="sched-empty">No sessions scheduled</div>`;
     return `<div class="room-sched">
       <div class="room-sched-hd" style="display:flex;align-items:center;justify-content:space-between;">
@@ -1851,6 +1887,7 @@ function renderSchedule() {
           Sched ↗
         </a>
       </div>
+      ${progressHtml}
       ${tilesHtml}
     </div>`;
   }).join('');
@@ -1863,6 +1900,22 @@ function setSchedDay(day) {
 
 function setSchedRoom(roomId) {
   schedRoomFilter = roomId;
+  renderSchedule();
+}
+
+function getSchedDone(crewId, roomId, day, idx) {
+  return state.sched?.[crewId]?.[roomId]?.[day]?.[idx] === true;
+}
+
+function toggleSchedDone(crewId, roomId, day, idx) {
+  if (!state.sched) state.sched = {};
+  if (!state.sched[crewId]) state.sched[crewId] = {};
+  if (!state.sched[crewId][roomId]) state.sched[crewId][roomId] = {};
+  if (!state.sched[crewId][roomId][day]) state.sched[crewId][roomId][day] = {};
+  const cur = state.sched[crewId][roomId][day][idx] === true;
+  state.sched[crewId][roomId][day][idx] = !cur;
+  saveState();
+  if (fbDb) fbDb.child('state/sched/'+crewId+'/'+roomId+'/'+day+'/'+idx).set(!cur);
   renderSchedule();
 }
 </script>
