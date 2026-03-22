@@ -172,7 +172,7 @@ body {
   position: relative;
 }
 
-/* Tablet 480–768px */
+/* Tablet 480-768px */
 @media (min-width: 480px) {
   .room { min-height: 68px; padding: 12px 20px; gap: 14px; }
   .room-name { font-size: 14px; flex: 0 0 120px; }
@@ -707,23 +707,13 @@ body { padding-bottom: 58px; }
   <div class="hd-inline">
     <div class="hd-left">
       <div class="hd-title" id="confTitle2">Setup Tracker</div>
-      <div class="hd-sub" id="confSub2">—</div>
+      <div class="hd-sub" id="confSub2">-</div>
     </div>
-    <div class="hd-right" style="display:flex;align-items:center;gap:10px;">
+    <div class="hd-right">
       <div class="stat">
         <div class="stat-num" id="statNum2">0/0</div>
         <div class="stat-lbl">Rooms Done</div>
       </div>
-      <button onclick="copyAppLink()" id="copyBtn" style="
-        background:#25D366;border:none;border-radius:10px;
-        padding:8px 14px;cursor:pointer;font-family:inherit;font-size:13px;
-        font-weight:700;color:#fff;display:flex;align-items:center;gap:7px;
-        transition:all 0.12s;white-space:nowrap;box-shadow:0 2px 8px rgba(37,211,102,0.3);">
-        <svg width="18" height="18" viewBox="0 0 32 32" fill="white" xmlns="http://www.w3.org/2000/svg">
-          <path d="M16 1C7.716 1 1 7.716 1 16c0 2.628.672 5.1 1.852 7.256L1 31l7.94-1.824A14.94 14.94 0 0 0 16 31c8.284 0 15-6.716 15-15S24.284 1 16 1zm0 27.4a12.35 12.35 0 0 1-6.3-1.726l-.452-.268-4.712 1.082 1.122-4.578-.296-.47A12.36 12.36 0 0 1 3.6 16C3.6 9.148 9.148 3.6 16 3.6S28.4 9.148 28.4 16 22.852 28.4 16 28.4zm6.77-9.28c-.37-.186-2.19-1.08-2.53-1.202-.34-.122-.586-.186-.832.186-.246.37-.954 1.202-1.17 1.448-.216.246-.43.278-.8.092-.37-.186-1.562-.576-2.976-1.836-1.1-.982-1.842-2.194-2.058-2.564-.216-.37-.022-.57.162-.754.166-.166.37-.432.556-.648.186-.216.248-.37.37-.616.124-.246.062-.462-.03-.648-.092-.186-.832-2.006-1.14-2.746-.3-.72-.606-.622-.832-.634l-.708-.012c-.246 0-.648.092-.988.462s-1.296 1.266-1.296 3.086 1.326 3.578 1.512 3.824c.186.246 2.61 3.986 6.326 5.59.884.382 1.572.61 2.108.78.886.282 1.692.242 2.33.146.71-.106 2.19-.896 2.5-1.762.308-.866.308-1.608.216-1.762-.092-.154-.338-.246-.708-.432z"/>
-        </svg>
-        Share status
-      </button>
     </div>
   </div>
   <div class="filter-bar">
@@ -767,6 +757,12 @@ body { padding-bottom: 58px; }
   <div class="nav-tab" id="nav-today" onclick="switchPage('today')">
     <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
     Today
+  </div>
+  <div class="nav-tab" id="nav-share" onclick="copyAppLink()" style="color:#25D366;">
+    <svg viewBox="0 0 32 32" fill="currentColor" xmlns="http://www.w3.org/2000/svg" style="width:22px;height:22px;">
+      <path d="M16 1C7.716 1 1 7.716 1 16c0 2.628.672 5.1 1.852 7.256L1 31l7.94-1.824A14.94 14.94 0 0 0 16 31c8.284 0 15-6.716 15-15S24.284 1 16 1zm0 27.4a12.35 12.35 0 0 1-6.3-1.726l-.452-.268-4.712 1.082 1.122-4.578-.296-.47A12.36 12.36 0 0 1 3.6 16C3.6 9.148 9.148 3.6 16 3.6S28.4 9.148 28.4 16 22.852 28.4 16 28.4zm6.77-9.28c-.37-.186-2.19-1.08-2.53-1.202-.34-.122-.586-.186-.832.186-.246.37-.954 1.202-1.17 1.448-.216.246-.43.278-.8.092-.37-.186-1.562-.576-2.976-1.836-1.1-.982-1.842-2.194-2.058-2.564-.216-.37-.022-.57.162-.754.166-.166.37-.432.556-.648.186-.216.248-.37.37-.616.124-.246.062-.462-.03-.648-.092-.186-.832-2.006-1.14-2.746-.3-.72-.606-.622-.832-.634l-.708-.012c-.246 0-.648.092-.988.462s-1.296 1.266-1.296 3.086 1.326 3.578 1.512 3.824c.186.246 2.61 3.986 6.326 5.59.884.382 1.572.61 2.108.78.886.282 1.692.242 2.33.146.71-.106 2.19-.896 2.5-1.762.308-.866.308-1.608.216-1.762-.092-.154-.338-.246-.708-.432z"/>
+    </svg>
+    Share
   </div>
   <div class="nav-tab" id="nav-settings" onclick="switchPage('settings')">
     <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
@@ -863,7 +859,7 @@ const PREFILL = {
   r9:{setup:1,ptz:0,stream:0,parsec:0,tested:0}, // Hall 8F 🛠️
   // Costmo
   r10:{setup:1,ptz:0,stream:0,parsec:1,tested:0}, // Hall 8G 🛠️⚡
-  r11:{setup:0,ptz:0,stream:0,parsec:0,tested:0}, // Hall 12 —
+  r11:{setup:0,ptz:0,stream:0,parsec:0,tested:0}, // Hall 12 -
   r12:{setup:1,ptz:1,stream:1,parsec:1,tested:1}, // Forum ✅
   // Johnick
   r14:{setup:1,ptz:0,stream:0,parsec:0,tested:0}, // Emerald Room 🛠️
@@ -872,7 +868,7 @@ const PREFILL = {
   // Brent
   r16:{setup:1,ptz:0,stream:0,parsec:0,tested:0}, // F002-005 🛠️
   r17:{setup:1,ptz:0,stream:0,parsec:0,tested:0}, // Amtrium 1+2 🛠️
-  r18:{setup:0,ptz:0,stream:0,parsec:0,tested:0}, // CN Theater —
+  r18:{setup:0,ptz:0,stream:0,parsec:0,tested:0}, // CN Theater -
   // Lynda
   r19:{setup:1,ptz:0,stream:0,parsec:0,tested:0}, // Elicium 1 🛠️
   r20:{setup:1,ptz:0,stream:0,parsec:0,tested:0}, // Elicium 2 🛠️
@@ -975,7 +971,7 @@ const SCHEDULE = {
         { time:'14:30', end:'15:15', name:"What\'s New in gRPC - Kevin Nilson & John Feig, Google", badge:'rw' },
         { time:'15:15', end:'16:00', name:'What Happens in Kubernetes SIG Scalability: Intro + DeepDive - Wojciech Tyczynski, Google', badge:'rw' },
         { time:'16:15', end:'17:00', name:"What\'s New With Kubectl and Kustomize ... and How You Can Help! - Marly Salazar, Yugo Kobayashi, Eddie Zaneski & Maciej Szulik", badge:'rw' },
-        { time:'17:00', end:'17:45', name:'Volcano: Orchestrating the Full AI Lifecycle – From Training To Inference and Agents - Chen Zicong, Huawei & Hajnal Maté', badge:'rw' },
+        { time:'17:00', end:'17:45', name:'Volcano: Orchestrating the Full AI Lifecycle - From Training To Inference and Agents - Chen Zicong, Huawei & Hajnal Maté', badge:'rw' },
       ],
       wed: [
         { time:'11:00', end:'11:45', name:'SIG Scheduling Update: Transition From Pod To Workload Scheduling - Kensei Nakada & Maciej Skoczen, Google', badge:'rw' },
@@ -996,7 +992,7 @@ const SCHEDULE = {
     },
     'r3': { // Auditorium
       sun: [],
-      mon: [{ time:'09:00', end:'17:30', name:'Co-Lo 11 — ArgoCon (Track 1) Full Day', badge:'rw', turnaround24:true }],
+      mon: [{ time:'09:00', end:'17:30', name:'Co-Lo 11 - ArgoCon (Track 1) Full Day', badge:'rw', turnaround24:true }],
       tue: [
         { time:'11:15', end:'12:00', name:'When an Agent Acts on Your Behalf, Who Holds the Keys? - Mariusz Sabath & Maia Iyer, IBM Research', badge:'rw' },
         { time:'12:00', end:'12:45', name:'Your Models Are Vulnerable: How KitOps Turns KServe Into a Zero-Trust Inference Platform - Brad Micklea, Jozu & Gavrish Prabhu, Nutanix', badge:'rw' },
@@ -1060,13 +1056,13 @@ const SCHEDULE = {
       tue: [
           { time:'11:15', end:'11:45', name:'What Survived Production: Operating Game Backends at Million-Player Scale - Berkay Uckac, Futureplay Games', badge:'rw' },
           { time:'12:00', end:'12:30', name:'Cloud Native Non-Functional Requirements: Building Scalable, Resilient and Secure Applications - Jakub Krzywda, Elastisys', badge:'rw' },
-          { time:'14:30', end:'15:00', name:'"Will it Kubernetes?" A Tinkerer’s Journey From Curiosity To Career - Niklas Frick, The Platform Engineering Company', badge:'rw' },
+          { time:'14:30', end:'15:00', name:'"Will it Kubernetes?" A Tinkerer's Journey From Curiosity To Career - Niklas Frick, The Platform Engineering Company', badge:'rw' },
           { time:'15:15', end:'15:45', name:'Choose Your Own Adventure: AI Meets Internal Developer Platform - Whitney Lee, Datadog & Viktor Farcic, Upbound', badge:'rw' },
           { time:'16:15', end:'16:45', name:'How to Build Your Cloud Native Balance Sheet - Danielle Cook, Akamai & Simon Forster, Stackegy', badge:'rw' },
           { time:'17:00', end:'17:30', name:'Policy Engines for Kubernetes: Picking One Without Losing Your Mind - Nabarun Pal, Broadcom', badge:'rw' },
         ],
       wed: [
-          { time:'11:00', end:'11:30', name:'From “It Works!” to “It’s Secure!”: Hardening Your First Kubernetes Cluster - Paul Zerdilas-Herrera, Nutanix & Leon Schulze, Palo Alto Networks', badge:'rw' },
+          { time:'11:00', end:'11:30', name:'From "It Works!" to "It's Secure!": Hardening Your First Kubernetes Cluster - Paul Zerdilas-Herrera, Nutanix & Leon Schulze, Palo Alto Networks', badge:'rw' },
           { time:'11:45', end:'12:15', name:'Kube-Oddities - The Quirks That Keep Kubernetes Interesting - Marcus Noble, Monzo & Márk Sági-Kazár, Independent', badge:'rw' },
           { time:'14:15', end:'14:45', name:'Hello World, Meet the Spanimals: Observability for Beginners - Tiffany Jernigan, Grafana Labs & Matthias Haeussler, CGI', badge:'rw' },
           { time:'16:00', end:'16:30', name:'Kubernetes-Native ≠ Cloud Native: Avoiding Architecture Theater - Prerit Munjal, Groupon', badge:'rw' },
@@ -1075,7 +1071,7 @@ const SCHEDULE = {
         ],
       thu: [
           { time:'11:00', end:'11:30', name:'Beyond Stateless: Distributed Transactions with Autoscaling and Consistency on Kubernetes - Jumpei Nishitani, Hitachi', badge:'rw' },
-          { time:'11:45', end:'12:15', name:'From Idle to Savings: Building a Global Scheduler for Cost‑Efficient Data Processing on K8s - Rainie Li & Ang Zhang, Pinterest', badge:'rw' },
+          { time:'11:45', end:'12:15', name:'From Idle to Savings: Building a Global Scheduler for Cost-Efficient Data Processing on K8s - Rainie Li & Ang Zhang, Pinterest', badge:'rw' },
           { time:'13:45', end:'14:15', name:'Spin-Up, Test, Tear-Down: How Trivago Runs Developer Preview Environments at Scale - Armin Aminian, Trivago & Jan Wozniak, Kedify', badge:'rw' },
           { time:'14:30', end:'15:00', name:'Redefining SLIs for LLM Inference: Managing Hybrid Cloud with vLLM & LLM-D - Christopher Nuland & Hilliary Lipsig, Red Hat', badge:'rw' },
           { time:'15:15', end:'15:45', name:'Collisions in the Dark: Illuminating the 95% of Kubeflow You Can\'t See - Amine Lahouel & Laura Llinares, CERN', badge:'rw' },
@@ -1090,7 +1086,7 @@ const SCHEDULE = {
           { time:'09:50', end:'09:55', name:'Cloud Native AI + Kubeflow Day | Sponsored Keynote: The 2026 Infrastructure, Operations, and Cloud Services Agenda: Scaling Agentic AI with Platform Engineering - Kevin Cochrane, Vultr', badge:'rw' },
           { time:'10:00', end:'10:05', name:'Cloud Native AI + Kubeflow Day | Sponsored Keynote: Production AI Runs on Open Source Abstract - Gleb Evstropov, Nebius', badge:'rw' },
           { time:'10:40', end:'11:05', name:'The Sanity Check: Observability for AI Data Pipelines - David Aronchick, Expanso', badge:'rw' },
-          { time:'11:15', end:'11:40', name:'Expl(AI)n Like I’m 5: An Introduction To AI-Native Networking - Niranjan Shankar, Microsoft & Ram Vennam, Solo.io', badge:'rw' },
+          { time:'11:15', end:'11:40', name:'Expl(AI)n Like I'm 5: An Introduction To AI-Native Networking - Niranjan Shankar, Microsoft & Ram Vennam, Solo.io', badge:'rw' },
           { time:'12:45', end:'13:20', name:'Panel: Routing Intelligence Vs Traffic Control: Architectural Tradeoffs for AI Inference in Gateway API - Abdullah Gharaibeh, Google; Morgan Foster, Red Hat; Eitan Yarmush, Solo.io; Dan Sun, Bloomberg', badge:'rw' },
           { time:'13:30', end:'13:55', name:'Baby Sitting Your AI Models in Production? STOP! - Ram Iyengar, Linux Foundation', badge:'rw' },
           { time:'14:05', end:'14:30', name:'GPU Reservations: Maximizing Utilization and Fairness Across Teams - Sam Huang, Cantina Labs & Thomas Chaton, Lightning.AI', badge:'rw' },
@@ -1107,12 +1103,12 @@ const SCHEDULE = {
           { time:'12:00', end:'12:30', name:'Intelligent Routing for Optimized Inference - Antonio Berben, Solo.io & Felipe Vicens, Telefonica', badge:'rw' },
           { time:'14:30', end:'15:00', name:'Not Yet Another Envoy Implementation - Exploring Kgateway To Write Your Own GatewayAPI Backend - Ricardo Katz, Red Hat', badge:'rw' },
           { time:'15:15', end:'15:45', name:'Kubernetes Network Driver Unpacked: Modularity, Trade-offs and the Road Ahead - Lionel Jouin & Sebastian Scheinkman, Red Hat; Antonio Ojea, Google; Sunyanan Choochotkaew, IBM', badge:'rw' },
-          { time:'16:15', end:'16:45', name:'Smart Routing at Scale: How Spotify’s XDS Control Plane Cut 75% of Cross-Zone Traffic - Yannick Epstein & Anya Hristova, Spotify', badge:'rw' },
+          { time:'16:15', end:'16:45', name:'Smart Routing at Scale: How Spotify's XDS Control Plane Cut 75% of Cross-Zone Traffic - Yannick Epstein & Anya Hristova, Spotify', badge:'rw' },
           { time:'17:00', end:'17:30', name:'Building the Next Generation of Multi-Cluster with Gateway API - Mike Morris, Microsoft & Alan Grosskurth, Google', badge:'rw' },
         ],
       wed: [
           { time:'11:00', end:'11:30', name:'Building Cloud Native Culture in a Bank: With Open Source as a Compass - Marcy Paramonova, The Pictet Group & Stéphane Cusin, Banque Pictet & Cie SA', badge:'rw' },
-          { time:'11:45', end:'12:15', name:'From “No Time for GitOps” to Enterprise Adoption: Selling Flux the Human Way - Lucas Hornung & Christian Matthaei, Tchibo GmbH', badge:'rw' },
+          { time:'11:45', end:'12:15', name:'From "No Time for GitOps" to Enterprise Adoption: Selling Flux the Human Way - Lucas Hornung & Christian Matthaei, Tchibo GmbH', badge:'rw' },
           { time:'14:15', end:'14:45', name:'Evolving Baremetal-as-a-Service: Secure Multi-Cluster Networking and Service Identity Automation - Yushiro Furukawa & Mitsuhiro Tanino, LY Corporation', badge:'rw' },
           { time:'15:00', end:'15:30', name:'From Creepers to Clusters: Evolving Minecraft Into a Cloud Native Platform - Jaden Walderich & Alex Mizerak, Ziax Ltd.', badge:'rw' },
           { time:'16:00', end:'16:30', name:'From Classroom To Container: Teaching Distributed Systems With CNCF & Cloud Native Technologies - Matthias Haeussler, CGI', badge:'rw' },
@@ -1122,7 +1118,7 @@ const SCHEDULE = {
       thu: [
           { time:'11:00', end:'11:30', name:'To Upstream or Not? Why Becoming the Maintainer of Your Dependencies Matters - Christos Markou, Elastic', badge:'rw' },
           { time:'13:45', end:'14:15', name:'Navigating the Gateway API Maze: 40+ Implementations, 55+ Features, and a Path to Portability - Beka Modebadze, Google & Christine Kim, Isovalent at Cisco', badge:'rw' },
-          { time:'14:30', end:'15:00', name:'Metal3.io’s Path to CNCF Incubation: Governance, Processes, and Community - Kashif Khan, Ericsson & Dmitry Tantsur, Red Hat', badge:'rw' },
+          { time:'14:30', end:'15:00', name:'Metal3.io's Path to CNCF Incubation: Governance, Processes, and Community - Kashif Khan, Ericsson & Dmitry Tantsur, Red Hat', badge:'rw' },
           { time:'15:15', end:'15:45', name:'How Statistical Offices Move to Cloud Native Technology - Frédéric Comte, Insee & Trygve Tatsuya Falch', badge:'rw' },
         ],
     },
@@ -1146,7 +1142,7 @@ const SCHEDULE = {
           { time:'14:30', end:'15:00', name:'Bringing Cloud Native PaaS To Space: Onboard Edge Computing for Satellites - Adele Karam Hankache, Thales Alenia Space & Sergiu Weisz, POLITEHNICA Bucharest', badge:'rw' },
           { time:'15:15', end:'15:45', name:'Amplifying End User Voices: Platform Architects on the Future of Kubernetes - Rajas Kakodkar & Zach Shepherd, Broadcom; Kevin Klues, NVIDIA; Elias Tarn, AWS; Dawn Chen, Google', badge:'rw' },
           { time:'16:15', end:'16:45', name:'Towards Building an Open Source AI Reference Stack for EU Sovereign Cloud - Madhav Bhargava, SAP Labs & Sanjay Chatterjee, NVIDIA', badge:'rw' },
-          { time:'17:00', end:'17:30', name:'Why Is It So Hard to Run a 5G Core on Kubernetes—And What Needs to Change for 6G - Joel Studler, Swisscom & Ashan Senevirathne, Telstra', badge:'rw' },
+          { time:'17:00', end:'17:30', name:'Why Is It So Hard to Run a 5G Core on Kubernetes-And What Needs to Change for 6G - Joel Studler, Swisscom & Ashan Senevirathne, Telstra', badge:'rw' },
         ],
       wed: [
           { time:'11:00', end:'11:30', name:'Automate Once, Run Anywhere: The Docker Moment for Security Workflows - Nancy Chauhan & Aseem Shrey, ShipSecAI', badge:'rw' },
@@ -1176,7 +1172,7 @@ const SCHEDULE = {
           { time:'09:55', end:'10:00', name:'Open Source SecurityCon | Sponsored Keynote: From Packets to Pods: Lessons from 25 Years of Open Source Visibility - Gerald Combs, Sysdig', badge:'rw' },
           { time:'10:40', end:'11:05', name:'Trust, Tampering, and Transparency: What History Can Teach Us About Open Source Security - Lisa Tagliaferri, Chainguard', badge:'rw' },
           { time:'11:15', end:'11:40', name:'Upstream Collaboration for the Win (of the CRA)! - Georg Kunz & Jan Melen, Ericsson Software Technology', badge:'rw' },
-          { time:'11:50', end:'12:25', name:'Panel: It’s Not If, It’s When - Practical Preparation for the Next Software Supply Chain Attack - Hannah Foxwell & Justin Cormack, Independent; Sal Kimmich, GadflyAI; Erika Heidi, Chainguard; Josh Bressers, Anchore', badge:'rw' },
+          { time:'11:50', end:'12:25', name:'Panel: It's Not If, It's When - Practical Preparation for the Next Software Supply Chain Attack - Hannah Foxwell & Justin Cormack, Independent; Sal Kimmich, GadflyAI; Erika Heidi, Chainguard; Josh Bressers, Anchore', badge:'rw' },
           { time:'13:30', end:'13:55', name:'Zero Privilege Architecture - 3 Years Onward - Thijs Ebbers & Tadeo Sanchez, ING', badge:'rw' },
           { time:'14:05', end:'14:30', name:'Quantum Proofing Sigstore: A Tale of Three Approaches - Kevin Conner & Firas Ghanmi, Red Hat', badge:'rw' },
           { time:'14:40', end:'15:05', name:'Tarmageddon: One Bug, Four Forks, and a Disclosure Scavenger Hunt - Marina Moore & Alex Zenla, Edera', badge:'rw' },
@@ -1188,7 +1184,7 @@ const SCHEDULE = {
           { time:'17:25', end:'17:30', name:'Open Source SecurityCon | Closing Remarks - Brandt Keller & Constanze Roedig, Program Committee Co-Chairs', badge:'rw' },
         ],
       tue: [
-          { time:'11:15', end:'11:45', name:'1000 Services, 1 Year, 0 Downtime: Airbnb’s Zonal Cluster Migration - Sunny Beatteay, Airbnb', badge:'rw' },
+          { time:'11:15', end:'11:45', name:'1000 Services, 1 Year, 0 Downtime: Airbnb's Zonal Cluster Migration - Sunny Beatteay, Airbnb', badge:'rw' },
           { time:'12:00', end:'12:30', name:'When OTTL Goes Off the Rails: Debugging Transformations with Confidence - Edmo Vamerlatti Costa, Elastic & Tyler Helmuth, Honeycomb', badge:'rw' },
           { time:'14:30', end:'15:00', name:'A Tale of Two KEPs: How the Community is Taming Kubernetes\' CrashLoopBackoff - Yang Li, Google', badge:'rw' },
           { time:'15:15', end:'15:45', name:'The Future of Kubernetes Scalability: Challenges of the GigaWatt Computing Power of the AI Era - Maciek Różacki, Google Cloud & Artur Rodrigues, Anthropic', badge:'rw' },
@@ -1238,7 +1234,7 @@ const SCHEDULE = {
           { time:'12:00', end:'12:30', name:'Virtual Power Plants (VPP): How They Work and What They Are - LeRenzo Malcom & Mario Flores, Enpal', badge:'rw' },
           { time:'14:30', end:'15:00', name:'From Open Source To Enterprise Scale and Back: A Journey With Road-Runner - Michael Kuhnt, Mercedes-Benz Tech Innovation & Gabriel Adrian Samfira, Cloudbase Solutions', badge:'rw' },
           { time:'15:15', end:'15:45', name:'Rust Vs. Go: Building a Container Network Stack From Scratch - Matt Heon, Red Hat & Shivang K Raghuvanshi, Podman Container Tools', badge:'rw' },
-          { time:'16:15', end:'16:45', name:'The Developer’s Nightmare: How To Survive Compliance Checklists (and Still Ship Fast) - Alexandra Hou Aldershaab, Eficode & Thomas Vitale, Systematic', badge:'rw' },
+          { time:'16:15', end:'16:45', name:'The Developer's Nightmare: How To Survive Compliance Checklists (and Still Ship Fast) - Alexandra Hou Aldershaab, Eficode & Thomas Vitale, Systematic', badge:'rw' },
           { time:'17:00', end:'17:30', name:'From Laptop to Cluster: Running AI Workloads Seamlessly from Podman to Kubernetes - Ashley Cui & Urvashi Mohnani, Red Hat', badge:'rw' },
         ],
       wed: [
@@ -1286,7 +1282,7 @@ const SCHEDULE = {
           { time:'14:30', end:'15:00', name:'Make GenAI Production-Ready With Kubernetes Patterns - Roland Huss, Red Hat & Bilgin Ibryam, Diagrid', badge:'rw' },
           { time:'15:15', end:'15:45', name:'Instrumenting Kueue Scheduling for ML Training - Amy Chen, CoreWeave & Gabriel Saba, Google', badge:'rw' },
           { time:'16:15', end:'16:45', name:'Lessons Learned Orchestrating Multi-Tenant GPUs on OpenShift AI with NVIDIA KAI (G/H200) - Luca Berton, Dell Technologies', badge:'rw' },
-          { time:'17:00', end:'17:30', name:'Sponsored Session: Performance at Enterprise Cloud Scale: Coupa’s Kubernetes Optimization Journey - Peter Irwin, ScaleOps & Carl Baumcratz, Coupa', badge:'rw' },
+          { time:'17:00', end:'17:30', name:'Sponsored Session: Performance at Enterprise Cloud Scale: Coupa's Kubernetes Optimization Journey - Peter Irwin, ScaleOps & Carl Baumcratz, Coupa', badge:'rw' },
         ],
       wed: [
           { time:'11:00', end:'11:30', name:'Hacking GPU Observability: eBPF & Ephemeral Containers in Action on Kubernetes - Brandon Kang, Akamai Technologies', badge:'rw' },
@@ -1324,7 +1320,7 @@ const SCHEDULE = {
         ],
       tue: [
           { time:'11:15', end:'11:45', name:'We Deleted Our Observability Stack and Rebuilt It With OTEL: 12 Engineers to 4 at 20K+ Clusters - Yash Sharma & Kunju Perath, DigitalOcean', badge:'rw' },
-          { time:'12:00', end:'12:30', name:'5000 Kubernetes Clusters, 5 Minutes: Walmart’s Secret to Rapid Edge Deployments with Argo - Yug Gupta, Walmart Global Tech', badge:'rw' },
+          { time:'12:00', end:'12:30', name:'5000 Kubernetes Clusters, 5 Minutes: Walmart's Secret to Rapid Edge Deployments with Argo - Yug Gupta, Walmart Global Tech', badge:'rw' },
           { time:'14:30', end:'15:00', name:'What LLMs Do, and Don\'t, Know About Securing Kubernetes - Rory McCune, Datadog', badge:'rw' },
           { time:'15:15', end:'15:45', name:'Real-World Supply-Chain Security - Alex Leong, Buoyant', badge:'rw' },
           { time:'16:15', end:'16:45', name:'Privacy as Infrastructure: Declarative Data Protection for AI on Kubernetes - Joaquin Rodriguez, Microsoft & Krishnendu Dasgupta, AXONVERTEX AI', badge:'rw' },
@@ -1337,7 +1333,7 @@ const SCHEDULE = {
           { time:'15:00', end:'15:30', name:'Pull Request Wars: The Flux Awakens - Ephemeral Kubernetes Environments Strike Back - Matteo Bianchi, GitHub & Stefan Prodan, ControlPlane', badge:'rw' },
           { time:'16:00', end:'16:30', name:'Saxo Service Blueprint: Bridging Legacy and Modern World With Kubernetes Operators - Jinhong Brejnholt, Saxo Bank', badge:'rw' },
           { time:'16:45', end:'17:15', name:'Inside Saxo Service Blueprint: Implementing Kubernetes Operators for Legacy Enterprise Infrastructure - Oskar Kristiansen, Saxo Bank', badge:'rw' },
-          { time:'17:30', end:'18:00', name:'Scaling Platform Engineering: Lessons From Europe’s Largest Enterprises - Cat Morris, Syntasso; Stéphane Di Cesare, DKB; Anna Kozachenko, Amadeus; Gayathri Thiyagarajan, AWS', badge:'rw' },
+          { time:'17:30', end:'18:00', name:'Scaling Platform Engineering: Lessons From Europe's Largest Enterprises - Cat Morris, Syntasso; Stéphane Di Cesare, DKB; Anna Kozachenko, Amadeus; Gayathri Thiyagarajan, AWS', badge:'rw' },
         ],
       thu: [
           { time:'11:00', end:'11:30', name:'Stop Flying Blind: Real-Time, Enforceable Cluster-Wide Quotas with Kyverno and KRO - Mariam Fahmy, Nirmata & Adam Crowder, AWS', badge:'rw' },
@@ -1373,7 +1369,7 @@ const SCHEDULE = {
           { time:'09:19', end:'09:22', name:'Keynote: Keeping Sovereignty on Track: Kubernetes Powering a National Railway Platform - Thomas Comtet, Senior Staff Engineer, SNCF & Yann Rotilio, Senior Staff Engineer - Kubernetes Specialist, SNCF', badge:'rw' },
           { time:'09:24', end:'09:29', name:'Sponsored Keynote: Inference and Sovereign AI: Scaling Cloud-Native AI with Control and Compliance - Karena Angell, Technical Strategist, Global Engineering, Red Hat & Vincent Caldeira, Chief Technology Officer, APAC, Red Hat', badge:'rw' },
           { time:'09:31', end:'09:34', name:'Keynote: Building a Sovereign, Multi-Cloud Strategy with Cloud Native Technologies - Goetz Reinhaeckel, Program Director Cloud, BWI', badge:'rw' },
-          { time:'09:36', end:'09:39', name:'Keynote: Powering the European Space Agency’s Space Missions with Open Source Software - Aaron Whitehouse, Senior Product Manager, Canonical', badge:'rw' },
+          { time:'09:36', end:'09:39', name:'Keynote: Powering the European Space Agency's Space Missions with Open Source Software - Aaron Whitehouse, Senior Product Manager, Canonical', badge:'rw' },
           { time:'09:41', end:'09:46', name:'Sponsored Keynote: From Pilot to Production: Scaling and Optimizing Agentic Workloads on Kubernetes - Idit Levine, Founder & CEO, Solo.io & Keith Babo, Chief Product Officer, Solo.io', badge:'rw' },
           { time:'09:48', end:'10:03', name:'Keynote: Awards Ceremony', badge:'rw' },
           { time:'10:05', end:'10:20', name:'Keynote: From Orbit to the Grid: Automating a Greener Future - Faseela K, Cloud Native Developer, Ericsson; Chris Holmes, Vice President, Planet Labs; Michael Reichenbach, Senior Platform Engineer, 1KOMMA5°', badge:'rw' },
@@ -1435,15 +1431,15 @@ const SCHEDULE = {
           { time:'14:30', end:'15:00', name:'Enterprise-Scale Migrations Using Agentic Workflows with Human-in-the-loop - Alvaro Saurin & Jose M Navarro, Adobe', badge:'rw' },
           { time:'15:15', end:'15:45', name:'Leveling up with Radius: Custom Resources and Headlamp Integration for Real-World Workloads - Nuno Guedes, Millennium bcp & Will Tsai, Microsoft', badge:'rw' },
           { time:'16:15', end:'16:45', name:'LLM Inference at Scale: Orchestrating Prefill-Decode Disaggregation - Zhonghu Xu, Huawei Technologies Co., Ltd', badge:'rw' },
-          { time:'17:00', end:'17:30', name:'Moving Spotify’s Infrastructure Management Up the Stack from Kubebuilder to Kro and K-poperator - Alexander Buck & Tomas Aschan, Spotify', badge:'rw' },
+          { time:'17:00', end:'17:30', name:'Moving Spotify's Infrastructure Management Up the Stack from Kubebuilder to Kro and K-poperator - Alexander Buck & Tomas Aschan, Spotify', badge:'rw' },
         ],
       wed: [
           { time:'11:00', end:'11:30', name:'From GitOps to AIOps: Evolving RBI\'s Kubernetes Platform with Crossplane and Sharded Kargo - Gabor Horvath & Ewald Überall, Raiffeisen Bank International', badge:'rw' },
-          { time:'11:45', end:'12:15', name:'From Projects to Products: The Sociotechnical Journey Behind Sony’s Internal Cloud Platform - Eugenia Bergman & Hagen Tonnies, Sony Interactive Entertainment', badge:'rw' },
+          { time:'11:45', end:'12:15', name:'From Projects to Products: The Sociotechnical Journey Behind Sony's Internal Cloud Platform - Eugenia Bergman & Hagen Tonnies, Sony Interactive Entertainment', badge:'rw' },
           { time:'14:15', end:'14:45', name:'How Much Platform Is Enough Platform? - John Keates, Wehkamp Retail Group', badge:'rw' },
           { time:'15:00', end:'15:30', name:'Ghost in the Platform: How the Dutch Tax Authority Built a Service To Scale K8s To 99+ Applications - Jerry van Hulst, Belastingdienst & Marcel Kerker, HCS Company B.V.', badge:'rw' },
           { time:'16:00', end:'16:30', name:'How to Build a European Cloud Orchestration Platform From Within an Enterprise - Maximilian Techritz & Johannes Ott, SAP SE', badge:'rw' },
-          { time:'16:45', end:'17:15', name:'Rabobank’s Path to Secure, Fast Kubernetes Delivery - Beatrice Forslund & Koshin Verberne, Rabobank', badge:'rw' },
+          { time:'16:45', end:'17:15', name:'Rabobank's Path to Secure, Fast Kubernetes Delivery - Beatrice Forslund & Koshin Verberne, Rabobank', badge:'rw' },
           { time:'17:30', end:'18:00', name:'Disaster Resilient Trino on Kubernetes: Multi-Cluster Setup With Karmada and Trino Gateway - Sung Yun & Antoine Marthey, Bloomberg LP', badge:'rw' },
           { time:'18:15', end:'19:00', name:'Documentary Premiere: Backstage: From Spreadsheet to Standard', badge:'rw' },
         ],
@@ -1499,7 +1495,7 @@ const SCHEDULE = {
           { time:'15:55', end:'16:20', name:'From FTP To Argo CD & Argo Rollouts: An Adoption History Inside a Corp - Alfonso Ming, LIDL HUG DIGITAL & Meritxell Rodríguez, SCRM Lidl International Hub', badge:'rw' },
           { time:'16:30', end:'16:55', name:'Declarative...ish? Fixing Hidden Argo CD Pitfalls in Your GitOps Setup - Regina Voloshin, Octopus Deploy', badge:'rw' },
           { time:'17:00', end:'17:10', name:'⚡Lightning Talk: The $10,000 Argo CD Mistake: Eliminating Phantom Syncs and Scaling the Repo Server - Vanshika Jain, Brudite Private Limited & Aditya Soni, Sailpoint', badge:'rw' },
-          { time:'17:15', end:'17:25', name:'⚡Lightning Talk: “Tilt? Goreman? Make? Go Run? A Contributor’s Guide To Argo CD Local Dev” - Nitish Kumar, Akuity', badge:'rw' },
+          { time:'17:15', end:'17:25', name:'⚡Lightning Talk: "Tilt? Goreman? Make? Go Run? A Contributor's Guide To Argo CD Local Dev" - Nitish Kumar, Akuity', badge:'rw' },
         ],
       tue: [
           { time:'11:15', end:'11:45', name:'SIG Contributor Experience: Guiding Contributors Through the Project - Nabarun Pal, Broadcom; Priyanka Saggu, SUSE; Arpit Agrawal, Kubernetes; Mario Fahlandt, Kubermatic', badge:'rw' },
@@ -1519,7 +1515,7 @@ const SCHEDULE = {
           { time:'17:30', end:'18:00', name:'Let Your Network Speak! - Nadia Pinaeva, NVIDIA & Joel Takvorian, Red Hat', badge:'rw' },
         ],
       thu: [
-          { time:'11:00', end:'11:30', name:'Cert-manager – Project Update: Beyond 2026 - Tim Ramlot & Maël Valais, Palo Alto Networks', badge:'rw' },
+          { time:'11:00', end:'11:30', name:'Cert-manager - Project Update: Beyond 2026 - Tim Ramlot & Maël Valais, Palo Alto Networks', badge:'rw' },
           { time:'11:45', end:'12:15', name:'Dragonfly V2.4.0 - Intro, Updates, Data Distribution in AI Infrastructure - Wenbo Qi & Chenyu Zhang, Ant Group', badge:'rw' },
           { time:'13:45', end:'14:15', name:'Evolving KServe: The Unified Model Inference Platform for Both Predictive and Generative AI - Filippe Spolti & JooHoo Lee, Red Hat', badge:'rw' },
           { time:'14:30', end:'15:00', name:'Envoy in the Era of Agentic Workloads - Yan Avlasov, Google & Erica Hughberg, Tetrate', badge:'rw' },
@@ -1532,7 +1528,7 @@ const SCHEDULE = {
           { time:'09:00', end:'09:05', name:'Cloud Native Telco Day | Welcome + Opening Remarks - Gergely Csatari & Philippe Ensarguet - Program Committee Co-Chairs', badge:'rw' },
           { time:'09:10', end:'09:35', name:'The Shift: Radio Network Functions as IT Applications - Guillaume Nevicato, Orange & Andre Puschmann, Software Radio Systems', badge:'rw' },
           { time:'09:45', end:'10:10', name:'Are We Stuck With Helm Forever? A Landscape of Cloud Native CNF Management Options - Istvan Kispal, Nokia Bell Labs & Liam Fallon, Ericsson Software Technology', badge:'rw' },
-          { time:'10:15', end:'10:20', name:'Cloud Native Telco Day l Sponsored Keynote: Telco’s Next Act: Scaling Intelligence with Open Source and Agentic AI - Ranny Haiby, The Linux Foundation & Philippe Ensarguet, Orange', badge:'rw' },
+          { time:'10:15', end:'10:20', name:'Cloud Native Telco Day l Sponsored Keynote: Telco's Next Act: Scaling Intelligence with Open Source and Agentic AI - Ranny Haiby, The Linux Foundation & Philippe Ensarguet, Orange', badge:'rw' },
           { time:'10:40', end:'11:05', name:'The Autonomous Telco: AI Agents as First-Class Citizens in Cloud-Native Infrastructure- Samy Nitsche & Dorian Lenzner - Deutsche Telekom', badge:'rw' },
           { time:'11:15', end:'11:40', name:'From YANG To YAML: How We Tamed the 5G Configuration Beast - Joel Studler, Swisscom & Peter Wörndle, Ericsson', badge:'rw' },
           { time:'11:50', end:'12:25', name:'Panel: Kubernetes Networking: Present and Future - Gergely Csatari, Nokia; Lionel Jouin, Red Hat; Antonio Ojea, Google; Surya Seetharaman, Red Hat', badge:'rw' },
@@ -1540,7 +1536,7 @@ const SCHEDULE = {
           { time:'14:05', end:'14:30', name:'Reliability To the Edge: Telco Teaching Cloud Native - Priscila Veiga, Red Hat', badge:'rw' },
           { time:'14:40', end:'15:05', name:'Extracting the Last Microseconds of Performance From Containerized Workloads - Feruzjon Muyassarov, Ericsson Software Technology & Alexander Kanevskiy, Intel', badge:'rw' },
           { time:'15:20', end:'15:55', name:'Panel: Agentic AI Infrastructure for Telecom - Yoshihiro Nakajima, NTT DOCOMO; Ranny Haiby, The Linux Foundation; Philippe Ensarguet, Orange; Hui Deng, Huawei; Yanjun Chen, China Mobile', badge:'rw' },
-          { time:'16:00', end:'16:25', name:'What Do You Mean It’s Broken? When AI Meets the Harsh Reality of Telco Observability - Piotr Matysiak & Iwona Wojdan, Orange', badge:'rw' },
+          { time:'16:00', end:'16:25', name:'What Do You Mean It's Broken? When AI Meets the Harsh Reality of Telco Observability - Piotr Matysiak & Iwona Wojdan, Orange', badge:'rw' },
           { time:'16:30', end:'16:40', name:'⚡Lightning Talk: Operationalizing the NGMN Cloud Native Manifesto: CNTi and Sylva in Action - Martin Matyáš, Tieto', badge:'rw' },
           { time:'16:50', end:'17:25', name:'Panel: From Footprint To Value: Commercial Adoption of CAMARA APIs - Jill Lovato, Linux Foundation; Andres Burgoa, Aduna Global; Huub Appelboom, KPN & Nathan Rader, Deutsche Telekom', badge:'rw' },
           { time:'17:25', end:'17:30', name:'Cloud Native Telco Day | Closing Remarks - Gergely Csatari & Philippe Ensarguet - Program Committee Co-Chairs', badge:'rw' },
@@ -1553,11 +1549,11 @@ const SCHEDULE = {
         ],
       wed: [
           { time:'11:00', end:'11:30', name:'Code and Brain: Health and Performance in High Cognitive Demand Tech Communities', badge:'w' },
-          { time:'11:45', end:'12:15', name:'Designing Slides You Can’t See (But Can Still Understand)', badge:'w' },
+          { time:'11:45', end:'12:15', name:'Designing Slides You Can't See (But Can Still Understand)', badge:'w' },
           { time:'13:15', end:'14:15', name:'🤟 Sign Language Crash Course', badge:'w' },
           { time:'14:30', end:'15:30', name:'LGBTQ+ Community Gathering', badge:'w' },
           { time:'15:45', end:'16:45', name:'Neurodiversity at Work: Practical Tools, Open Source Paths, and Inclusive Community Building', badge:'w' },
-          { time:'17:00', end:'17:30', name:'When Speaking Is Not Linear: What “Effective Communication” Really Means', badge:'w' },
+          { time:'17:00', end:'17:30', name:'When Speaking Is Not Linear: What "Effective Communication" Really Means', badge:'w' },
         ],
       thu: [
           { time:'11:00', end:'12:00', name:'Kubernetes Book Club Gathering', badge:'w' },
@@ -1615,7 +1611,7 @@ const SCHEDULE = {
           { time:'12:00', end:'12:30', name:'Helm 4 Is Here. So, Now What? - Andrew Block, Red Hat; Scott Rigby, Replicated; Robert Sirchia, SUSE', badge:'rw' },
           { time:'14:30', end:'15:00', name:'10 Years of Cilium: Connecting, Securing, and Simplifying the Cloud Native Stack - Bill Mulligan & Paul Arah, Isovalent at Cisco; Marcelo Mello, Celonis; Neha Aggarwal, Microsoft', badge:'rw' },
           { time:'15:15', end:'15:45', name:'Crossplane - The Cloud Native Framework for Platform Engineering - Jared Watts & Adam Wolfe Gordon, Upbound', badge:'rw' },
-          { time:'17:00', end:'17:30', name:'The 10x DevOps Engineer’s Toolkit: Argo CD + AI-Driven MCP Automation - Alexander Matyushentsev, Akuity & Leonardo Luz Almeida, Intuit', badge:'rw' },
+          { time:'17:00', end:'17:30', name:'The 10x DevOps Engineer's Toolkit: Argo CD + AI-Driven MCP Automation - Alexander Matyushentsev, Akuity & Leonardo Luz Almeida, Intuit', badge:'rw' },
         ],
       wed: [
           { time:'11:00', end:'11:30', name:'Lima Project Updates: Expanding the Focus To Hardening AI - Akihiro Suda, NTT & Anshuman Sahoo, BITS Pilani', badge:'rw' },
@@ -1641,7 +1637,7 @@ const SCHEDULE = {
           { time:'12:11', end:'12:16', name:'Cloud Native Theater | Cloud Native University: Introduction to GitOps - Chris Plank, NatWest', badge:'rw' },
           { time:'12:19', end:'12:34', name:'Cloud Native Theater | Cloud Native University: Platform Engineering - About Tools, Techniques, People and Culture - Max Körbächer, Liquid Reply', badge:'rw' },
           { time:'12:37', end:'12:57', name:'Cloud Native Theater | Cloud Native University: How Kubernetes Actually Ships: An Educator\'s Guide to Core Releases, SIGs, and Staying Current - Michael Forrester and Mumshad Mannambeth, KodeKloud', badge:'rw' },
-          { time:'13:00', end:'13:15', name:'Cloud Native Theater | Cloud Native University: The AI-Hiker’s Guide to Cloud Native AI - Cansu Kavili Örnek and Anneli Sara Banderby, RedHat', badge:'rw' },
+          { time:'13:00', end:'13:15', name:'Cloud Native Theater | Cloud Native University: The AI-Hiker's Guide to Cloud Native AI - Cansu Kavili Örnek and Anneli Sara Banderby, RedHat', badge:'rw' },
           { time:'13:18', end:'13:34', name:'Cloud Native Theater | Cloud Native University: AI + Kubernetes: What Beginners Need to Know in 2026 - Michael Forrester, KodeKloud', badge:'rw' },
           { time:'14:30', end:'15:00', name:'Cloud Native Theater | Istio Day: Running State of the Art Inference with Istio and LLM-D - Jackie Maertens, Microsoft and Nili Guy, IBM', badge:'rw' },
           { time:'15:00', end:'15:30', name:'Cloud Native Theater | Istio Day: Zero-Downtime Migration from ingress-nginx to Istio in a Multi-Cluster Kubernetes Platform at Bloomberg - Joe Abellard, Bloomberg', badge:'rw' },
@@ -1650,7 +1646,7 @@ const SCHEDULE = {
         ],
       wed: [
           { time:'11:00', end:'11:05', name:'Cloud Native Theater | EnvoyCon: Opening Remarks - Kateryna Nezdolii, Isovalent, Erica Hughberg, and Chris Mazur, Tetrate', badge:'rw' },
-          { time:'11:10', end:'11:24', name:'Cloud Native Theater | EnvoyCon: Inside Spotify’s Envoy Architecture: What We Learned the Hard Way - Leonardo da Mata, Spotify', badge:'rw' },
+          { time:'11:10', end:'11:24', name:'Cloud Native Theater | EnvoyCon: Inside Spotify's Envoy Architecture: What We Learned the Hard Way - Leonardo da Mata, Spotify', badge:'rw' },
           { time:'11:29', end:'11:43', name:'Cloud Native Theater | EnvoyCon: External Processing, Internal Leverage: MCP Tool Calls to REST with Envoy - Jens Kat, ING', badge:'rw' },
           { time:'11:48', end:'12:02', name:'Cloud Native Theater | EnvoyCon: The Next Generation of Envoy Extensibility: Dynamic Modules for Network, Listener, and HTTP Filters - Rohit Agrawal, Databricks', badge:'rw' },
           { time:'12:07', end:'12:21', name:'Cloud Native Theater | EnvoyCon: Zone Aware Routing With Per-Locality Load Awareness- Isaac Wilson, The Trade Desk', badge:'rw' },
@@ -1681,7 +1677,7 @@ const SCHEDULE = {
       mon: [
           { time:'09:00', end:'09:05', name:'FluxCon | Welcome + Opening Remarks - Francesco Beltramini & Tiffany Wang, Program Committee Members', badge:'rw', turnaround24:true },
           { time:'09:10', end:'09:35', name:'Vibe Coding Meets GitOps - Stefan Prodan, ControlPlane', badge:'rw' },
-          { time:'09:40', end:'10:05', name:'Air France–KLM’s GitOps Takeoff: Real Stories From the Flight Deck - Alaoui Echerif Amine & Ravi Ramrattan, Air France KLM', badge:'rw' },
+          { time:'09:40', end:'10:05', name:'Air France-KLM's GitOps Takeoff: Real Stories From the Flight Deck - Alaoui Echerif Amine & Ravi Ramrattan, Air France KLM', badge:'rw' },
           { time:'10:10', end:'10:15', name:'FluxCon | Sponsored Keynote: Agentic GitOps: Evolving Enterprise Delivery - Andy Martin, ControlPlane', badge:'rw' },
           { time:'10:20', end:'10:45', name:'May the Flux Be With You: Tales From the GitOps Trenches at NatWest - Joel King & Lee Coupe, NatWest Group', badge:'rw' },
           { time:'11:00', end:'11:25', name:'Towards Better Canary Releases With Flagger and Gateway API - Sanskar Jaiswal, Kong', badge:'rw' },
@@ -1698,7 +1694,7 @@ const SCHEDULE = {
           { time:'15:55', end:'16:20', name:'Cloud Native Promises, On-Premises: Bump Your Load Balancing To V2 With Cilium - Mikael Johansson Länsberg, Etraveli Group AB', badge:'rw' },
           { time:'16:30', end:'16:55', name:'One Policy To Rule Them All? Scaling Tetragon Without Flooding Your Cluster - Alessio Biancalana, SUSE', badge:'rw' },
           { time:'17:00', end:'17:10', name:'⚡Lightning Talk: What\'s Happening in Cilium? Current Projects You Need To See - Martynas Pumputis, Isovalent at Cisco', badge:'rw' },
-          { time:'17:15', end:'17:25', name:'⚡Lightning Talk: Closing the Gap: Fair North–South Bandwidth Management for Tenants - Weizhou Lan, Daocloud', badge:'rw' },
+          { time:'17:15', end:'17:25', name:'⚡Lightning Talk: Closing the Gap: Fair North-South Bandwidth Management for Tenants - Weizhou Lan, Daocloud', badge:'rw' },
           { time:'17:25', end:'17:30', name:'CiliumCon | Closing Remarks - Hemanth Malla & Mahé Tardy, Program Committee Co-Chairs', badge:'rw' },
         ],
       tue: [
@@ -1723,10 +1719,10 @@ const SCHEDULE = {
       mon: [],
       tue: [
           { time:'12:00', end:'12:30', name:'Breaking the Monolith: Decomposing and Governing Giant LLM Jobs Across Clusters - Kevin Wang, Huawei', badge:'rw' },
-          { time:'14:30', end:'15:00', name:'Do You Trust Your PodDisruptionBudgets? You Shouldn’t! - Kārlis Akots Gribulis, Saxo Bank', badge:'rw' },
+          { time:'14:30', end:'15:00', name:'Do You Trust Your PodDisruptionBudgets? You Shouldn't! - Kārlis Akots Gribulis, Saxo Bank', badge:'rw' },
           { time:'15:15', end:'15:45', name:'Operators in Action: Making Kubernetes Work for You - Verena Traub, b\'nerd GmbH', badge:'rw' },
           { time:'16:15', end:'16:45', name:'OpenTelemetry Logs Driving a Major Shift: Events, Richer Data, and Smarter Semantics - Robert Pająk, Splunk', badge:'rw' },
-          { time:'17:00', end:'17:30', name:'When Multitenancy Goes Wrong: A Deep Dive Into Kcp’s First CVE - Marko Mudrinić, Kubermatic & Marvin Beckers, ClickHouse', badge:'rw' },
+          { time:'17:00', end:'17:30', name:'When Multitenancy Goes Wrong: A Deep Dive Into Kcp's First CVE - Marko Mudrinić, Kubermatic & Marvin Beckers, ClickHouse', badge:'rw' },
         ],
       wed: [
           { time:'11:00', end:'11:30', name:'Automating and Scaling of Threat Modelling for Cloud Native Architecture - Hanna Papirna & Emma Yuan Fang, EPAM Systems', badge:'rw' },
@@ -1797,7 +1793,7 @@ function setFbStatus(ok) {
   const d=document.getElementById('fbDot'), t=document.getElementById('fbTxt');
   if(!d) return;
   d.className='fb-dot'+(ok?' ok':'');
-  t.textContent=ok?'Connected — live sync active':'Not connected — local only';
+  t.textContent=ok?'Connected - live sync active':'Not connected - local only';
 }
 
 // Render
@@ -1844,7 +1840,7 @@ function render() {
     c.rooms.forEach(room => {
       const d=isDone(room.id), n=countDone(room.id);
       const tag = d?'done':n>0?'wip':'empty';
-      const tagTxt = d?'Done':n>0?`${n}/${config.steps.length}`:'—';
+      const tagTxt = d?'Done':n>0?`${n}/${config.steps.length}`:'-';
       const row = document.createElement('div'); row.className=`room${d?' done':''}`; row.id=`room_${room.id}`;
       row.innerHTML=`
         <div class="room-name">${room.name}</div>
@@ -1973,7 +1969,7 @@ function renderSettings() {
     <div class="sg">
       <div class="sg-lbl">Live Sync</div>
       <input class="si" id="s_fb" value="${config.firebaseUrl||''}" placeholder="Firebase Realtime DB URL" style="margin-bottom:0">
-      <div class="fb-row"><div class="fb-dot${fbDb?' ok':''}" id="fbDot"></div><span class="fb-txt" id="fbTxt">${fbDb?'Connected — live sync active':'Not connected — local only'}</span></div>
+      <div class="fb-row"><div class="fb-dot${fbDb?' ok':''}" id="fbDot"></div><span class="fb-txt" id="fbTxt">${fbDb?'Connected - live sync active':'Not connected - local only'}</span></div>
     </div>
     <div class="sg">
       <div class="sg-lbl">Setup Steps</div>
@@ -2170,7 +2166,7 @@ function renderToday() {
   }
 
   page.innerHTML = `
-    <div class="today-hd">${dayLabels[dayKey]} — <span>${items.length} sessions</span></div>
+    <div class="today-hd">${dayLabels[dayKey]} - <span>${items.length} sessions</span></div>
     ${items.map(s => `
       <div class="today-item">
         <div class="today-time">${s.time}</div>
@@ -2205,12 +2201,7 @@ function copyAppLink() {
     navigator.share({ title: config.title, text });
   } else {
     navigator.clipboard.writeText(text).then(() => {
-      const btn = document.getElementById('copyBtn');
-      const orig = btn.innerHTML;
-      btn.innerHTML = '✓ Copied!';
-      btn.style.color = 'var(--green)';
-      btn.style.borderColor = 'var(--green)';
-      setTimeout(() => { btn.innerHTML = orig; btn.style.color = ''; btn.style.borderColor = ''; }, 2000);
+      showToast('Copied to clipboard!');
     }).catch(() => prompt('Copy this:', text));
   }
 }
@@ -2258,7 +2249,7 @@ function openSchedule(crewId) {
   else schedDay = 'sun';
 
   document.getElementById('schedTitle').textContent = crew.name;
-  document.getElementById('schedSub').textContent = 'Room schedule — KubeCon EU 2026';
+  document.getElementById('schedSub').textContent = 'Room schedule - KubeCon EU 2026';
   renderSchedule();
   document.getElementById('schedSheet').classList.add('open');
   document.body.style.overflow = 'hidden';
@@ -2298,7 +2289,7 @@ function renderSchedule() {
   ).join('');
   document.getElementById('roomTabs').innerHTML = allBtn + roomBtns;
 
-  // Body — filter rooms
+  // Body - filter rooms
   const visibleRooms = schedRoomFilter
     ? crew.rooms.filter(r => r.id === schedRoomFilter)
     : crew.rooms;
@@ -2400,7 +2391,7 @@ function renderSchedule() {
 // RECORD CHECKLIST
 // ═══════════════════════════════
 const REC_CHECKS = [
-  { key:'obsbot',    icon:'🤖', label:'Obsbot PTZ — mic on' },
+  { key:'obsbot',    icon:'🤖', label:'Obsbot PTZ - mic on' },
   { key:'canon',     icon:'📷', label:'B Canon camera' },
   { key:'vmix_rec',  icon:'⏺', label:'vMix recording' },
   { key:'vmix_mc',   icon:'💾', label:'vMix multicorder' },
