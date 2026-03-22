@@ -6,6 +6,7 @@
 <title>Setup Tracker</title>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
 <link rel="manifest" href="manifest.json">
 <link rel="icon" type="image/svg+xml" href="icon.svg">
 <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
@@ -1819,9 +1820,13 @@ function countDone(rid){ return config.steps.filter(s => getVal(rid, s.key)).len
 
 function toggle(rid, sk) {
   if (!state[rid]) { state[rid]={}; config.steps.forEach(s => state[rid][s.key]=getVal(rid,s.key)); }
+  const wasDone = isDone(rid);
   state[rid][sk] ^= 1;
   saveState();
   if (fbDb) fbDb.child('state/'+rid).set(state[rid]);
+  if (!wasDone && isDone(rid)) {
+    confetti({ particleCount: 120, spread: 70, origin: { y: 0.6 }, colors: ['#d4a843', '#ffffff', '#3d9970', '#e8e8e8'] });
+  }
   render();
 }
 
