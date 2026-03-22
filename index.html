@@ -689,10 +689,7 @@ body { padding-bottom: 58px; }
   <div class="today-page" id="todayPage"></div>
 </div>
 
-<!-- PAGE: RECORD -->
-<div id="page-record" class="page">
-  <div id="recordPage"></div>
-</div>
+
 
 
 
@@ -707,10 +704,6 @@ body { padding-bottom: 58px; }
   <div class="nav-tab" id="nav-overview" onclick="switchPage('overview')">
     <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
     Overview
-  </div>
-  <div class="nav-tab" id="nav-record" onclick="switchPage('record')">
-    <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3" fill="currentColor" stroke="none"/></svg>
-    Record
   </div>
   <div class="nav-tab" id="nav-today" onclick="switchPage('today')">
     <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
@@ -777,9 +770,13 @@ const DEFAULT_CONFIG = {
     { key:'tested', icon:'📝', label:'Tested' },
   ],
   schedSteps: [
-    { key:'recorded',  icon:'🔴', label:'Recorded'  },
-    { key:'drive',     icon:'🎬', label:'Edit'      },
-    { key:'uploaded',  icon:'✅', label:'Uploaded'  },
+    { key:'obsbot',   icon:'🤖', label:'PTZ mic'    },
+    { key:'canon',    icon:'📷', label:'Canon'      },
+    { key:'vmix_rec', icon:'⏺',  label:'Recording'  },
+    { key:'vmix_mc',  icon:'💾', label:'Multicorder' },
+    { key:'vmix_str', icon:'📡', label:'Streaming'  },
+    { key:'edit',     icon:'🎬', label:'Edited'     },
+    { key:'uploaded', icon:'☁️', label:'Uploaded'   },
   ],
   crew: [
     { id:'alexi',   name:'Alexi',   rooms:[{id:'r1',name:'E103-105'},{id:'r2',name:'E106-108'},{id:'r3',name:'Auditorium'}] },
@@ -2222,7 +2219,15 @@ function renderSchedule() {
                 <span class="sched-tile-badge badge-${s.badge}">${s.badge==='rw'?'Record + Wordly':s.badge==='r'?'Record only':s.badge==='w'?'Wordly only':'Streaming'}</span>
                 ${t24 ? `<span class="badge-24hr">⏱ 24hr Upload</span>` : ''}
               </div>
-              ${steps.length ? `<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;">${stepsHtml}</div>` : ''}
+              ${steps.length ? (() => {
+                const pre = steps.filter(st => ['obsbot','canon','vmix_rec','vmix_mc','vmix_str'].includes(st.key));
+                const post = steps.filter(st => ['edit','uploaded'].includes(st.key));
+                const other = steps.filter(st => !pre.includes(st) && !post.includes(st));
+                const preHtml = pre.length ? `<div style="margin-top:8px;"><div style="font-size:9px;font-weight:600;color:var(--t3);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;">Before session</div><div style="display:flex;flex-wrap:wrap;gap:5px;">${steps.filter(st=>pre.includes(st)).map(st=>{const val=getSchedStep(schedCrewId,room.id,schedDay,i,st.key);return `<div onclick="event.stopPropagation();toggleSchedStep('${schedCrewId}','${room.id}','${schedDay}',${i},'${st.key}')" style="display:flex;align-items:center;gap:4px;padding:4px 8px;border-radius:5px;cursor:pointer;background:${val?'rgba(76,175,116,0.12)':'var(--s2)'};border:1px solid ${val?'rgba(76,175,116,0.3)':'var(--line2)'};transition:all 0.12s;"><span style="font-size:13px;line-height:1;">${st.icon}</span><span style="font-size:10px;font-weight:600;color:${val?'var(--green)':'var(--t3)'};">${st.label}</span></div>`;}).join('')}</div></div>` : '';
+                const postHtml = post.length ? `<div style="margin-top:6px;"><div style="font-size:9px;font-weight:600;color:var(--t3);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;">After session</div><div style="display:flex;flex-wrap:wrap;gap:5px;">${steps.filter(st=>post.includes(st)).map(st=>{const val=getSchedStep(schedCrewId,room.id,schedDay,i,st.key);return `<div onclick="event.stopPropagation();toggleSchedStep('${schedCrewId}','${room.id}','${schedDay}',${i},'${st.key}')" style="display:flex;align-items:center;gap:4px;padding:4px 8px;border-radius:5px;cursor:pointer;background:${val?'rgba(76,175,116,0.12)':'var(--s2)'};border:1px solid ${val?'rgba(76,175,116,0.3)':'var(--line2)'};transition:all 0.12s;"><span style="font-size:13px;line-height:1;">${st.icon}</span><span style="font-size:10px;font-weight:600;color:${val?'var(--green)':'var(--t3)'};">${st.label}</span></div>`;}).join('')}</div></div>` : '';
+                const otherHtml = other.length ? `<div style="display:flex;flex-wrap:wrap;gap:5px;margin-top:6px;">${stepsHtml}</div>` : '';
+                return preHtml + postHtml + otherHtml;
+              })() : ''}
             </div>
           </div>`;}).join('')
       : `<div class="sched-empty">No sessions scheduled</div>`;
