@@ -1562,7 +1562,7 @@ function initFirebase(url) {
         const app = firebase.initializeApp({ databaseURL: url }, 'tr');
         fbDb = firebase.database(app).ref('e3-kc26-x7k9m');
         fbDb.child('state').on('value', s => { const v=s.val(); if(v){state=v;saveState();render();} });
-        fbDb.child('config').on('value', s => { const v=s.val(); if(v&&v.steps&&v.crew){config=v;saveConfig();render();} });
+        fbDb.child('config').on('value', s => { const v=s.val(); if(v&&v.steps&&v.crew){config=v; if(!config.schedSteps)config.schedSteps=DEFAULT_CONFIG.schedSteps; saveConfig();render();} });
         setFbStatus(true);
       } catch(e) { setFbStatus(false); }
     }));
@@ -1836,6 +1836,8 @@ function showToast(msg) {
 
 if (config.firebaseUrl) initFirebase(config.firebaseUrl);
 render();
+// Push schedSteps to Firebase if missing (one-time migration)
+setTimeout(() => { if (fbDb && config.schedSteps) fbDb.child('config/schedSteps').once('value', s => { if (!s.val()) fbDb.child('config/schedSteps').set(config.schedSteps); }); }, 3000);
 
 // Register service worker for PWA
 if ('serviceWorker' in navigator) {
