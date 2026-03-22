@@ -445,6 +445,12 @@ body { padding-bottom: 58px; }
 }
 .ov-section-hd:first-child { padding-top: 0; margin-top: 0; }
 
+.room-highlight { animation: roomFlash 1.5s ease; }
+@keyframes roomFlash {
+  0%,100% { background: transparent; }
+  20% { background: rgba(212,168,67,0.18); border-radius: 6px; }
+}
+
 /* ── TODAY PAGE ── */
 .today-page { padding: 14px 0 0; }
 .today-hd {
@@ -1782,7 +1788,7 @@ function render() {
       const d=isDone(room.id), n=countDone(room.id);
       const tag = d?'done':n>0?'wip':'empty';
       const tagTxt = d?'Done':n>0?`${n}/${config.steps.length}`:'—';
-      const row = document.createElement('div'); row.className=`room${d?' done':''}`;
+      const row = document.createElement('div'); row.className=`room${d?' done':''}`; row.id=`room_${room.id}`;
       row.innerHTML=`
         <div class="room-name">${room.name}</div>
         <div class="steps-wrap">
@@ -2038,7 +2044,7 @@ function renderOverview() {
       const stepsIcons = config.steps.map(s =>
         `<span class="ov-step${getVal(room.id,s.key)?' on':''}">${s.icon}</span>`
       ).join('');
-      html += `<div class="ov-card${complete?' complete':''}" onclick="openSchedule('${c.id}')">
+      html += `<div class="ov-card${complete?' complete':''}" onclick="openRoomDetail('${room.id}')">
         <div class="ov-top">
           <div class="ov-dot" style="background:${crewColor};opacity:0.6;"></div>
           <div class="ov-room">${room.name}</div>
@@ -2103,6 +2109,18 @@ function avatarColor(name) {
   const AVATAR_COLORS_REF = ['#e8c547','#e87d47','#e84774','#a347e8','#478ce8','#47e8a0','#e8476b','#47e8d4','#c8e847','#e88347'];
   let h = 0; for (let i=0; i<name.length; i++) h = (h*31+name.charCodeAt(i))&0xffff;
   return AVATAR_COLORS_REF[h % AVATAR_COLORS_REF.length];
+}
+
+function openRoomDetail(roomId) {
+  // Switch to Setup tab, then scroll to the room
+  switchPage('setup');
+  setTimeout(() => {
+    const el = document.getElementById('room_' + roomId);
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    // Flash highlight
+    el?.classList.add('room-highlight');
+    setTimeout(() => el?.classList.remove('room-highlight'), 1500);
+  }, 50);
 }
 
 if (config.firebaseUrl) initFirebase(config.firebaseUrl);
