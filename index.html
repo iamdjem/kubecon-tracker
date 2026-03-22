@@ -2234,7 +2234,7 @@ function renderSchedMain() {
   const POST_KEYS = ['edit','uploaded'];
 
   const toMins = t => { if(!t||t==='All day') return null; const [h,m]=t.split(':').map(Number); return h*60+m; };
-  const PX = 5; // px per minute
+  const PX = 4.5; // px per minute — must be enough that 35min slot ≥ card content height
 
   // Find day time range
   let dayStart = 999, dayEnd = 0;
@@ -2284,12 +2284,10 @@ function renderSchedMain() {
         const st = toMins(s.time), en = toMins(s.end);
         if (st===null) return '';
         const top = (st-dayStart)*PX;
-        const duration = (en||st+45) - st;
-        const minH = Math.max(1, duration*PX - 4);
         const done = getSchedDone(crew.id,room.id,schedMainDay,i);
         const t24 = s.turnaround24===true;
-        return `<div style="position:absolute;top:${top}px;left:3px;right:3px;height:${minH}px;overflow-y:auto;
-          border-radius:7px;padding:6px 8px;box-sizing:border-box;
+        return `<div style="position:absolute;top:${top}px;left:3px;right:3px;
+          border-radius:7px;padding:6px 8px;box-sizing:border-box;overflow:hidden;
           background:${done?'rgba(76,175,116,0.1)':'var(--s2)'};
           border:1px solid ${done?'rgba(76,175,116,0.4)':'var(--line2)'};">
           <div style="display:flex;align-items:center;gap:5px;margin-bottom:3px;">
