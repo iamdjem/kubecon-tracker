@@ -1899,13 +1899,27 @@ function renderSettings() {
     </div>`).join('')}</div>`;
 
   const schedSteps = config.schedSteps || [];
-  const schedStepsHtml = `<div id="schedStepsList">${schedSteps.map((s,si)=>`
+  const PRE_KEYS = ['obsbot','canon','vmix_rec','vmix_mc','vmix_str'];
+  const POST_KEYS = ['edit','uploaded'];
+  const preStepsArr = schedSteps.filter(s => PRE_KEYS.includes(s.key));
+  const postStepsArr = schedSteps.filter(s => POST_KEYS.includes(s.key));
+  const otherStepsArr = schedSteps.filter(s => !PRE_KEYS.includes(s.key) && !POST_KEYS.includes(s.key));
+
+  const renderSchedStepRow = (s, si) => `
     <div class="step-row-s" data-si="${si}">
       <div class="drag-handle">${DRAG_ICON}</div>
       <input class="si-icon" value="${s.icon}" onchange="updateSchedStep(${si},'icon',this.value)" maxlength="2">
       <input class="si-name" value="${s.label}" onchange="updateSchedStep(${si},'label',this.value)" placeholder="Step name">
       <button class="del-btn" onclick="deleteSchedStep(${si})" title="Remove">${DEL_ICON}</button>
-    </div>`).join('')}</div>`;
+    </div>`;
+
+  const schedStepsHtml = `<div id="schedStepsList">
+    ${preStepsArr.length ? `<div style="font-size:9px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:0.6px;padding:4px 2px 6px;">Before session</div>` : ''}
+    ${preStepsArr.map(s => renderSchedStepRow(s, schedSteps.indexOf(s))).join('')}
+    ${postStepsArr.length ? `<div style="font-size:9px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:0.6px;padding:12px 2px 6px;border-top:1px solid var(--line);margin-top:6px;">After session</div>` : ''}
+    ${postStepsArr.map(s => renderSchedStepRow(s, schedSteps.indexOf(s))).join('')}
+    ${otherStepsArr.length ? `<div style="font-size:9px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:0.6px;padding:12px 2px 6px;border-top:1px solid var(--line);margin-top:6px;">Other</div>${otherStepsArr.map(s => renderSchedStepRow(s, schedSteps.indexOf(s))).join('')}` : ''}
+  </div>`;
 
   const crewHtml = `<div id="crewList">${config.crew.map((c,ci)=>`
     <div class="crew-item" id="ci_${ci}" data-ci="${ci}">
