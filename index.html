@@ -474,6 +474,13 @@ body { padding-bottom: 58px; }
   .step-pill-wrap > div { flex:1; }
 }
 
+.hd-inline {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 16px 18px 10px;
+}
+.hd-inline .hd-title { font-size: 18px; font-weight: 700; letter-spacing: -0.5px; }
+.hd-inline .hd-sub { font-size: 11px; color: var(--t3); margin-top: 1px; }
+
 .room-highlight { animation: roomFlash 1.5s ease; }
 @keyframes roomFlash {
   0%,100% { background: transparent; }
@@ -681,7 +688,7 @@ body { padding-bottom: 58px; }
 </head>
 <body>
 
-<div class="hd">
+<div class="hd" style="display:none;">
   <div class="hd-left">
     <div class="hd-title" id="confTitle">Setup Tracker</div>
     <div class="hd-sub" id="confSub">—</div>
@@ -702,6 +709,18 @@ body { padding-bottom: 58px; }
 
 <!-- PAGE: SETUP -->
 <div id="page-setup" class="page active">
+  <div class="hd-inline">
+    <div class="hd-left">
+      <div class="hd-title" id="confTitle2">Setup Tracker</div>
+      <div class="hd-sub" id="confSub2">—</div>
+    </div>
+    <div class="hd-right">
+      <div class="stat">
+        <div class="stat-num" id="statNum2">0/0</div>
+        <div class="stat-lbl">Rooms Done</div>
+      </div>
+    </div>
+  </div>
   <div class="filter-bar">
     <div class="filter-row">
       <div style="font-size:10px;font-weight:600;color:var(--t3);text-transform:uppercase;letter-spacing:0.8px;padding:5px 6px 5px 0;white-space:nowrap;align-self:center;">Filter</div>
@@ -1778,6 +1797,8 @@ function setFbStatus(ok) {
 function render() {
   document.getElementById('confTitle').textContent = config.title;
   document.getElementById('confSub').textContent   = config.subtitle;
+  document.getElementById('confTitle2').textContent = config.title;
+  document.getElementById('confSub2').textContent   = config.subtitle;
 
   // Chips
   document.getElementById('filterRow').innerHTML = config.crew.map(c =>
@@ -1837,6 +1858,7 @@ function render() {
   });
 
   document.getElementById('statNum').textContent = `${done}/${total}`;
+  document.getElementById('statNum2').textContent = `${done}/${total}`;
 }
 
 function toggleFilter(id) { filter=filter===id?null:id; render(); }
