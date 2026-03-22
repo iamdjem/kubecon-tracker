@@ -2284,7 +2284,7 @@ function renderSchedMain() {
         const st = toMins(s.time), en = toMins(s.end);
         if (st===null) return '';
         const top = (st-dayStart)*PX;
-        const h = Math.max(50, ((en||st+45)-st)*PX - 3);
+        const h = Math.max(130, ((en||st+45)-st)*PX - 3);
         const done = getSchedDone(crew.id,room.id,schedMainDay,i);
         const t24 = s.turnaround24===true;
         return `<div style="position:absolute;top:${top}px;left:3px;right:3px;height:${h}px;
@@ -2303,7 +2303,7 @@ function renderSchedMain() {
             color:${done?'var(--t3)':'var(--t1)'};${done?'text-decoration:line-through;':''}
             overflow:hidden;display:-webkit-box;-webkit-line-clamp:${h>80?3:2};-webkit-box-orient:vertical;">${s.name}</div>
           ${h>70?`<span class="sched-tile-badge badge-${s.badge}" style="font-size:7px;padding:1px 5px;">${s.badge==='rw'?'Rec+Wordly':s.badge==='r'?'Rec only':s.badge==='w'?'Wordly':'Stream'}</span>`:''}
-          ${h>110&&steps.length?`
+          ${steps.length?`
             <div style="margin-top:4px;font-size:6px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:0.4px;margin-bottom:2px;">Before</div>
             <div>${makePills(PRE_KEYS,crew.id,room.id,schedMainDay,i)}</div>
             <div style="margin-top:3px;font-size:6px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:0.4px;margin-bottom:2px;">After</div>
