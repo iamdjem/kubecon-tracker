@@ -1879,10 +1879,22 @@ function renderSchedule() {
   if (!crew) return;
   const crewSched = SCHEDULE[schedCrewId] || {};
 
+  // Determine today's day key
+  const _today = new Date();
+  const _march = [22,23,24,25,26];
+  const _dayKeys = ['sun','mon','tue','wed','thu'];
+  const _todayIdx = _march.indexOf(_today.getDate());
+  const todayKey = (_todayIdx >= 0 && _today.getMonth() === 2) ? _dayKeys[_todayIdx] : null;
+
   // Day tabs
-  document.getElementById('dayTabs').innerHTML = DAYS.map(d =>
-    `<div class="day-tab${schedDay===d.key?' on':''}" onclick="setSchedDay('${d.key}')">${d.label}</div>`
-  ).join('');
+  document.getElementById('dayTabs').innerHTML = DAYS.map(d => {
+    const isToday = d.key === todayKey;
+    const isSelected = d.key === schedDay;
+    return `<div class="day-tab${isSelected?' on':''}" onclick="setSchedDay('${d.key}')" style="${isToday&&!isSelected?'color:var(--t1);border-bottom-color:rgba(212,168,67,0.35);':''}" >
+      ${isToday ? `<span style="font-size:8px;display:block;text-align:center;color:var(--accent);letter-spacing:0.5px;margin-bottom:1px;">TODAY</span>` : ''}
+      ${d.label}
+    </div>`;
+  }).join('');
 
   // Room filter tabs
   const allBtn = `<div class="room-tab${schedRoomFilter===null?' on':''}" onclick="setSchedRoom(null)">All rooms</div>`;
