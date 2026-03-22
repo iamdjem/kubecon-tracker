@@ -1529,6 +1529,8 @@ const SCHEDULE = {
 
 
 let config = JSON.parse(localStorage.getItem('kc_config')||'null') || DEFAULT_CONFIG;
+// Backfill new config fields for existing users
+if (!config.schedSteps) config.schedSteps = DEFAULT_CONFIG.schedSteps;
 let state  = JSON.parse(localStorage.getItem('kc_state') ||'{}');
 let filter = null;
 let fbDb   = null;
