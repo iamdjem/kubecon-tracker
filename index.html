@@ -2257,11 +2257,11 @@ function renderSchedMain() {
             <svg viewBox="0 0 12 12" fill="none" stroke="#000" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2,6 5,9 10,3"/></svg>
           </div>
           <div style="flex:1;">
-            <div style="display:flex;align-items:center;gap:6px;margin-bottom:3px;">
-              <span class="sched-col-card-time">${s.time}${s.end?' – '+s.end:''}</span>
-              ${t24?'<span style="font-size:8px;font-weight:700;color:#f87171;background:rgba(239,68,68,0.12);padding:2px 5px;border-radius:3px;">24hr</span>':''}
+            <div style="display:flex;align-items:baseline;gap:6px;flex-wrap:wrap;">
+              <span class="sched-col-card-time" style="flex-shrink:0;">${s.time}${s.end?' – '+s.end:''}</span>
+              ${t24?'<span style="font-size:8px;font-weight:700;color:#f87171;background:rgba(239,68,68,0.12);padding:2px 5px;border-radius:3px;flex-shrink:0;">24hr</span>':''}
+              <span class="sched-col-card-name" style="margin:0;">${s.name}</span>
             </div>
-            <div class="sched-col-card-name">${s.name}</div>
           </div>
         </div>
         <span class="sched-tile-badge badge-${s.badge}" style="margin-bottom:6px;">${s.badge==='rw'?'Record + Wordly':s.badge==='r'?'Record only':s.badge==='w'?'Wordly only':'Streaming'}</span>
