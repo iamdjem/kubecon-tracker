@@ -709,11 +709,19 @@ body { padding-bottom: 58px; }
       <div class="hd-title" id="confTitle2">Setup Tracker</div>
       <div class="hd-sub" id="confSub2">—</div>
     </div>
-    <div class="hd-right">
+    <div class="hd-right" style="display:flex;align-items:center;gap:10px;">
       <div class="stat">
         <div class="stat-num" id="statNum2">0/0</div>
         <div class="stat-lbl">Rooms Done</div>
       </div>
+      <button onclick="copyAppLink()" id="copyBtn" style="
+        background:var(--s2);border:1px solid var(--line2);border-radius:8px;
+        padding:6px 10px;cursor:pointer;font-family:inherit;font-size:11px;
+        font-weight:700;color:var(--t2);display:flex;align-items:center;gap:5px;
+        transition:all 0.12s;white-space:nowrap;">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+        Share
+      </button>
     </div>
   </div>
   <div class="filter-bar">
@@ -2174,6 +2182,22 @@ function avatarColor(name) {
   const AVATAR_COLORS_REF = ['#e8c547','#e87d47','#e84774','#a347e8','#478ce8','#47e8a0','#e8476b','#47e8d4','#c8e847','#e88347'];
   let h = 0; for (let i=0; i<name.length; i++) h = (h*31+name.charCodeAt(i))&0xffff;
   return AVATAR_COLORS_REF[h % AVATAR_COLORS_REF.length];
+}
+
+function copyAppLink() {
+  const url = 'https://iamdjem.github.io/kubecon-tracker/';
+  if (navigator.share) {
+    navigator.share({ title: 'KubeCon Setup Tracker', text: 'KubeCon EU 2026 crew setup tracker', url });
+  } else {
+    navigator.clipboard.writeText(url).then(() => {
+      const btn = document.getElementById('copyBtn');
+      const orig = btn.innerHTML;
+      btn.innerHTML = '✓ Copied!';
+      btn.style.color = 'var(--green)';
+      btn.style.borderColor = 'var(--green)';
+      setTimeout(() => { btn.innerHTML = orig; btn.style.color = ''; btn.style.borderColor = ''; }, 2000);
+    });
+  }
 }
 
 function openRoomDetail(roomId) {
