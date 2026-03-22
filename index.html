@@ -622,6 +622,11 @@ const DEFAULT_CONFIG = {
     { key:'parsec', icon:'⚡', label:'Parsec' },
     { key:'tested', icon:'📝', label:'Tested' },
   ],
+  schedSteps: [
+    { key:'recorded',  icon:'🔴', label:'Recorded'  },
+    { key:'drive',     icon:'☁️', label:'Drive'     },
+    { key:'uploaded',  icon:'✅', label:'Uploaded'  },
+  ],
   crew: [
     { id:'alexi',   name:'Alexi',   rooms:[{id:'r1',name:'E103-105'},{id:'r2',name:'E106-108'},{id:'r3',name:'Auditorium'}] },
     { id:'clayton', name:'Clayton', rooms:[{id:'r4',name:'Hall 7A'},{id:'r5',name:'Hall 7B'},{id:'r6',name:'Hall 7C'}] },
@@ -1679,6 +1684,15 @@ function renderSettings() {
       <button class="del-btn" onclick="deleteStep(${si})" title="Remove">${DEL_ICON}</button>
     </div>`).join('')}</div>`;
 
+  const schedSteps = config.schedSteps || [];
+  const schedStepsHtml = `<div id="schedStepsList">${schedSteps.map((s,si)=>`
+    <div class="step-row-s" data-si="${si}">
+      <div class="drag-handle">${DRAG_ICON}</div>
+      <input class="si-icon" value="${s.icon}" onchange="updateSchedStep(${si},'icon',this.value)" maxlength="2">
+      <input class="si-name" value="${s.label}" onchange="updateSchedStep(${si},'label',this.value)" placeholder="Step name">
+      <button class="del-btn" onclick="deleteSchedStep(${si})" title="Remove">${DEL_ICON}</button>
+    </div>`).join('')}</div>`;
+
   const crewHtml = `<div id="crewList">${config.crew.map((c,ci)=>`
     <div class="crew-item" id="ci_${ci}" data-ci="${ci}">
       <div class="ci-hd">
@@ -1713,9 +1727,18 @@ function renderSettings() {
       <div class="fb-row"><div class="fb-dot${fbDb?' ok':''}" id="fbDot"></div><span class="fb-txt" id="fbTxt">${fbDb?'Connected — live sync active':'Not connected — local only'}</span></div>
     </div>
     <div class="sg">
-      <div class="sg-lbl">Steps</div>
+      <div class="sg-lbl">Setup Steps</div>
       ${stepsHtml}
       <button class="add-btn" onclick="addStep()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Add step
+      </button>
+    </div>
+    <div class="sg">
+      <div class="sg-lbl">Session Post-Production Steps</div>
+      <div style="font-size:11px;color:var(--t3);margin-bottom:10px;">Shown on each session card in the schedule view</div>
+      ${schedStepsHtml}
+      <button class="add-btn" onclick="addSchedStep()">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
         Add step
       </button>
@@ -1743,6 +1766,12 @@ function initSortable() {
     handle: '.drag-handle', animation: 150,
     ghostClass: 'sortable-ghost', dragClass: 'sortable-drag',
     onEnd: e => { const s=config.steps.splice(e.oldIndex,1)[0]; config.steps.splice(e.newIndex,0,s); }
+  });
+  const ssl = document.getElementById('schedStepsList');
+  if (ssl) new Sortable(ssl, {
+    handle: '.drag-handle', animation: 150,
+    ghostClass: 'sortable-ghost', dragClass: 'sortable-drag',
+    onEnd: e => { if(!config.schedSteps)return; const s=config.schedSteps.splice(e.oldIndex,1)[0]; config.schedSteps.splice(e.newIndex,0,s); }
   });
   // Crew
   const cl = document.getElementById('crewList');
@@ -1780,6 +1809,10 @@ function updateStep(si,f,v){ config.steps[si][f]=v.trim()||config.steps[si][f]; 
 function deleteStep(si){ if(config.steps.length<=1){showToast('Need at least one step');return;} config.steps.splice(si,1); renderSettings(); }
 function addStep(){ config.steps.push({key:'s_'+Date.now(),icon:'⭐',label:'New Step'}); renderSettings(); }
 
+function updateSchedStep(si,field,val){ if(!config.schedSteps)config.schedSteps=[]; config.schedSteps[si][field]=val; }
+function deleteSchedStep(si){ if(!config.schedSteps)return; config.schedSteps.splice(si,1); renderSettings(); }
+function addSchedStep(){ if(!config.schedSteps)config.schedSteps=[]; config.schedSteps.push({key:'ss_'+Date.now(),icon:'📤',label:'New Step'}); renderSettings(); }
+
 function saveSettings() {
   config.title    = document.getElementById('s_title').value.trim()||config.title;
   config.subtitle = document.getElementById('s_sub').value.trim()||config.subtitle;
@@ -1787,6 +1820,7 @@ function saveSettings() {
   if (fbUrl && fbUrl!==config.firebaseUrl) { config.firebaseUrl=fbUrl; initFirebase(fbUrl); }
   config.firebaseUrl = fbUrl;
   config.steps = config.steps.map(s=>({...s, key:s.key||'s_'+Date.now()}));
+  if (config.schedSteps) config.schedSteps = config.schedSteps.map(s=>({...s, key:s.key||'ss_'+Date.now()}));
   saveConfig();
   if (fbDb) fbDb.child('config').set(config);
   render(); closeSettings(); showToast('Saved');
@@ -1875,9 +1909,20 @@ function renderSchedule() {
     const tilesHtml = sessions.length
       ? sessions.map((s,i) => {
           const done = getSchedDone(schedCrewId, room.id, schedDay, i);
-          const uploaded = getSchedUploaded(schedCrewId, room.id, schedDay, i);
           const t24 = s.turnaround24 === true;
-          return `<div class="sched-tile${done?' done':''}${uploaded?' done':''}" id="stile_${schedCrewId}_${room.id}_${schedDay}_${i}">
+          const steps = config.schedSteps || [];
+          const allStepsDone = steps.length > 0 && steps.every(st => getSchedStep(schedCrewId, room.id, schedDay, i, st.key));
+          const stepsHtml = steps.map(st => {
+            const val = getSchedStep(schedCrewId, room.id, schedDay, i, st.key);
+            return `<div onclick="event.stopPropagation();toggleSchedStep('${schedCrewId}','${room.id}','${schedDay}',${i},'${st.key}')"
+              style="display:flex;align-items:center;gap:5px;padding:4px 8px;border-radius:5px;cursor:pointer;
+                background:${val?'rgba(76,175,116,0.12)':'var(--s2)'};border:1px solid ${val?'rgba(76,175,116,0.3)':'var(--line2)'};
+                transition:all 0.12s;">
+              <span style="font-size:13px;line-height:1;">${st.icon}</span>
+              <span style="font-size:10px;font-weight:600;color:${val?'var(--green)':'var(--t3)'};">${st.label}</span>
+            </div>`;
+          }).join('');
+          return `<div class="sched-tile${(done||allStepsDone)?' done':''}">
             <div class="sched-cb${done?' checked':''}" onclick="toggleSchedDone('${schedCrewId}','${room.id}','${schedDay}',${i})">
               <svg viewBox="0 0 12 12" fill="none" stroke="#000" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2,6 5,9 10,3"/></svg>
             </div>
@@ -1889,12 +1934,7 @@ function renderSchedule() {
                 <span class="sched-tile-badge badge-${s.badge}">${s.badge==='rw'?'Record + Wordly':s.badge==='r'?'Record only':s.badge==='w'?'Wordly only':'Streaming'}</span>
                 ${t24 ? `<span class="badge-24hr">⏱ 24hr Upload</span>` : ''}
               </div>
-              ${t24 ? `<div style="display:flex;align-items:center;gap:8px;margin-top:8px;padding:6px 8px;background:rgba(239,68,68,0.07);border-radius:6px;border:1px solid rgba(239,68,68,0.2);">
-                <div class="sched-cb${uploaded?' checked':''}" style="width:18px;height:18px;border-color:${uploaded?'var(--green)':'#f87171'};${uploaded?'background:var(--green);':''}" onclick="event.stopPropagation();toggleSchedUploaded('${schedCrewId}','${room.id}','${schedDay}',${i})">
-                  <svg viewBox="0 0 12 12" fill="none" stroke="#000" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2,6 5,9 10,3"/></svg>
-                </div>
-                <span style="font-size:11px;font-weight:600;color:${uploaded?'var(--green)':'#f87171'};">${uploaded?'✓ Uploaded':'Upload pending'}</span>
-              </div>` : ''}
+              ${steps.length ? `<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;">${stepsHtml}</div>` : ''}
             </div>
           </div>`;}).join('')
       : `<div class="sched-empty">No sessions scheduled</div>`;
@@ -1938,19 +1978,20 @@ function toggleSchedDone(crewId, roomId, day, idx) {
   renderSchedule();
 }
 
-function getSchedUploaded(crewId, roomId, day, idx) {
-  return state.uploaded?.[crewId]?.[roomId]?.[day]?.[idx] === true;
+function getSchedStep(crewId, roomId, day, idx, stepKey) {
+  return state.schedSteps?.[crewId]?.[roomId]?.[day]?.[idx]?.[stepKey] === true;
 }
 
-function toggleSchedUploaded(crewId, roomId, day, idx) {
-  if (!state.uploaded) state.uploaded = {};
-  if (!state.uploaded[crewId]) state.uploaded[crewId] = {};
-  if (!state.uploaded[crewId][roomId]) state.uploaded[crewId][roomId] = {};
-  if (!state.uploaded[crewId][roomId][day]) state.uploaded[crewId][roomId][day] = {};
-  const cur = state.uploaded[crewId][roomId][day][idx] === true;
-  state.uploaded[crewId][roomId][day][idx] = !cur;
+function toggleSchedStep(crewId, roomId, day, idx, stepKey) {
+  if (!state.schedSteps) state.schedSteps = {};
+  if (!state.schedSteps[crewId]) state.schedSteps[crewId] = {};
+  if (!state.schedSteps[crewId][roomId]) state.schedSteps[crewId][roomId] = {};
+  if (!state.schedSteps[crewId][roomId][day]) state.schedSteps[crewId][roomId][day] = {};
+  if (!state.schedSteps[crewId][roomId][day][idx]) state.schedSteps[crewId][roomId][day][idx] = {};
+  const cur = state.schedSteps[crewId][roomId][day][idx][stepKey] === true;
+  state.schedSteps[crewId][roomId][day][idx][stepKey] = !cur;
   saveState();
-  if (fbDb) fbDb.child('state/uploaded/'+crewId+'/'+roomId+'/'+day+'/'+idx).set(!cur);
+  if (fbDb) fbDb.child('state/schedSteps/'+crewId+'/'+roomId+'/'+day+'/'+idx+'/'+stepKey).set(!cur);
   renderSchedule();
 }
 </script>
