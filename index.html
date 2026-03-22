@@ -1747,15 +1747,8 @@ const SCHEDULE = {
 
 
 let config = JSON.parse(localStorage.getItem('kc_config')||'null') || DEFAULT_CONFIG;
-// Backfill new config fields for existing users
-if (!config.schedSteps) config.schedSteps = DEFAULT_CONFIG.schedSteps;
-// Force-migrate schedSteps if they don't have the new recording keys
-if (!config.schedSteps.find(s => s.key === 'obsbot')) config.schedSteps = DEFAULT_CONFIG.schedSteps;
-// Migrate step icons to new set if old icons detected
-const iconMap = {'setup':'🛠️','ptz':'🤖','stream':'🔑','parsec':'⚡','tested':'🖊️'};
-config.steps.forEach(s => { if(iconMap[s.key] && s.icon === {'setup':'🔧','tested':'📝'}[s.key]) s.icon = iconMap[s.key]; });
-// Also fix 📝 → 🖊️ specifically
-config.steps.forEach(s => { if(s.key==='setup' && s.icon==='🔧') s.icon='🛠️'; if(s.key==='tested' && s.icon==='📝') s.icon='🖊️'; });
+// Backfill schedSteps if missing
+if (!config.schedSteps || !config.schedSteps.length) config.schedSteps = DEFAULT_CONFIG.schedSteps;
 let state  = JSON.parse(localStorage.getItem('kc_state') ||'{}');
 let filter = null;
 let fbDb   = null;
@@ -1791,12 +1784,7 @@ function initFirebase(url) {
           const v = snap.val();
           if (v && v.steps && v.crew) {
             config = v;
-            if (!config.schedSteps || !config.schedSteps.find(s=>s.key==='obsbot')) config.schedSteps = DEFAULT_CONFIG.schedSteps;
-            // Fix icons in-place without wiping crew
-            config.steps.forEach(s => {
-              if (s.key==='setup' && s.icon==='🔧') s.icon='🛠️';
-              if (s.key==='tested' && s.icon==='📝') s.icon='🖊️';
-            });
+            if (!config.schedSteps || !config.schedSteps.length) config.schedSteps = DEFAULT_CONFIG.schedSteps;
             saveConfig(); render();
           }
         });
