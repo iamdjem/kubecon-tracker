@@ -2174,8 +2174,8 @@ function renderOverview() {
   grid.innerHTML = html;
 }
 
-let schedMainDay = null;
-let schedMainCrew = null;
+let schedMainDay = localStorage.getItem('kc_sched_day') || null;
+let schedMainCrew = localStorage.getItem('kc_sched_crew') || null;
 
 function renderToday() {
   // Auto-select today
@@ -2288,8 +2288,8 @@ function renderSchedMain() {
   }).join('');
 }
 
-function setSchedMainDay(day) { schedMainDay = day; renderSchedMain(); }
-function setSchedMainCrew(id) { schedMainCrew = id; renderSchedMain(); }
+function setSchedMainDay(day) { schedMainDay = day; localStorage.setItem('kc_sched_day', day); renderSchedMain(); }
+function setSchedMainCrew(id) { schedMainCrew = id; localStorage.setItem('kc_sched_crew', id); renderSchedMain(); }
 
 function avatarColor(name) {
   const AVATAR_COLORS_REF = ['#e8c547','#e87d47','#e84774','#a347e8','#478ce8','#47e8a0','#e8476b','#47e8d4','#c8e847','#e88347'];
