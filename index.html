@@ -502,6 +502,14 @@ body {
 .sched-progress-fill { height: 100%; background: var(--green); border-radius: 2px; transition: width 0.3s; }
 .sched-progress-txt { font-size: 10px; color: var(--t3); font-weight: 600; flex-shrink: 0; }
 
+.badge-24hr {
+  display: inline-flex; align-items: center; gap: 3px;
+  font-size: 9px; font-weight: 700; letter-spacing: 0.4px;
+  padding: 2px 6px; border-radius: 2px; margin-top: 4px; margin-left: 4px;
+  background: rgba(239,68,68,0.15); color: #f87171;
+  text-transform: uppercase;
+}
+
 .sched-empty {
   padding: 24px 18px;
   font-size: 13px; color: var(--t3); text-align: center;
@@ -761,7 +769,7 @@ const SCHEDULE = {
     },
     'r3': { // Auditorium
       sun: [],
-      mon: [{ time:'09:00', end:'17:30', name:'Co-Lo 11 — ArgoCon (Track 1) Full Day', badge:'rw' }],
+      mon: [{ time:'09:00', end:'17:30', name:'Co-Lo 11 — ArgoCon (Track 1) Full Day', badge:'rw', turnaround24:true }],
       tue: [
         { time:'11:15', end:'12:00', name:'When an Agent Acts on Your Behalf, Who Holds the Keys? - Mariusz Sabath & Maia Iyer, IBM Research', badge:'rw' },
         { time:'12:00', end:'12:45', name:'Your Models Are Vulnerable: How KitOps Turns KServe Into a Zero-Trust Inference Platform - Brad Micklea, Jozu & Gavrish Prabhu, Nutanix', badge:'rw' },
@@ -935,7 +943,7 @@ const SCHEDULE = {
     'r7': { // Hall 8 | Room D
       sun: [],
       mon: [
-          { time:'09:00', end:'09:05', name:'Open Source SecurityCon | Welcome + Opening Remarks - Brandt Keller & Constanze Roedig, Program Committee Co-Chairs', badge:'rw' },
+          { time:'09:00', end:'09:05', name:'Open Source SecurityCon | Welcome + Opening Remarks - Brandt Keller & Constanze Roedig, Program Committee Co-Chairs', badge:'rw', turnaround24:true },
           { time:'09:10', end:'09:35', name:'From Mild To Wild: How Hot Can Your SLSA Be? - Andrew McNamara, Red Hat & Adolfo García Veytia, Carabiner Systems', badge:'rw' },
           { time:'09:40', end:'09:50', name:'⚡Lightning Talk: A Case Study in Cross-Ecosystem Security Response - Lori Lorusso, Rust Foundation', badge:'rw' },
           { time:'09:55', end:'10:00', name:'Open Source SecurityCon | Sponsored Keynote: From Packets to Pods: Lessons from 25 Years of Open Source Visibility - Gerald Combs, Sysdig', badge:'rw' },
@@ -1253,7 +1261,7 @@ const SCHEDULE = {
     'r15': { // G102-103
       sun: [],
       mon: [
-          { time:'10:15', end:'10:40', name:'GitOps and Secrets: State of the Union - Kostis Kapelonis, Octopus Deploy', badge:'rw' },
+          { time:'10:15', end:'10:40', name:'GitOps and Secrets: State of the Union - Kostis Kapelonis, Octopus Deploy', badge:'rw', turnaround24:true },
           { time:'10:50', end:'11:15', name:'Anatomy of a GitOps Engine: Understanding Your Sync - Alexandre Gaudreault, Intuit', badge:'rw' },
           { time:'11:25', end:'11:50', name:'Beyond Argo Rollouts: Boosting Developer Experience With Intelligent AIOps - Carlos Sanchez, Adobe & Kevin Dubois, IBM', badge:'rw' },
           { time:'12:50', end:'13:25', name:'Panel: Building a GitOps Culture - Dan Garfield & Revital Barletz, Octopus Deploy; Antonela Cukurin, Novo Nordisk & Gabriel Quennesson, Michelin', badge:'rw' },
@@ -1444,7 +1452,7 @@ const SCHEDULE = {
     'r19': { // Elicium 1 (Tutorials)
       sun: [],
       mon: [
-          { time:'09:00', end:'09:05', name:'FluxCon | Welcome + Opening Remarks - Francesco Beltramini & Tiffany Wang, Program Committee Members', badge:'rw' },
+          { time:'09:00', end:'09:05', name:'FluxCon | Welcome + Opening Remarks - Francesco Beltramini & Tiffany Wang, Program Committee Members', badge:'rw', turnaround24:true },
           { time:'09:10', end:'09:35', name:'Vibe Coding Meets GitOps - Stefan Prodan, ControlPlane', badge:'rw' },
           { time:'09:40', end:'10:05', name:'Air France–KLM’s GitOps Takeoff: Real Stories From the Flight Deck - Alaoui Echerif Amine & Ravi Ramrattan, Air France KLM', badge:'rw' },
           { time:'10:10', end:'10:15', name:'FluxCon | Sponsored Keynote: Agentic GitOps: Evolving Enterprise Delivery - Andy Martin, ControlPlane', badge:'rw' },
@@ -1867,7 +1875,9 @@ function renderSchedule() {
     const tilesHtml = sessions.length
       ? sessions.map((s,i) => {
           const done = getSchedDone(schedCrewId, room.id, schedDay, i);
-          return `<div class="sched-tile${done?' done':''}" id="stile_${schedCrewId}_${room.id}_${schedDay}_${i}">
+          const uploaded = getSchedUploaded(schedCrewId, room.id, schedDay, i);
+          const t24 = s.turnaround24 === true;
+          return `<div class="sched-tile${done?' done':''}${uploaded?' done':''}" id="stile_${schedCrewId}_${room.id}_${schedDay}_${i}">
             <div class="sched-cb${done?' checked':''}" onclick="toggleSchedDone('${schedCrewId}','${room.id}','${schedDay}',${i})">
               <svg viewBox="0 0 12 12" fill="none" stroke="#000" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2,6 5,9 10,3"/></svg>
             </div>
@@ -1875,7 +1885,16 @@ function renderSchedule() {
             <div class="sched-tile-body">
               <div class="sched-tile-name">${s.name}</div>
               ${s.end ? `<div class="sched-tile-meta">Until ${s.end}</div>` : ''}
-              <span class="sched-tile-badge badge-${s.badge}">${s.badge==='rw'?'Record + Wordly':s.badge==='r'?'Record only':s.badge==='w'?'Wordly only':'Streaming'}</span>
+              <div style="display:flex;align-items:center;flex-wrap:wrap;gap:0;">
+                <span class="sched-tile-badge badge-${s.badge}">${s.badge==='rw'?'Record + Wordly':s.badge==='r'?'Record only':s.badge==='w'?'Wordly only':'Streaming'}</span>
+                ${t24 ? `<span class="badge-24hr">⏱ 24hr Upload</span>` : ''}
+              </div>
+              ${t24 ? `<div style="display:flex;align-items:center;gap:8px;margin-top:8px;padding:6px 8px;background:rgba(239,68,68,0.07);border-radius:6px;border:1px solid rgba(239,68,68,0.2);">
+                <div class="sched-cb${uploaded?' checked':''}" style="width:18px;height:18px;border-color:${uploaded?'var(--green)':'#f87171'};${uploaded?'background:var(--green);':''}" onclick="event.stopPropagation();toggleSchedUploaded('${schedCrewId}','${room.id}','${schedDay}',${i})">
+                  <svg viewBox="0 0 12 12" fill="none" stroke="#000" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2,6 5,9 10,3"/></svg>
+                </div>
+                <span style="font-size:11px;font-weight:600;color:${uploaded?'var(--green)':'#f87171'};">${uploaded?'✓ Uploaded':'Upload pending'}</span>
+              </div>` : ''}
             </div>
           </div>`;}).join('')
       : `<div class="sched-empty">No sessions scheduled</div>`;
@@ -1916,6 +1935,22 @@ function toggleSchedDone(crewId, roomId, day, idx) {
   state.sched[crewId][roomId][day][idx] = !cur;
   saveState();
   if (fbDb) fbDb.child('state/sched/'+crewId+'/'+roomId+'/'+day+'/'+idx).set(!cur);
+  renderSchedule();
+}
+
+function getSchedUploaded(crewId, roomId, day, idx) {
+  return state.uploaded?.[crewId]?.[roomId]?.[day]?.[idx] === true;
+}
+
+function toggleSchedUploaded(crewId, roomId, day, idx) {
+  if (!state.uploaded) state.uploaded = {};
+  if (!state.uploaded[crewId]) state.uploaded[crewId] = {};
+  if (!state.uploaded[crewId][roomId]) state.uploaded[crewId][roomId] = {};
+  if (!state.uploaded[crewId][roomId][day]) state.uploaded[crewId][roomId][day] = {};
+  const cur = state.uploaded[crewId][roomId][day][idx] === true;
+  state.uploaded[crewId][roomId][day][idx] = !cur;
+  saveState();
+  if (fbDb) fbDb.child('state/uploaded/'+crewId+'/'+roomId+'/'+day+'/'+idx).set(!cur);
   renderSchedule();
 }
 </script>
