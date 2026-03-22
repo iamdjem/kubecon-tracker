@@ -2183,14 +2183,15 @@ function renderToday() {
   const dayKeys = ['sun','mon','tue','wed','thu'];
   const idx = march.indexOf(today.getDate());
   if (!schedMainDay) schedMainDay = (idx >= 0 && today.getMonth() === 2) ? dayKeys[idx] : 'sun';
-  if (!schedMainCrew) schedMainCrew = config.crew[0]?.id || null;
+  if (!schedMainCrew) schedMainCrew = 'all';
   renderSchedMain();
 }
 
 function renderSchedMain() {
   // Crew filter
   const filterEl = document.getElementById('schedCrewFilter');
-  filterEl.innerHTML = config.crew.map(c => {
+  filterEl.innerHTML = `<div class="sched-crew-chip${schedMainCrew==='all'?' on':''}" onclick="setSchedMainCrew('all')">All</div>` +
+  config.crew.map(c => {
     const color = avatarColor(c.name);
     const on = schedMainCrew === c.id;
     return `<div class="sched-crew-chip${on?' on':''}" onclick="setSchedMainCrew('${c.id}')"
@@ -2220,16 +2221,17 @@ function renderSchedMain() {
   }).join('');
 
   // Room columns for selected crew
-  const crew = config.crew.find(c => c.id === schedMainCrew);
   const colEl = document.getElementById('schedColView');
-  if (!crew) { colEl.innerHTML = ''; return; }
+  const crewList = schedMainCrew === 'all' ? config.crew : config.crew.filter(c => c.id === schedMainCrew);
+  if (!crewList.length) { colEl.innerHTML = ''; return; }
 
-  const crewSched = SCHEDULE[crew.id] || {};
   const steps = (config.schedSteps && config.schedSteps.length) ? config.schedSteps : DEFAULT_CONFIG.schedSteps;
   const PRE_KEYS = ['obsbot','canon','vmix_rec','vmix_mc','vmix_str'];
   const POST_KEYS = ['edit','uploaded'];
 
-  colEl.innerHTML = crew.rooms.map(room => {
+  colEl.innerHTML = crewList.flatMap(crew => {
+  const crewSched = SCHEDULE[crew.id] || {};
+  return crew.rooms.map(room => {
     const sessions = crewSched[room.id]?.[schedMainDay] || [];
     const doneCount = sessions.filter((_,i) => getSchedDone(crew.id, room.id, schedMainDay, i)).length;
 
@@ -2269,11 +2271,15 @@ function renderSchedMain() {
 
     return `<div class="sched-col">
       <div class="sched-col-hd">
-        <span class="sched-col-name">${room.name}</span>
+        <div>
+          <span class="sched-col-name">${room.name}</span>
+          ${schedMainCrew==='all'?`<div style="font-size:9px;color:var(--t3);margin-top:1px;">${crew.name}</div>`:''}
+        </div>
         <span class="sched-col-prog">${doneCount}/${sessions.length}</span>
       </div>
       ${cards}
     </div>`;
+  });
   }).join('');
 }
 
