@@ -2185,19 +2185,16 @@ function avatarColor(name) {
 }
 
 function copyAppLink() {
-  // Build status text for WhatsApp
-  const lines = [`📋 ${config.title} — ${config.subtitle}`, ''];
+  // Build status text matching the WhatsApp format: RoomName-CrewName 🔧🤖...
+  const lines = ['SET UP MASTER LIST:'];
   config.crew.forEach(c => {
-    const roomLines = c.rooms.map(room => {
+    c.rooms.forEach(room => {
       const checks = config.steps.filter(s => getVal(room.id, s.key)).map(s => s.icon).join('');
-      const done = isDone(room.id);
-      return `  ${done ? '✅' : checks ? '🔄' : '⬜'} ${room.name}${checks && !done ? ' '+checks : ''}`;
+      lines.push(`${room.name}-${c.name}${checks ? ' '+checks : ''}`);
     });
-    lines.push(`*${c.name}*`);
-    roomLines.forEach(l => lines.push(l));
-    lines.push('');
   });
-  lines.push(config.steps.map(s => `${s.icon}=${s.label}`).join(' · '));
+  lines.push('');
+  lines.push(config.steps.map(s => `${s.icon} = ${s.label}`).join('\n'));
   const text = lines.join('\n');
 
   if (navigator.share) {
