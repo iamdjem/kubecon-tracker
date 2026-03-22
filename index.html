@@ -2251,15 +2251,19 @@ function renderSchedMain() {
 
       const cbId = `cb_${crew.id}_${room.id}_${schedMainDay}_${i}`;
       return `<div class="sched-col-card${done?' done':''}" id="${cbId}">
-        <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
-          <div class="sched-cb${done?' checked':''}" style="width:18px;height:18px;flex-shrink:0;"
+        <div style="display:flex;align-items:flex-start;gap:8px;margin-bottom:5px;">
+          <div class="sched-cb${done?' checked':''}" style="width:18px;height:18px;flex-shrink:0;margin-top:2px;"
             onclick="toggleSchedDone('${crew.id}','${room.id}','${schedMainDay}',${i});renderSchedMain()">
             <svg viewBox="0 0 12 12" fill="none" stroke="#000" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2,6 5,9 10,3"/></svg>
           </div>
-          <span class="sched-col-card-time">${s.time}</span>
-          ${t24?'<span style="font-size:8px;font-weight:700;color:#f87171;background:rgba(239,68,68,0.12);padding:2px 5px;border-radius:3px;">24hr</span>':''}
+          <div style="flex:1;">
+            <div style="display:flex;align-items:center;gap:6px;margin-bottom:3px;">
+              <span class="sched-col-card-time">${s.time}${s.end?' – '+s.end:''}</span>
+              ${t24?'<span style="font-size:8px;font-weight:700;color:#f87171;background:rgba(239,68,68,0.12);padding:2px 5px;border-radius:3px;">24hr</span>':''}
+            </div>
+            <div class="sched-col-card-name">${s.name}</div>
+          </div>
         </div>
-        <div class="sched-col-card-name">${s.name}</div>
         <span class="sched-tile-badge badge-${s.badge}" style="margin-bottom:6px;">${s.badge==='rw'?'Record + Wordly':s.badge==='r'?'Record only':s.badge==='w'?'Wordly only':'Streaming'}</span>
         ${steps.length?`
           <div style="margin-top:5px;"><div style="font-size:7px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:3px;">Before</div>
