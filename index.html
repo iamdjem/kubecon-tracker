@@ -2185,18 +2185,32 @@ function avatarColor(name) {
 }
 
 function copyAppLink() {
-  const url = 'https://iamdjem.github.io/kubecon-tracker/';
+  // Build status text for WhatsApp
+  const lines = [`📋 ${config.title} — ${config.subtitle}`, ''];
+  config.crew.forEach(c => {
+    const roomLines = c.rooms.map(room => {
+      const checks = config.steps.filter(s => getVal(room.id, s.key)).map(s => s.icon).join('');
+      const done = isDone(room.id);
+      return `  ${done ? '✅' : checks ? '🔄' : '⬜'} ${room.name}${checks && !done ? ' '+checks : ''}`;
+    });
+    lines.push(`*${c.name}*`);
+    roomLines.forEach(l => lines.push(l));
+    lines.push('');
+  });
+  lines.push(config.steps.map(s => `${s.icon}=${s.label}`).join(' · '));
+  const text = lines.join('\n');
+
   if (navigator.share) {
-    navigator.share({ title: 'KubeCon Setup Tracker', text: 'KubeCon EU 2026 crew setup tracker', url });
+    navigator.share({ title: config.title, text });
   } else {
-    navigator.clipboard.writeText(url).then(() => {
+    navigator.clipboard.writeText(text).then(() => {
       const btn = document.getElementById('copyBtn');
       const orig = btn.innerHTML;
       btn.innerHTML = '✓ Copied!';
       btn.style.color = 'var(--green)';
       btn.style.borderColor = 'var(--green)';
       setTimeout(() => { btn.innerHTML = orig; btn.style.color = ''; btn.style.borderColor = ''; }, 2000);
-    });
+    }).catch(() => prompt('Copy this:', text));
   }
 }
 
