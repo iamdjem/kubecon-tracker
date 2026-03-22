@@ -147,29 +147,29 @@ body {
 /* ── ROOM ROW ── */
 .room {
   display: flex; align-items: center;
-  padding: 10px 18px;
+  padding: 12px 18px;
   border-top: 1px solid var(--line);
   gap: 12px;
-  min-height: 52px;
+  min-height: 64px;
   transition: background 0.1s;
 }
 
 .room-name {
-  font-size: 12px; font-weight: 500; color: #707070;
-  flex: 0 0 108px; letter-spacing: 0;
+  font-size: 13px; font-weight: 600; color: #808080;
+  flex: 0 0 112px; letter-spacing: 0;
 }
-.steps-wrap { display: flex; gap: 5px; flex: 1; }
-.step { display: flex; flex-direction: column; align-items: center; gap: 3px; flex: 1; max-width: 48px; }
+.steps-wrap { display: flex; gap: 6px; flex: 1; }
+.step { display: flex; flex-direction: column; align-items: center; gap: 3px; flex: 1; max-width: 54px; }
 .step input { display: none; }
 .step-box {
-  width: 100%; aspect-ratio: 1; max-width: 40px;
+  width: 100%; aspect-ratio: 1; max-width: 46px;
   border: 1px solid var(--line2);
-  border-radius: 4px;
+  border-radius: 6px;
   background: var(--s2);
   display: flex; align-items: center; justify-content: center;
   cursor: pointer;
   transition: all 0.12s;
-  font-size: 15px;
+  font-size: 17px;
   position: relative;
 }
 .step-box:active { transform: scale(0.87); }
