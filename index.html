@@ -2234,7 +2234,7 @@ function renderSchedMain() {
   const POST_KEYS = ['edit','uploaded'];
 
   const toMins = t => { if(!t||t==='All day') return null; const [h,m]=t.split(':').map(Number); return h*60+m; };
-  const PX = 4.5; // px per minute — must be enough that 35min slot ≥ card content height
+  const PX = 8; // px per minute — 35min slot = 280px, fits all card content
 
   // Find day time range
   let dayStart = 999, dayEnd = 0;
