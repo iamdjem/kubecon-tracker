@@ -445,6 +445,21 @@ body { padding-bottom: 58px; }
 }
 .ov-section-hd:first-child { padding-top: 0; margin-top: 0; }
 
+/* ── SESSION STEP PILLS ── */
+.step-pill-row { display:flex; gap:3px; }
+.step-pill-row > div { flex:1; }
+
+/* On mobile (<480px): wrap into rows of 3 */
+@media (max-width: 479px) {
+  .step-pill-wrap { flex-wrap: wrap; }
+  .step-pill-wrap > div { flex: 1 1 calc(33.333% - 4px); max-width: calc(33.333% - 4px); }
+}
+/* On larger screens: single row, all fit */
+@media (min-width: 480px) {
+  .step-pill-wrap { flex-wrap: nowrap; }
+  .step-pill-wrap > div { flex:1; }
+}
+
 .room-highlight { animation: roomFlash 1.5s ease; }
 @keyframes roomFlash {
   0%,100% { background: transparent; }
@@ -2270,15 +2285,12 @@ function renderSchedule() {
                     <span style="font-size:8px;font-weight:700;color:${val?'var(--green)':'var(--t3)'};letter-spacing:0.2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;text-align:center;">${st.label}</span>
                   </div>`;
                 };
-                const row = (label, arr, wrap) => arr.length ? `
+                const row = (label, arr, cls) => arr.length ? `
                   <div style="margin-top:8px;">
                     <div style="font-size:8px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;">${label}</div>
-                    <div style="display:flex;gap:3px;${wrap?'flex-wrap:wrap;':''}">${wrap
-                      ? arr.map((st,idx) => `<div style="flex:1;min-width:calc(33% - 4px);max-width:calc(33% - 4px);">${compactPill(st).replace('<div ','<div style="width:100%;" ')}</div>`).join('')
-                      : arr.map(compactPill).join('')
-                    }</div>
+                    <div class="step-pill-row${cls?' '+cls:''}">${arr.map(compactPill).join('')}</div>
                   </div>` : '';
-                return row('Before', preSteps, true) + row('After', postSteps, false) + row('Steps', otherSteps, false);
+                return row('Before', preSteps, 'step-pill-wrap') + row('After', postSteps, '') + row('Steps', otherSteps, '');
               })() : ''}
             </div>
           </div>`;}).join('')
