@@ -1694,6 +1694,8 @@ const SCHEDULE = {
 let config = JSON.parse(localStorage.getItem('kc_config')||'null') || DEFAULT_CONFIG;
 // Backfill new config fields for existing users
 if (!config.schedSteps) config.schedSteps = DEFAULT_CONFIG.schedSteps;
+// Force-migrate schedSteps if they don't have the new recording keys
+if (!config.schedSteps.find(s => s.key === 'obsbot')) config.schedSteps = DEFAULT_CONFIG.schedSteps;
 let state  = JSON.parse(localStorage.getItem('kc_state') ||'{}');
 let filter = null;
 let fbDb   = null;
@@ -1725,7 +1727,7 @@ function initFirebase(url) {
         const app = firebase.initializeApp({ databaseURL: url }, 'tr');
         fbDb = firebase.database(app).ref('e3-kc26-x7k9m');
         fbDb.child('state').on('value', s => { const v=s.val(); if(v){state=v;saveState();render(); if(currentPage==='record')renderRecord(); if(currentPage==='overview')renderOverview();} });
-        fbDb.child('config').on('value', s => { const v=s.val(); if(v&&v.steps&&v.crew){config=v; if(!config.schedSteps)config.schedSteps=DEFAULT_CONFIG.schedSteps; saveConfig();render();} });
+        fbDb.child('config').on('value', s => { const v=s.val(); if(v&&v.steps&&v.crew){config=v; if(!config.schedSteps||!config.schedSteps.find(s=>s.key==='obsbot'))config.schedSteps=DEFAULT_CONFIG.schedSteps; saveConfig();render();} });
         setFbStatus(true);
       } catch(e) { setFbStatus(false); }
     }));
