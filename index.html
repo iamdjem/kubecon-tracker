@@ -469,11 +469,13 @@ body { padding-bottom: 58px; }
 @media (max-width: 479px) {
   .step-pill-wrap { flex-wrap: wrap; }
   .step-pill-wrap > div { flex: 1 1 calc(33.333% - 4px); max-width: calc(33.333% - 4px); }
+  .step-pill-row > div { flex: 1; }
 }
-/* On larger screens: single row, all fit */
+/* On larger screens: fixed size pills, no stretch */
 @media (min-width: 480px) {
   .step-pill-wrap { flex-wrap: nowrap; }
-  .step-pill-wrap > div { flex:1; }
+  .step-pill-wrap > div { flex: 0 0 80px; max-width: 80px; }
+  .step-pill-row > div { flex: 0 0 80px; max-width: 80px; }
 }
 
 .hd-inline {
