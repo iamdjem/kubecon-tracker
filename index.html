@@ -432,8 +432,9 @@ body {
 body { padding-bottom: 58px; }
 
 /* ── OVERVIEW PAGE ── */
-.page { display: none; }
-.page.active { display: block; }
+.page { display: none !important; }
+.page.active { display: block !important; }
+#page-today.active { display: flex !important; }
 
 .ov-grid {
   padding: 10px 8px;
@@ -774,7 +775,7 @@ body { padding-bottom: 58px; }
 </div>
 
 <!-- PAGE: SCHEDULE -->
-<div id="page-today" class="page" style="display:flex;flex-direction:column;height:calc(100vh - 58px);overflow:hidden;">
+<div id="page-today" class="page" style="flex-direction:column;height:calc(100vh - 58px);overflow:hidden;">
   <!-- Crew filter -->
   <div id="schedCrewFilter" style="display:flex;gap:6px;padding:10px 12px;overflow-x:auto;scrollbar-width:none;border-bottom:1px solid var(--line);flex-shrink:0;"></div>
   <!-- Day tabs -->
