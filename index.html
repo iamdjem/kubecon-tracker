@@ -2280,14 +2280,17 @@ function renderSchedMain() {
     return crew.rooms.map(room => {
       const sessions = cs[room.id]?.[schedMainDay]||[];
       const doneCount = sessions.filter((_,i)=>getSchedDone(crew.id,room.id,schedMainDay,i)).length;
+      let prevEnd = dayStart;
       const cards = sessions.map((s,i) => {
         const st = toMins(s.time), en = toMins(s.end);
         if (st===null) return '';
-        const top = (st-dayStart)*PX;
+        const spacer = Math.max(0, (st - prevEnd) * PX);
+        prevEnd = en || st+45;
         const done = getSchedDone(crew.id,room.id,schedMainDay,i);
         const t24 = s.turnaround24===true;
-        return `<div style="position:absolute;top:${top}px;left:3px;right:3px;
-          border-radius:7px;padding:6px 8px;box-sizing:border-box;overflow:hidden;
+        return `<div style="padding-top:${spacer}px;">
+        <div style="margin:0 3px;
+          border-radius:7px;padding:6px 8px;box-sizing:border-box;
           background:${done?'rgba(76,175,116,0.1)':'var(--s2)'};
           border:1px solid ${done?'rgba(76,175,116,0.4)':'var(--line2)'};">
           <div style="display:flex;align-items:center;gap:5px;margin-bottom:3px;">
@@ -2308,20 +2311,23 @@ function renderSchedMain() {
             <div style="margin-top:3px;font-size:6px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:0.4px;margin-bottom:2px;">After</div>
             <div>${makePills(POST_KEYS,crew.id,room.id,schedMainDay,i)}</div>
           `:''}
-        </div>`;
+        </div></div>`;
       }).join('');
-      return { crew, room, doneCount, sessions, cards };
+      // Add bottom spacer to align ruler
+      const lastEnd = sessions.length ? (toMins(sessions[sessions.length-1].end) || toMins(sessions[sessions.length-1].time)+45) : dayStart;
+      const bottomSpacer = Math.max(0, (dayEnd - lastEnd) * PX);
+      return { crew, room, doneCount, sessions, cards, bottomSpacer };
     });
   });
 
   colEl.style.flexDirection = 'row';
   colEl.style.alignItems = 'flex-start';
   colEl.innerHTML = `
-    <div style="position:sticky;left:0;z-index:4;background:var(--bg);">
+    <div style="position:sticky;left:0;z-index:4;background:var(--bg);flex-shrink:0;">
       <div style="height:48px;width:40px;border-bottom:1px solid var(--line);"></div>
       <div style="position:relative;width:40px;height:${totalH}px;">${rulerLines.join('')}</div>
     </div>
-    ${cols.map(({crew,room,doneCount,sessions,cards})=>`
+    ${cols.map(({crew,room,doneCount,sessions,cards,bottomSpacer})=>`
       <div style="min-width:200px;flex:1;border-left:1px solid var(--line);">
         <div class="sched-col-hd" style="height:48px;position:sticky;top:0;z-index:3;background:var(--bg);">
           <div>
@@ -2330,7 +2336,7 @@ function renderSchedMain() {
           </div>
           <span class="sched-col-prog">${doneCount}/${sessions.length}</span>
         </div>
-        <div style="position:relative;height:${totalH}px;">${cards}</div>
+        <div style="padding-top:${(sessions.length?0:0)}px;">${cards}<div style="height:${bottomSpacer}px;"></div></div>
       </div>`).join('')}
   `;
 }
