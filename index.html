@@ -420,24 +420,30 @@ body { padding-bottom: 58px; }
 .page.active { display: block; }
 
 .ov-grid {
-  padding: 10px 8px;
+  padding: 8px 6px;
   display: grid; grid-template-columns: 1fr 1fr 1fr;
-  gap: 6px;
+  gap: 5px;
 }
 .ov-card {
   background: var(--s2); border: 1px solid var(--line2);
-  border-radius: 8px; padding: 8px 8px 6px;
+  border-radius: 7px; padding: 6px 7px 5px;
   cursor: pointer; transition: border-color 0.12s;
 }
 .ov-card:active { border-color: var(--accent); }
-.ov-card.complete { border-color: rgba(76,175,116,0.4); background: rgba(76,175,116,0.06); }
-.ov-crew { font-size: 9px; font-weight: 600; color: var(--t3); text-transform: uppercase; letter-spacing: 0.4px; margin-bottom: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.ov-room { font-size: 11px; font-weight: 700; color: var(--t1); margin-bottom: 5px; letter-spacing: -0.2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.ov-bar { height: 3px; background: var(--line); border-radius: 2px; overflow: hidden; margin-bottom: 5px; }
-.ov-fill { height: 100%; border-radius: 2px; transition: width 0.3s; }
+.ov-card.complete { border-color: rgba(76,175,116,0.5); background: rgba(76,175,116,0.08); }
+.ov-top { display:flex; align-items:center; gap:4px; margin-bottom:4px; }
+.ov-dot { width:6px; height:6px; border-radius:50%; flex-shrink:0; }
+.ov-room { font-size: 10px; font-weight: 700; color: var(--t1); letter-spacing: -0.2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height:1.2; }
+.ov-bar { height: 2px; background: var(--line); border-radius: 1px; overflow: hidden; margin-bottom: 4px; }
+.ov-fill { height: 100%; border-radius: 1px; transition: width 0.3s; }
 .ov-steps { display: flex; gap: 2px; flex-wrap: nowrap; }
-.ov-step { font-size: 11px; opacity: 0.2; transition: opacity 0.15s; }
+.ov-step { font-size: 10px; opacity: 0.2; line-height:1; }
 .ov-step.on { opacity: 1; }
+.ov-section-hd {
+  grid-column: 1/-1; display:flex; align-items:center; gap:6px;
+  padding: 6px 2px 2px; margin-top: 2px;
+}
+.ov-section-hd:first-child { padding-top: 0; margin-top: 0; }
 
 /* ── TODAY PAGE ── */
 .today-page { padding: 14px 0 0; }
@@ -1965,11 +1971,11 @@ function switchPage(page) {
 function renderOverview() {
   const grid = document.getElementById('ovGrid');
   let html = '';
-  config.crew.forEach(c => {
-    // Crew header spans all 3 columns
-    html += `<div style="grid-column:1/-1;display:flex;align-items:center;gap:8px;padding:4px 2px 0;">
-      ${avatarHtml(c.name,20)}
-      <span style="font-size:10px;font-weight:700;color:var(--t2);letter-spacing:0.3px;">${c.name}</span>
+  config.crew.forEach((c, ci) => {
+    const crewColor = avatarColor(c.name);
+    html += `<div class="ov-section-hd${ci===0?' first':''}">
+      <div style="width:8px;height:8px;border-radius:50%;background:${crewColor};flex-shrink:0;"></div>
+      <span style="font-size:9px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:0.5px;">${c.name}</span>
     </div>`;
     c.rooms.forEach(room => {
       const done = countDone(room.id);
@@ -1977,12 +1983,14 @@ function renderOverview() {
       const pct = total ? Math.round(done/total*100) : 0;
       const complete = pct === 100;
       const color = complete ? 'var(--green)' : pct>0 ? 'var(--accent)' : 'var(--line2)';
-      const stepsIcons = config.steps.map(s => {
-        const val = getVal(room.id, s.key);
-        return `<span class="ov-step${val?' on':''}">${s.icon}</span>`;
-      }).join('');
+      const stepsIcons = config.steps.map(s =>
+        `<span class="ov-step${getVal(room.id,s.key)?' on':''}">${s.icon}</span>`
+      ).join('');
       html += `<div class="ov-card${complete?' complete':''}" onclick="openSchedule('${c.id}')">
-        <div class="ov-room">${room.name}</div>
+        <div class="ov-top">
+          <div class="ov-dot" style="background:${crewColor};opacity:0.6;"></div>
+          <div class="ov-room">${room.name}</div>
+        </div>
         <div class="ov-bar"><div class="ov-fill" style="width:${pct}%;background:${color};"></div></div>
         <div class="ov-steps">${stepsIcons}</div>
       </div>`;
