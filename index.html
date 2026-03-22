@@ -2389,12 +2389,12 @@ function renderSchedule() {
                 const compactPill = (st) => {
                   const val = getSchedStep(schedCrewId, room.id, schedDay, i, st.key);
                   return `<div onclick="event.stopPropagation();toggleSchedStep('${schedCrewId}','${room.id}','${schedDay}',${i},'${st.key}')"
-                    title="${st.label}"
-                    style="display:flex;flex-direction:column;align-items:center;gap:2px;padding:5px 4px 4px;border-radius:6px;cursor:pointer;flex:1;
-                    background:${val?'rgba(76,175,116,0.15)':'var(--s2)'};border:1px solid ${val?'rgba(76,175,116,0.4)':'var(--line2)'};
+                    style="display:inline-flex;align-items:center;justify-content:center;
+                    padding:4px 8px;border-radius:3px;cursor:pointer;
+                    background:${val?'rgba(76,175,116,0.2)':'rgba(255,255,255,0.07)'};
+                    border:1px solid ${val?'rgba(76,175,116,0.5)':'rgba(255,255,255,0.12)'};
                     transition:all 0.12s;">
-                    <span style="font-size:15px;line-height:1;${val?'':'opacity:0.45;'}">${st.icon}</span>
-                    <span style="font-size:8px;font-weight:700;color:${val?'var(--green)':'var(--t3)'};letter-spacing:0.2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;text-align:center;">${st.label}</span>
+                    <span style="font-size:9px;font-weight:800;color:${val?'var(--green)':'var(--t3)'};letter-spacing:0.6px;text-transform:uppercase;white-space:nowrap;">${st.label}</span>
                   </div>`;
                 };
                 const row = (label, arr, cls) => arr.length ? `
