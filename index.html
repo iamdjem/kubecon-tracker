@@ -2015,6 +2015,10 @@ function showToast(msg) {
 let currentPage = 'setup';
 
 function switchPage(page) {
+  // Close settings sheet if open
+  document.getElementById('overlay').classList.remove('open');
+  document.getElementById('sheet').classList.remove('open');
+  document.body.style.overflow = '';
   if (page === 'settings') { openSettings(); return; }
   currentPage = page;
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
