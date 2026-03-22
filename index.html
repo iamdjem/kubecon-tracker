@@ -2247,8 +2247,9 @@ function renderSchedMain() {
   const makePills = (keys, crewId, roomId, day, idx) => steps.filter(st => keys.includes(st.key)).map(st => {
     const val = getSchedStep(crewId, roomId, day, idx, st.key);
     return `<span onclick="event.stopPropagation();toggleSchedStep('${crewId}','${roomId}','${day}',${idx},'${st.key}')"
-      style="display:inline-block;padding:2px 5px;border-radius:3px;cursor:pointer;margin:1px;
-      font-size:7px;font-weight:800;letter-spacing:0.4px;text-transform:uppercase;
+      style="display:inline-block;padding:5px 8px;border-radius:4px;cursor:pointer;margin:2px;
+      font-size:8px;font-weight:800;letter-spacing:0.4px;text-transform:uppercase;
+      -webkit-tap-highlight-color:transparent;
       background:${val?'rgba(76,175,116,0.2)':'rgba(255,255,255,0.07)'};
       border:1px solid ${val?'rgba(76,175,116,0.5)':'rgba(255,255,255,0.12)'};
       color:${val?'var(--green)':'var(--t3)'};">${st.label}</span>`;
@@ -2306,10 +2307,10 @@ function renderSchedMain() {
       const done = getSchedDone(crew.id, room.id, schedMainDay, i);
       const t24 = s.turnaround24 === true;
       return `<div style="flex:1;min-width:200px;border-left:1px solid var(--line);padding:6px 8px;
-        background:${done?'rgba(76,175,116,0.08)':'var(--s2)'};border-bottom:1px solid var(--line);">
+        background:${done?'rgba(76,175,116,0.08)':'var(--s2)'};border-bottom:1px solid var(--line);" onclick="void(0)">
         <div style="display:flex;align-items:center;gap:5px;margin-bottom:3px;">
-          <div class="sched-cb${done?' checked':''}" style="width:16px;height:16px;flex-shrink:0;"
-            onclick="toggleSchedDone('${crew.id}','${room.id}','${schedMainDay}',${i});renderSchedMain()">
+          <div class="sched-cb${done?' checked':''}" style="width:22px;height:22px;flex-shrink:0;cursor:pointer;"
+            onclick="event.stopPropagation();toggleSchedDone('${crew.id}','${room.id}','${schedMainDay}',${i});renderSchedMain()">
             <svg viewBox="0 0 12 12" fill="none" stroke="#000" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2,6 5,9 10,3"/></svg>
           </div>
           <span style="font-size:9px;font-weight:700;color:var(--accent);">${s.time}${s.end?' – '+s.end:''}</span>
