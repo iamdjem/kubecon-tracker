@@ -2230,98 +2230,126 @@ function renderSchedMain() {
   const PRE_KEYS = ['obsbot','canon','vmix_rec','vmix_mc','vmix_str'];
   const POST_KEYS = ['edit','uploaded'];
 
-  // Collect all sessions to find time range
   const toMins = t => { if(!t||t==='All day') return null; const [h,m]=t.split(':').map(Number); return h*60+m; };
-  let dayStart = 999, dayEnd = 0;
+
+  // Collect all unique start times across all rooms for this day to create shared rows
+  const allTimes = new Set();
   crewList.forEach(crew => {
     const crewSched = SCHEDULE[crew.id] || {};
     crew.rooms.forEach(room => {
       (crewSched[room.id]?.[schedMainDay] || []).forEach(s => {
-        const st = toMins(s.time), en = toMins(s.end);
-        if (st !== null) { dayStart = Math.min(dayStart, st); dayEnd = Math.max(dayEnd, en||st+45); }
+        if (toMins(s.time) !== null) allTimes.add(s.time);
       });
     });
   });
-  if (dayStart === 999) dayStart = 9*60;
-  if (dayEnd <= dayStart) dayEnd = dayStart + 8*60;
-  dayStart = Math.max(0, dayStart - 15); // 15min padding top
-  dayEnd += 30; // padding bottom
-  const PX_PER_MIN = 2.2;
-  const totalH = (dayEnd - dayStart) * PX_PER_MIN;
+  const sortedTimes = [...allTimes].sort();
 
-  // Time ruler column
-  const rulerMarks = [];
-  const firstHour = Math.ceil(dayStart/60);
-  const lastHour = Math.floor(dayEnd/60);
-  for (let h = firstHour; h <= lastHour; h++) {
-    const top = (h*60 - dayStart) * PX_PER_MIN;
-    rulerMarks.push(`<div style="position:absolute;top:${top}px;left:0;right:0;">
-      <span style="font-size:9px;font-weight:700;color:var(--t3);">${h}:00</span>
-      <div style="position:absolute;top:6px;left:28px;right:0;height:1px;background:var(--line);"></div>
-    </div>`);
-  }
-  const ruler = `<div style="position:relative;width:36px;flex-shrink:0;height:${totalH}px;padding-top:4px;">${rulerMarks.join('')}</div>`;
+  const makePills = (keys, crewId, roomId, day, idx) => steps.filter(st => keys.includes(st.key)).map(st => {
+    const val = getSchedStep(crewId, roomId, day, idx, st.key);
+    return `<span onclick="event.stopPropagation();toggleSchedStep('${crewId}','${roomId}','${day}',${idx},'${st.key}')"
+      style="display:inline-block;padding:2px 5px;border-radius:3px;cursor:pointer;margin:1px;
+      font-size:7px;font-weight:800;letter-spacing:0.4px;text-transform:uppercase;
+      background:${val?'rgba(76,175,116,0.2)':'rgba(255,255,255,0.07)'};
+      border:1px solid ${val?'rgba(76,175,116,0.5)':'rgba(255,255,255,0.12)'};
+      color:${val?'var(--green)':'var(--t3)'};">${st.label}</span>`;
+  }).join('');
 
+  // Build per-column card lists keyed by time slot
   const allCols = crewList.flatMap(crew => {
     const crewSched = SCHEDULE[crew.id] || {};
     return crew.rooms.map(room => {
       const sessions = crewSched[room.id]?.[schedMainDay] || [];
       const doneCount = sessions.filter((_,i) => getSchedDone(crew.id, room.id, schedMainDay, i)).length;
-
-      const makePills = (keys, crewId, roomId, day, idx) => steps.filter(st => keys.includes(st.key)).map(st => {
-        const val = getSchedStep(crewId, roomId, day, idx, st.key);
-        return `<span onclick="event.stopPropagation();toggleSchedStep('${crewId}','${roomId}','${day}',${idx},'${st.key}')"
-          style="display:inline-block;padding:2px 5px;border-radius:3px;cursor:pointer;margin:1px;
-          font-size:7px;font-weight:800;letter-spacing:0.4px;text-transform:uppercase;
-          background:${val?'rgba(76,175,116,0.2)':'rgba(255,255,255,0.07)'};
-          border:1px solid ${val?'rgba(76,175,116,0.5)':'rgba(255,255,255,0.12)'};
-          color:${val?'var(--green)':'var(--t3)'};">${st.label}</span>`;
-      }).join('');
-
-      const cards = sessions.map((s, i) => {
-        const st = toMins(s.time), en = toMins(s.end);
-        if (st === null) return ''; // skip all-day
-        const top = (st - dayStart) * PX_PER_MIN;
-        const height = Math.max(60, ((en||st+45) - st) * PX_PER_MIN - 3);
-        const done = getSchedDone(crew.id, room.id, schedMainDay, i);
-        const t24 = s.turnaround24 === true;
-        return `<div onclick="" style="position:absolute;top:${top}px;left:2px;right:2px;height:${height}px;
-          background:${done?'rgba(76,175,116,0.1)':'var(--s2)'};
-          border:1px solid ${done?'rgba(76,175,116,0.35)':'var(--line2)'};
-          border-radius:6px;padding:5px 7px;overflow:hidden;box-sizing:border-box;">
-          <div style="display:flex;align-items:center;gap:5px;margin-bottom:3px;">
-            <div class="sched-cb${done?' checked':''}" style="width:16px;height:16px;flex-shrink:0;"
-              onclick="event.stopPropagation();toggleSchedDone('${crew.id}','${room.id}','${schedMainDay}',${i});renderSchedMain()">
-              <svg viewBox="0 0 12 12" fill="none" stroke="#000" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2,6 5,9 10,3"/></svg>
-            </div>
-            <span style="font-size:9px;font-weight:700;color:var(--accent);flex-shrink:0;">${s.time}${s.end?' – '+s.end:''}</span>
-            ${t24?'<span style="font-size:7px;font-weight:700;color:#f87171;background:rgba(239,68,68,0.12);padding:1px 4px;border-radius:2px;">24hr</span>':''}
-          </div>
-          <div style="font-size:10px;font-weight:600;color:${done?'var(--t3)':'var(--t1)'};line-height:1.3;${done?'text-decoration:line-through;':''}margin-bottom:4px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;">${s.name}</div>
-          ${height > 90 ? `<span class="sched-tile-badge badge-${s.badge}" style="font-size:7px;padding:1px 5px;">${s.badge==='rw'?'Rec+Wordly':s.badge==='r'?'Rec only':s.badge==='w'?'Wordly':'Stream'}</span>` : ''}
-          ${height > 120 && steps.length ? `
-            <div style="margin-top:3px;"><div style="font-size:6px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:0.4px;margin-bottom:2px;">Before</div>
-            <div>${makePills(PRE_KEYS,crew.id,room.id,schedMainDay,i)}</div></div>
-            <div style="margin-top:2px;"><div style="font-size:6px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:0.4px;margin-bottom:2px;">After</div>
-            <div>${makePills(POST_KEYS,crew.id,room.id,schedMainDay,i)}</div></div>
-          ` : ''}
-        </div>`;
-      }).join('');
-
-      return `<div class="sched-col" style="flex:1;min-width:200px;">
-        <div class="sched-col-hd">
-          <div>
-            <span class="sched-col-name">${room.name}</span>
-            ${schedMainCrew==='all'?`<div style="font-size:9px;color:var(--t3);margin-top:1px;">${crew.name}</div>`:''}
-          </div>
-          <span class="sched-col-prog">${doneCount}/${sessions.length}</span>
-        </div>
-        <div style="position:relative;height:${totalH}px;">${cards}</div>
-      </div>`;
+      // Map time → session index
+      const byTime = {};
+      sessions.forEach((s,i) => { if(s.time) byTime[s.time] = i; });
+      return { crew, room, sessions, doneCount, byTime };
     });
   });
 
-  colEl.innerHTML = ruler + allCols.join('');
+  // Render: for each time slot, render a row across all columns
+  // First build column headers
+  const headers = allCols.map(({crew, room, doneCount, sessions}) =>
+    `<div class="sched-col" style="min-width:200px;flex:1;">
+      <div class="sched-col-hd">
+        <div>
+          <span class="sched-col-name">${room.name}</span>
+          ${schedMainCrew==='all'?`<div style="font-size:9px;color:var(--t3);margin-top:1px;">${crew.name}</div>`:''}
+        </div>
+        <span class="sched-col-prog">${doneCount}/${sessions.length}</span>
+      </div>
+    </div>`
+  ).join('');
+
+  // Build timeline rows
+  let prevTime = null;
+  const rows = sortedTimes.map(time => {
+    const mins = toMins(time);
+    const prevMins = toMins(prevTime);
+    // Add gap row if >15min gap between sessions
+    let gapRow = '';
+    if (prevMins !== null && mins - prevMins > 20) {
+      const gapMins = mins - prevMins;
+      gapRow = `<div style="display:flex;border-top:1px dashed rgba(255,255,255,0.08);">
+        <div style="width:44px;flex-shrink:0;padding:6px 6px;font-size:9px;color:var(--t3);font-weight:600;">${prevTime}<br><span style="color:rgba(255,255,255,0.2);">↕</span><br>${time}</div>
+        ${allCols.map(() => `<div style="flex:1;min-width:200px;padding:8px 6px;display:flex;align-items:center;justify-content:center;">
+          <span style="font-size:9px;color:rgba(255,255,255,0.12);font-style:italic;">${gapMins}min break</span>
+        </div>`).join('')}
+      </div>`;
+    }
+    prevTime = time;
+
+    const cells = allCols.map(({crew, room, sessions, byTime}) => {
+      const i = byTime[time];
+      if (i === undefined) return `<div style="flex:1;min-width:200px;border-left:1px solid var(--line);min-height:60px;background:rgba(0,0,0,0.15);"></div>`;
+      const s = sessions[i];
+      const done = getSchedDone(crew.id, room.id, schedMainDay, i);
+      const t24 = s.turnaround24 === true;
+      return `<div style="flex:1;min-width:200px;border-left:1px solid var(--line);padding:6px 8px;
+        background:${done?'rgba(76,175,116,0.08)':'var(--s2)'};border-bottom:1px solid var(--line);">
+        <div style="display:flex;align-items:center;gap:5px;margin-bottom:3px;">
+          <div class="sched-cb${done?' checked':''}" style="width:16px;height:16px;flex-shrink:0;"
+            onclick="toggleSchedDone('${crew.id}','${room.id}','${schedMainDay}',${i});renderSchedMain()">
+            <svg viewBox="0 0 12 12" fill="none" stroke="#000" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2,6 5,9 10,3"/></svg>
+          </div>
+          <span style="font-size:9px;font-weight:700;color:var(--accent);">${s.time}${s.end?' – '+s.end:''}</span>
+          ${t24?'<span style="font-size:7px;font-weight:700;color:#f87171;background:rgba(239,68,68,0.12);padding:1px 4px;border-radius:2px;">24hr</span>':''}
+        </div>
+        <div style="font-size:11px;font-weight:600;color:${done?'var(--t3)':'var(--t1)'};line-height:1.4;${done?'text-decoration:line-through;':''}margin-bottom:5px;">${s.name}</div>
+        <span class="sched-tile-badge badge-${s.badge}" style="font-size:7px;padding:1px 5px;margin-bottom:5px;">${s.badge==='rw'?'Rec+Wordly':s.badge==='r'?'Rec only':s.badge==='w'?'Wordly':'Stream'}</span>
+        ${steps.length?`
+          <div style="margin-top:4px;font-size:6px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:0.4px;margin-bottom:2px;">Before</div>
+          <div style="display:flex;flex-wrap:wrap;">${makePills(PRE_KEYS,crew.id,room.id,schedMainDay,i)}</div>
+          <div style="margin-top:3px;font-size:6px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:0.4px;margin-bottom:2px;">After</div>
+          <div style="display:flex;flex-wrap:wrap;">${makePills(POST_KEYS,crew.id,room.id,schedMainDay,i)}</div>
+        `:''}
+      </div>`;
+    }).join('');
+
+    return gapRow + `<div style="display:flex;">
+      <div style="width:44px;flex-shrink:0;padding:6px 4px;font-size:9px;font-weight:700;color:var(--t3);text-align:right;border-right:1px solid var(--line);padding-top:8px;">${time}</div>
+      ${cells}
+    </div>`;
+  }).join('');
+
+  colEl.style.flexDirection = 'column';
+  colEl.style.alignItems = '';
+  colEl.innerHTML = `
+    <div style="display:flex;position:sticky;top:0;z-index:3;background:var(--bg);">
+      <div style="width:44px;flex-shrink:0;"></div>
+      ${allCols.map(({crew,room,doneCount,sessions}) => `
+        <div style="flex:1;min-width:200px;border-left:1px solid var(--line);">
+          <div class="sched-col-hd">
+            <div>
+              <span class="sched-col-name">${room.name}</span>
+              ${schedMainCrew==='all'?`<div style="font-size:9px;color:var(--t3);margin-top:1px;">${crew.name}</div>`:''}
+            </div>
+            <span class="sched-col-prog">${doneCount}/${sessions.length}</span>
+          </div>
+        </div>`).join('')}
+    </div>
+    ${rows || '<div style="padding:30px;text-align:center;color:var(--t3);font-size:13px;">No sessions</div>'}
+  `;
 }
 
 function setSchedMainDay(day) { schedMainDay = day; localStorage.setItem('kc_sched_day', day); renderSchedMain(); }
