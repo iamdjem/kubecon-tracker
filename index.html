@@ -820,20 +820,20 @@ const DEFAULT_CONFIG = {
   subtitle: 'KubeCon EU 2026 · RAI Amsterdam',
   firebaseUrl: 'https://kubecon-tracker-default-rtdb.europe-west1.firebasedatabase.app',
   steps: [
-    { key:'setup',  icon:'🔧', label:'Setup'  },
-    { key:'ptz',    icon:'🤖', label:'PTZ'    },
-    { key:'stream', icon:'🔑', label:'Keys'   },
-    { key:'parsec', icon:'⚡', label:'Parsec' },
-    { key:'tested', icon:'📝', label:'Tested' },
+    { key:'setup',  icon:'🛠️', label:'Set up'      },
+    { key:'ptz',    icon:'🤖', label:'Update PTZ'  },
+    { key:'stream', icon:'🔑', label:'Stream keys' },
+    { key:'parsec', icon:'⚡', label:'Parsec'      },
+    { key:'tested', icon:'🖊️', label:'Tested'      },
   ],
   schedSteps: [
-    { key:'obsbot',   icon:'🤖', label:'PTZ mic'    },
-    { key:'canon',    icon:'📷', label:'Canon'      },
-    { key:'vmix_rec', icon:'⏺',  label:'Recording'  },
-    { key:'vmix_mc',  icon:'💾', label:'Multicorder' },
-    { key:'vmix_str', icon:'📡', label:'Streaming'  },
-    { key:'edit',     icon:'🎬', label:'Edited'     },
-    { key:'uploaded', icon:'☁️', label:'Uploaded'   },
+    { key:'obsbot',   icon:'🤖', label:'PTZ mic'     },
+    { key:'canon',    icon:'📷', label:'Canon'       },
+    { key:'vmix_rec', icon:'⏺',  label:'Recording'   },
+    { key:'vmix_mc',  icon:'💾', label:'Multicorder'  },
+    { key:'vmix_str', icon:'📡', label:'Streaming'   },
+    { key:'edit',     icon:'🎬', label:'Edited'      },
+    { key:'uploaded', icon:'☁️', label:'Uploaded'    },
   ],
   crew: [
     { id:'alexi',   name:'Alexi',   rooms:[{id:'r1',name:'E103-105'},{id:'r2',name:'E106-108'},{id:'r3',name:'Auditorium'}] },
@@ -1753,6 +1753,8 @@ let config = JSON.parse(localStorage.getItem('kc_config')||'null') || DEFAULT_CO
 if (!config.schedSteps) config.schedSteps = DEFAULT_CONFIG.schedSteps;
 // Force-migrate schedSteps if they don't have the new recording keys
 if (!config.schedSteps.find(s => s.key === 'obsbot')) config.schedSteps = DEFAULT_CONFIG.schedSteps;
+// Force-migrate step icons to match WhatsApp format
+if (config.steps.find(s => s.key === 'setup' && s.icon === '🔧')) config.steps = DEFAULT_CONFIG.steps;
 let state  = JSON.parse(localStorage.getItem('kc_state') ||'{}');
 let filter = null;
 let fbDb   = null;
