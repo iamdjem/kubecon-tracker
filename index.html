@@ -2672,7 +2672,8 @@ function toggleSchedDone(crewId, roomId, day, idx) {
   state.sched[crewId][roomId][day][idx] = !cur;
   saveState();
   if (fbDb) fbDb.child('state/sched/'+crewId+'/'+roomId+'/'+day+'/'+idx).set(!cur);
-  renderSchedule();
+  if (currentPage === 'today') renderSchedMain();
+  else renderSchedule();
 }
 
 function getSchedStep(crewId, roomId, day, idx, stepKey) {
@@ -2689,7 +2690,9 @@ function toggleSchedStep(crewId, roomId, day, idx, stepKey) {
   state.schedSteps[crewId][roomId][day][idx][stepKey] = !cur;
   saveState();
   if (fbDb) fbDb.child('state/schedSteps/'+crewId+'/'+roomId+'/'+day+'/'+idx+'/'+stepKey).set(!cur);
-  renderSchedule();
+  // Re-render whichever schedule view is active
+  if (currentPage === 'today') renderSchedMain();
+  else renderSchedule();
 }
 </script>
 </body>
