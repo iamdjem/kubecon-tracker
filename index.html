@@ -2041,7 +2041,7 @@ function showToast(msg) {
 // ═══════════════════════════════
 // PAGE NAVIGATION
 // ═══════════════════════════════
-let currentPage = 'setup';
+let currentPage = localStorage.getItem('kc_page') || 'setup';
 
 function switchPage(page) {
   // Close settings sheet if open
@@ -2050,6 +2050,7 @@ function switchPage(page) {
   document.body.style.overflow = '';
   if (page === 'settings') { openSettings(); return; }
   currentPage = page;
+  localStorage.setItem('kc_page', page);
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('on'));
   document.getElementById('page-' + page).classList.add('active');
@@ -2158,6 +2159,8 @@ function openRoomDetail(roomId) {
 
 if (config.firebaseUrl) initFirebase(config.firebaseUrl);
 render();
+// Restore last visited page
+if (currentPage !== 'setup') switchPage(currentPage);
 // Push schedSteps to Firebase if missing (one-time migration)
 setTimeout(() => { if (fbDb && config.schedSteps) fbDb.child('config/schedSteps').once('value', s => { if (!s.val()) fbDb.child('config/schedSteps').set(config.schedSteps); }); }, 3000);
 
