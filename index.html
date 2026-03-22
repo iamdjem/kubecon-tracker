@@ -235,15 +235,14 @@ body {
 .overlay.open { opacity: 1; pointer-events: all; }
 
 .sheet {
-  position: fixed; bottom: 0; left: 0; right: 0;
+  position: fixed; bottom: 58px; left: 0; right: 0;
   background: var(--s1);
   border-top: 1px solid var(--line2);
   z-index: 101;
-  max-height: 88vh;
+  max-height: calc(88vh - 58px);
   display: flex; flex-direction: column;
-  transform: translateY(100%);
+  transform: translateY(calc(100% + 58px));
   transition: transform 0.3s cubic-bezier(.32,0,.15,1);
-  padding-bottom: env(safe-area-inset-bottom);
 }
 .sheet.open { transform: translateY(0); }
 
