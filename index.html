@@ -2222,13 +2222,27 @@ function renderSchedule() {
                 ${t24 ? `<span class="badge-24hr">⏱ 24hr Upload</span>` : ''}
               </div>
               ${steps.length ? (() => {
-                const pre = steps.filter(st => ['obsbot','canon','vmix_rec','vmix_mc','vmix_str'].includes(st.key));
-                const post = steps.filter(st => ['edit','uploaded'].includes(st.key));
-                const other = steps.filter(st => !pre.includes(st) && !post.includes(st));
-                const preHtml = pre.length ? `<div style="margin-top:8px;"><div style="font-size:9px;font-weight:600;color:var(--t3);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;">Before session</div><div style="display:flex;flex-wrap:wrap;gap:5px;">${steps.filter(st=>pre.includes(st)).map(st=>{const val=getSchedStep(schedCrewId,room.id,schedDay,i,st.key);return `<div onclick="event.stopPropagation();toggleSchedStep('${schedCrewId}','${room.id}','${schedDay}',${i},'${st.key}')" style="display:flex;align-items:center;gap:4px;padding:4px 8px;border-radius:5px;cursor:pointer;background:${val?'rgba(76,175,116,0.12)':'var(--s2)'};border:1px solid ${val?'rgba(76,175,116,0.3)':'var(--line2)'};transition:all 0.12s;"><span style="font-size:13px;line-height:1;">${st.icon}</span><span style="font-size:10px;font-weight:600;color:${val?'var(--green)':'var(--t3)'};">${st.label}</span></div>`;}).join('')}</div></div>` : '';
-                const postHtml = post.length ? `<div style="margin-top:6px;"><div style="font-size:9px;font-weight:600;color:var(--t3);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;">After session</div><div style="display:flex;flex-wrap:wrap;gap:5px;">${steps.filter(st=>post.includes(st)).map(st=>{const val=getSchedStep(schedCrewId,room.id,schedDay,i,st.key);return `<div onclick="event.stopPropagation();toggleSchedStep('${schedCrewId}','${room.id}','${schedDay}',${i},'${st.key}')" style="display:flex;align-items:center;gap:4px;padding:4px 8px;border-radius:5px;cursor:pointer;background:${val?'rgba(76,175,116,0.12)':'var(--s2)'};border:1px solid ${val?'rgba(76,175,116,0.3)':'var(--line2)'};transition:all 0.12s;"><span style="font-size:13px;line-height:1;">${st.icon}</span><span style="font-size:10px;font-weight:600;color:${val?'var(--green)':'var(--t3)'};">${st.label}</span></div>`;}).join('')}</div></div>` : '';
-                const otherHtml = other.length ? `<div style="display:flex;flex-wrap:wrap;gap:5px;margin-top:6px;">${stepsHtml}</div>` : '';
-                return preHtml + postHtml + otherHtml;
+                const PRE_KEYS = ['obsbot','canon','vmix_rec','vmix_mc','vmix_str'];
+                const POST_KEYS = ['edit','uploaded'];
+                const pill = (st) => {
+                  const val = getSchedStep(schedCrewId, room.id, schedDay, i, st.key);
+                  return `<div onclick="event.stopPropagation();toggleSchedStep('${schedCrewId}','${room.id}','${schedDay}',${i},'${st.key}')"
+                    style="display:flex;align-items:center;gap:3px;padding:5px 8px;border-radius:5px;cursor:pointer;
+                    background:${val?'rgba(76,175,116,0.12)':'var(--s2)'};border:1px solid ${val?'rgba(76,175,116,0.3)':'var(--line2)'};
+                    transition:all 0.12s;flex:1;min-width:0;">
+                    <span style="font-size:13px;flex-shrink:0;">${st.icon}</span>
+                    <span style="font-size:10px;font-weight:600;color:${val?'var(--green)':'var(--t3)'};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${st.label}</span>
+                  </div>`;
+                };
+                const preSteps = steps.filter(s => PRE_KEYS.includes(s.key));
+                const postSteps = steps.filter(s => POST_KEYS.includes(s.key));
+                const otherSteps = steps.filter(s => !PRE_KEYS.includes(s.key) && !POST_KEYS.includes(s.key));
+                const row = (label, arr) => arr.length ? `
+                  <div style="margin-top:8px;">
+                    <div style="font-size:9px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:0.6px;margin-bottom:5px;">${label}</div>
+                    <div style="display:flex;gap:4px;">${arr.map(pill).join('')}</div>
+                  </div>` : '';
+                return row('Before session', preSteps) + row('After session', postSteps) + row('Steps', otherSteps);
               })() : ''}
             </div>
           </div>`;}).join('')
