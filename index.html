@@ -1914,7 +1914,7 @@ function renderSchedule() {
       ? sessions.map((s,i) => {
           const done = getSchedDone(schedCrewId, room.id, schedDay, i);
           const t24 = s.turnaround24 === true;
-          const steps = config.schedSteps || [];
+          const steps = (config.schedSteps && config.schedSteps.length) ? config.schedSteps : DEFAULT_CONFIG.schedSteps;
           const allStepsDone = steps.length > 0 && steps.every(st => getSchedStep(schedCrewId, room.id, schedDay, i, st.key));
           const stepsHtml = steps.map(st => {
             const val = getSchedStep(schedCrewId, room.id, schedDay, i, st.key);
