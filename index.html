@@ -857,9 +857,19 @@ body { padding-bottom: 58px; }
     <div class="sched-back" onclick="closeSchedule()">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
     </div>
-    <div>
+    <div style="flex:1;">
       <div class="sched-title" id="schedTitle">Schedule</div>
       <div class="sched-sub" id="schedSub"></div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:4px;align-items:flex-end;flex-shrink:0;">
+      <a href="https://kccnceu2026.sched.com/" target="_blank"
+        style="font-size:10px;font-weight:700;color:var(--accent);text-decoration:none;white-space:nowrap;">
+        KubeCon ↗
+      </a>
+      <a href="https://colocatedeventseu2026.sched.com/" target="_blank"
+        style="font-size:10px;font-weight:700;color:var(--t3);text-decoration:none;white-space:nowrap;">
+        Co-located ↗
+      </a>
     </div>
   </div>
   <div class="day-tabs" id="dayTabs"></div>
