@@ -2917,6 +2917,11 @@ window.switchPage = function(page) {
 };
 
 vmixLoadIps();
+
+// If page was rooms on last visit, render cards now (boot restore)
+if (currentPage === 'rooms') {
+  renderVmixCards();
+}
 </script>
 </body>
 </html>
