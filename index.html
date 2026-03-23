@@ -1851,6 +1851,7 @@ function initFirebase(url) {
         fbDb = firebase.database(app).ref('e3-kc26-x7k9m');
         fbDb.child('state').on('value', s => { const v=s.val(); if(v){state=v;saveState();render(); if(currentPage==='record')renderRecord(); if(currentPage==='overview')renderOverview();} });
         fbDb.child('config').on('value', s => { const v=s.val(); if(v&&v.steps&&v.crew){config=v; if(!config.schedSteps||!config.schedSteps.find(s=>s.key==='obsbot'))config.schedSteps=DEFAULT_CONFIG.schedSteps; saveConfig();render();} });
+        fbDb.child('vmix_ips').on('value', s => { const v=s.val(); if(v){ VMIX_ROOMS.forEach(r => { if(v[r.key]) r.ip=v[r.key]; }); vmixSaveIps(); if(currentPage==='rooms') renderVmixCards(); } });
         setFbStatus(true);
       } catch(e) { setFbStatus(false); }
     }));
@@ -2831,7 +2832,9 @@ async function vmixSaveIp(key) {
   if (!room) return;
   room.ip = (document.getElementById('vmix-ip-' + key)||{}).value?.trim() || '';
   vmixSaveIps();
-  showToast(`IP saved for ${room.name}`);
+  // Also save to Firebase so all devices get the IP
+  if (fbDb) fbDb.child('vmix_ips/' + key).set(room.ip);
+  showToast('IP saved for ' + room.name);
   await vmixRefreshStatus(key);
 }
 
