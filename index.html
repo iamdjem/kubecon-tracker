@@ -2333,7 +2333,7 @@ function showConfirm(title, body, okLabel, okStyle, cb) {
   document.getElementById('confirm-body').textContent  = body;
   const ok = document.getElementById('confirm-ok');
   ok.textContent = okLabel;
-  ok.style.cssText = okStyle + 'flex:1;border:none;border-radius:10px;padding:11px;font-size:14px;font-weight:700;cursor:pointer;';
+  ok.style.cssText = 'flex:1;border:none;border-radius:10px;padding:11px;font-size:14px;font-weight:700;cursor:pointer;' + okStyle;
   _confirmCb = cb;
   document.getElementById('confirm-modal').style.display = 'flex';
 }
