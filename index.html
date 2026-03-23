@@ -2728,25 +2728,53 @@ function renderVmixCards() {
     const st = vmixStatus[r.key] || {};
     const dot = (on, label) => `<span style="font-size:10px;padding:3px 8px;border-radius:20px;border:1px solid ${on===true?'#2d7a2d':on===false?'var(--line2)':'#7a2d2d'};color:${on===true?'#5dcc5d':on===false?'var(--t3)':'#cc5d5d'};background:${on===true?'#1a3d1a':on===false?'transparent':'#3d1a1a'};">${on===true?'●':'○'} ${label}</span>`;
     const err = st.ok === false;
+    const btnStyle = (on) => `border-radius:7px;padding:7px 0;font-size:11px;font-weight:700;cursor:pointer;flex:1;border:1px solid ${on?'#2d7a2d':'#7a2d2d'};background:${on?'#1a3d1a':'#3d1a1a'};color:${on?'#5dcc5d':'#cc5d5d'};`;
+    const recOn  = st.recording;
+    const strOn  = st.streaming;
+    const mcrOn  = st.multicorder;
     return `<div style="background:var(--s2);border:1px solid var(--line2);border-radius:12px;padding:14px 16px;">
       <div style="font-size:14px;font-weight:700;color:var(--t1);margin-bottom:10px;">${r.name}</div>
-      <div style="display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap;">
-        ${dot(err?null:st.recording,   'REC')}
-        ${dot(err?null:st.streaming,   'STREAM')}
-        ${dot(err?null:st.multicorder, 'MULTI')}
-        ${err ? `<span style="font-size:10px;color:#cc5d5d;">⚠ ${(st.error||'').substring(0,30)}</span>` : ''}
-      </div>
       <div style="display:flex;gap:8px;margin-bottom:10px;">
         <input id="vmix-ip-${r.key}" value="${r.ip}" placeholder="192.168.x.x"
           style="flex:1;background:var(--s3,#1a1a1a);border:1px solid var(--line2);color:var(--t1);border-radius:7px;padding:7px 10px;font-size:12px;font-family:monospace;" />
         <button onclick="vmixSaveIp('${r.key}')"
           style="background:var(--s3,#222);border:1px solid var(--line2);color:var(--t2);border-radius:7px;padding:7px 12px;font-size:12px;cursor:pointer;">Save</button>
       </div>
-      <div style="display:flex;gap:8px;">
+
+      <!-- Individual controls -->
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:8px;">
+        <div style="display:flex;flex-direction:column;gap:4px;align-items:center;">
+          <div style="font-size:9px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:0.5px;">⏺ Record</div>
+          <div style="display:flex;gap:4px;width:100%;">
+            <button onclick="vmixOne('${r.key}','StartRecording')" style="${btnStyle(true)}">▶</button>
+            <button onclick="vmixOne('${r.key}','StopRecording')"  style="${btnStyle(false)}">■</button>
+          </div>
+          <div style="font-size:9px;color:${err?'#cc5d5d':recOn?'#5dcc5d':'var(--t3)'};">${err?'✗ err':recOn?'● ON':'○ off'}</div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:4px;align-items:center;">
+          <div style="font-size:9px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:0.5px;">📡 Stream</div>
+          <div style="display:flex;gap:4px;width:100%;">
+            <button onclick="vmixOne('${r.key}','StartStreaming')" style="${btnStyle(true)}">▶</button>
+            <button onclick="vmixOne('${r.key}','StopStreaming')"  style="${btnStyle(false)}">■</button>
+          </div>
+          <div style="font-size:9px;color:${err?'#cc5d5d':strOn?'#5dcc5d':'var(--t3)'};">${err?'✗ err':strOn?'● ON':'○ off'}</div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:4px;align-items:center;">
+          <div style="font-size:9px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:0.5px;">💾 Multi</div>
+          <div style="display:flex;gap:4px;width:100%;">
+            <button onclick="vmixOne('${r.key}','StartMultiCorder')" style="${btnStyle(true)}">▶</button>
+            <button onclick="vmixOne('${r.key}','StopMultiCorder')"  style="${btnStyle(false)}">■</button>
+          </div>
+          <div style="font-size:9px;color:${err?'#cc5d5d':mcrOn?'#5dcc5d':'var(--t3)'};">${err?'✗ err':mcrOn?'● ON':'○ off'}</div>
+        </div>
+      </div>
+
+      <!-- All-in-one row -->
+      <div style="display:flex;gap:8px;border-top:1px solid var(--line2);padding-top:8px;">
         <button onclick="vmixRoomAction('${r.key}','start')"
-          style="flex:1;background:#1a3d1a;border:1px solid #2d7a2d;color:#5dcc5d;border-radius:8px;padding:10px;font-size:13px;font-weight:700;cursor:pointer;">▶ START</button>
+          style="flex:1;background:#1a3d1a;border:1px solid #2d7a2d;color:#5dcc5d;border-radius:8px;padding:9px;font-size:12px;font-weight:700;cursor:pointer;">▶ START ALL</button>
         <button onclick="vmixRoomAction('${r.key}','stop')"
-          style="flex:1;background:#3d1a1a;border:1px solid #7a2d2d;color:#cc5d5d;border-radius:8px;padding:10px;font-size:13px;font-weight:700;cursor:pointer;">■ STOP</button>
+          style="flex:1;background:#3d1a1a;border:1px solid #7a2d2d;color:#cc5d5d;border-radius:8px;padding:9px;font-size:12px;font-weight:700;cursor:pointer;">■ STOP ALL</button>
       </div>
     </div>`;
   }).join('');
@@ -2792,6 +2820,13 @@ async function vmixRefreshStatus(key) {
 
 async function vmixRefreshAll() {
   await Promise.all(VMIX_ROOMS.map(r => vmixRefreshStatus(r.key)));
+}
+
+async function vmixOne(key, fn) {
+  const room = VMIX_ROOMS.find(r => r.key === key);
+  if (!room) return;
+  await vmixCall(room.ip, fn);
+  setTimeout(() => vmixRefreshStatus(key), 1000);
 }
 
 async function vmixRoomAction(key, action) {
