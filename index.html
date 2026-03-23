@@ -775,8 +775,9 @@ body { padding-bottom: 58px; }
 </div>
 
 <!-- PAGE: OVERVIEW -->
-<div id="page-overview" class="page">
-  <div class="ov-grid" id="ovGrid"></div>
+<div id="page-overview" class="page" style="flex-direction:column;overflow:hidden;">
+  <div class="day-tabs" id="ovDayTabs" style="padding:0 12px;flex-shrink:0;"></div>
+  <div class="ov-grid" id="ovGrid" style="flex:1;overflow-y:auto;"></div>
 </div>
 
 <!-- PAGE: ROOMS -->
@@ -2239,6 +2240,12 @@ function switchPage(page) {
 }
 
 function renderOverview() {
+  const ovTabs = document.getElementById('ovDayTabs');
+  if (ovTabs) {
+    ovTabs.innerHTML = (config.days||DEFAULT_DAYS).map(d =>
+      `<div class="day-tab${d.key===currentDay?' on':''}" onclick="switchDay('${d.key}');renderOverview();">${d.label}</div>`
+    ).join('');
+  }
   const grid = document.getElementById('ovGrid');
   let html = '';
   config.crew.forEach((c, ci) => {
