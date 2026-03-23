@@ -2721,63 +2721,109 @@ function vmixSaveIps() {
 
 const vmixStatus = {};
 
+function vmixMakeCard(r) {
+  var st = vmixStatus[r.key] || {};
+  var err = st.ok === false;
+
+  function statusColor(on) { return err ? '#cc5d5d' : on ? '#5dcc5d' : '#666'; }
+  function statusText(on)  { return err ? 'err' : on ? 'ON' : 'off'; }
+
+  function makeFnBtns(startFn, stopFn) {
+    var row = document.createElement('div');
+    row.style.cssText = 'display:flex;gap:4px;width:100%;';
+    var s = document.createElement('button');
+    s.textContent = '▶';
+    s.style.cssText = 'flex:1;border-radius:7px;padding:7px 0;font-size:13px;font-weight:700;cursor:pointer;border:1px solid #2d7a2d;background:#1a3d1a;color:#5dcc5d;';
+    s.onclick = function() { vmixOne(r.key, startFn); };
+    var x = document.createElement('button');
+    x.textContent = '■';
+    x.style.cssText = 'flex:1;border-radius:7px;padding:7px 0;font-size:13px;font-weight:700;cursor:pointer;border:1px solid #7a2d2d;background:#3d1a1a;color:#cc5d5d;';
+    x.onclick = function() { vmixOne(r.key, stopFn); };
+    row.appendChild(s);
+    row.appendChild(x);
+    return row;
+  }
+
+  var card = document.createElement('div');
+  card.style.cssText = 'background:var(--s2);border:1px solid var(--line2);border-radius:12px;padding:14px 16px;';
+
+  // Title
+  var title = document.createElement('div');
+  title.style.cssText = 'font-size:15px;font-weight:700;color:var(--t1);margin-bottom:12px;';
+  title.textContent = r.name;
+  card.appendChild(title);
+
+  // IP row
+  var ipRow = document.createElement('div');
+  ipRow.style.cssText = 'display:flex;gap:8px;margin-bottom:12px;';
+  var inp = document.createElement('input');
+  inp.id = 'vmix-ip-' + r.key;
+  inp.value = r.ip;
+  inp.placeholder = '192.168.x.x';
+  inp.style.cssText = 'flex:1;background:#111;border:1px solid var(--line2);color:var(--t1);border-radius:7px;padding:7px 10px;font-size:12px;font-family:monospace;';
+  var saveBtn = document.createElement('button');
+  saveBtn.textContent = 'Save';
+  saveBtn.style.cssText = 'background:#222;border:1px solid var(--line2);color:var(--t2);border-radius:7px;padding:7px 12px;font-size:12px;cursor:pointer;';
+  saveBtn.onclick = function() { vmixSaveIp(r.key); };
+  ipRow.appendChild(inp);
+  ipRow.appendChild(saveBtn);
+  card.appendChild(ipRow);
+
+  // 3-column grid
+  var grid = document.createElement('div');
+  grid.style.cssText = 'display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:10px;';
+
+  var cols = [
+    { label: '⏺ REC',    startFn: 'StartRecording',   stopFn: 'StopRecording',   on: st.recording   },
+    { label: '📡 STREAM', startFn: 'StartStreaming',    stopFn: 'StopStreaming',    on: st.streaming   },
+    { label: '💾 MULTI',  startFn: 'StartMultiCorder', stopFn: 'StopMultiCorder', on: st.multicorder },
+  ];
+
+  cols.forEach(function(c) {
+    var col = document.createElement('div');
+    col.style.cssText = 'display:flex;flex-direction:column;gap:5px;align-items:center;';
+
+    var lbl = document.createElement('div');
+    lbl.style.cssText = 'font-size:9px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:0.4px;text-align:center;';
+    lbl.textContent = c.label;
+    col.appendChild(lbl);
+
+    col.appendChild(makeFnBtns(c.startFn, c.stopFn));
+
+    var dot = document.createElement('div');
+    dot.style.cssText = 'font-size:9px;color:' + statusColor(c.on) + ';';
+    dot.textContent = (c.on ? '● ' : '○ ') + statusText(c.on);
+    col.appendChild(dot);
+
+    grid.appendChild(col);
+  });
+  card.appendChild(grid);
+
+  // Start/Stop all row
+  var allRow = document.createElement('div');
+  allRow.style.cssText = 'display:flex;gap:8px;border-top:1px solid var(--line2);padding-top:10px;';
+  var startAll = document.createElement('button');
+  startAll.textContent = '▶ START ALL';
+  startAll.style.cssText = 'flex:1;background:#1a3d1a;border:1px solid #2d7a2d;color:#5dcc5d;border-radius:8px;padding:10px;font-size:12px;font-weight:700;cursor:pointer;';
+  startAll.onclick = function() { vmixRoomAction(r.key, 'start'); };
+  var stopAll = document.createElement('button');
+  stopAll.textContent = '■ STOP ALL';
+  stopAll.style.cssText = 'flex:1;background:#3d1a1a;border:1px solid #7a2d2d;color:#cc5d5d;border-radius:8px;padding:10px;font-size:12px;font-weight:700;cursor:pointer;';
+  stopAll.onclick = function() { vmixRoomAction(r.key, 'stop'); };
+  allRow.appendChild(startAll);
+  allRow.appendChild(stopAll);
+  card.appendChild(allRow);
+
+  return card;
+}
+
 function renderVmixCards() {
-  const el = document.getElementById('vmix-cards');
+  var el = document.getElementById('vmix-cards');
   if (!el) return;
-  el.innerHTML = VMIX_ROOMS.map(r => {
-    const st = vmixStatus[r.key] || {};
-    const dot = (on, label) => `<span style="font-size:10px;padding:3px 8px;border-radius:20px;border:1px solid ${on===true?'#2d7a2d':on===false?'var(--line2)':'#7a2d2d'};color:${on===true?'#5dcc5d':on===false?'var(--t3)':'#cc5d5d'};background:${on===true?'#1a3d1a':on===false?'transparent':'#3d1a1a'};">${on===true?'●':'○'} ${label}</span>`;
-    const err = st.ok === false;
-    const btnStyle = (on) => `border-radius:7px;padding:7px 0;font-size:11px;font-weight:700;cursor:pointer;flex:1;border:1px solid ${on?'#2d7a2d':'#7a2d2d'};background:${on?'#1a3d1a':'#3d1a1a'};color:${on?'#5dcc5d':'#cc5d5d'};`;
-    const recOn  = st.recording;
-    const strOn  = st.streaming;
-    const mcrOn  = st.multicorder;
-    return `<div style="background:var(--s2);border:1px solid var(--line2);border-radius:12px;padding:14px 16px;">
-      <div style="font-size:14px;font-weight:700;color:var(--t1);margin-bottom:10px;">${r.name}</div>
-      <div style="display:flex;gap:8px;margin-bottom:10px;">
-        <input id="vmix-ip-${r.key}" value="${r.ip}" placeholder="192.168.x.x"
-          style="flex:1;background:var(--s3,#1a1a1a);border:1px solid var(--line2);color:var(--t1);border-radius:7px;padding:7px 10px;font-size:12px;font-family:monospace;" />
-        <button onclick="vmixSaveIp('${r.key}')"
-          style="background:var(--s3,#222);border:1px solid var(--line2);color:var(--t2);border-radius:7px;padding:7px 12px;font-size:12px;cursor:pointer;">Save</button>
-      </div>
-
-      <!-- Individual controls -->
-      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:8px;">
-        <div style="display:flex;flex-direction:column;gap:4px;align-items:center;">
-          <div style="font-size:9px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:0.5px;">⏺ Record</div>
-          <div style="display:flex;gap:4px;width:100%;">
-            <button onclick="vmixOne('${r.key}','StartRecording')" style="${btnStyle(true)}">▶</button>
-            <button onclick="vmixOne('${r.key}','StopRecording')"  style="${btnStyle(false)}">■</button>
-          </div>
-          <div style="font-size:9px;color:${err?'#cc5d5d':recOn?'#5dcc5d':'var(--t3)'};">${err?'✗ err':recOn?'● ON':'○ off'}</div>
-        </div>
-        <div style="display:flex;flex-direction:column;gap:4px;align-items:center;">
-          <div style="font-size:9px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:0.5px;">📡 Stream</div>
-          <div style="display:flex;gap:4px;width:100%;">
-            <button onclick="vmixOne('${r.key}','StartStreaming')" style="${btnStyle(true)}">▶</button>
-            <button onclick="vmixOne('${r.key}','StopStreaming')"  style="${btnStyle(false)}">■</button>
-          </div>
-          <div style="font-size:9px;color:${err?'#cc5d5d':strOn?'#5dcc5d':'var(--t3)'};">${err?'✗ err':strOn?'● ON':'○ off'}</div>
-        </div>
-        <div style="display:flex;flex-direction:column;gap:4px;align-items:center;">
-          <div style="font-size:9px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:0.5px;">💾 Multi</div>
-          <div style="display:flex;gap:4px;width:100%;">
-            <button onclick="vmixOne('${r.key}','StartMultiCorder')" style="${btnStyle(true)}">▶</button>
-            <button onclick="vmixOne('${r.key}','StopMultiCorder')"  style="${btnStyle(false)}">■</button>
-          </div>
-          <div style="font-size:9px;color:${err?'#cc5d5d':mcrOn?'#5dcc5d':'var(--t3)'};">${err?'✗ err':mcrOn?'● ON':'○ off'}</div>
-        </div>
-      </div>
-
-      <!-- All-in-one row -->
-      <div style="display:flex;gap:8px;border-top:1px solid var(--line2);padding-top:8px;">
-        <button onclick="vmixRoomAction('${r.key}','start')"
-          style="flex:1;background:#1a3d1a;border:1px solid #2d7a2d;color:#5dcc5d;border-radius:8px;padding:9px;font-size:12px;font-weight:700;cursor:pointer;">▶ START ALL</button>
-        <button onclick="vmixRoomAction('${r.key}','stop')"
-          style="flex:1;background:#3d1a1a;border:1px solid #7a2d2d;color:#cc5d5d;border-radius:8px;padding:9px;font-size:12px;font-weight:700;cursor:pointer;">■ STOP ALL</button>
-      </div>
-    </div>`;
-  }).join('');
+  el.innerHTML = '';
+  VMIX_ROOMS.forEach(function(r) {
+    el.appendChild(vmixMakeCard(r));
+  });
 }
 
 async function vmixSaveIp(key) {
