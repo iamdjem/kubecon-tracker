@@ -861,16 +861,7 @@ body { padding-bottom: 58px; }
       <div class="sched-title" id="schedTitle">Schedule</div>
       <div class="sched-sub" id="schedSub"></div>
     </div>
-    <div style="display:flex;flex-direction:column;gap:4px;align-items:flex-end;flex-shrink:0;">
-      <a href="https://kccnceu2026.sched.com/" target="_blank"
-        style="font-size:10px;font-weight:700;color:var(--accent);text-decoration:none;white-space:nowrap;">
-        KubeCon ↗
-      </a>
-      <a href="https://colocatedeventseu2026.sched.com/" target="_blank"
-        style="font-size:10px;font-weight:700;color:var(--t3);text-decoration:none;white-space:nowrap;">
-        Co-located ↗
-      </a>
-    </div>
+    <div id="schedHeaderLinks" style="display:flex;flex-direction:column;gap:4px;align-items:flex-end;flex-shrink:0;"></div>
   </div>
   <div class="day-tabs" id="dayTabs"></div>
   <div class="room-tabs" id="roomTabs"></div>
@@ -2689,6 +2680,19 @@ function renderSchedule() {
   const crew = config.crew.find(c => c.id === schedCrewId);
   if (!crew) return;
   const crewSched = SCHEDULE[schedCrewId] || {};
+
+  // Update header links based on active day
+  const _schedBase = schedDay === 'sun' ? 'maintainersummiteu2026'
+                   : schedDay === 'mon' ? 'colocatedeventseu2026'
+                   : 'kccnceu2026';
+  const _schedLabel = schedDay === 'sun' ? 'Maintainer Summit ↗'
+                    : schedDay === 'mon' ? 'Co-located ↗'
+                    : 'KubeCon ↗';
+  const _schedLinks = document.getElementById('schedHeaderLinks');
+  if (_schedLinks) {
+    _schedLinks.innerHTML = `<a href="https://${_schedBase}.sched.com/" target="_blank"
+      style="font-size:10px;font-weight:700;color:var(--accent);text-decoration:none;white-space:nowrap;">${_schedLabel}</a>`;
+  }
 
   // Determine today's day key
   const _today = new Date();
