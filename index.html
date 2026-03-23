@@ -643,6 +643,8 @@ body { padding-bottom: 58px; }
   .room-sched { border-bottom: none; border-right: 1px solid var(--line); }
   .room-sched:last-child { border-right: none; }
 }
+.sched-view-tab { flex:1;text-align:center;padding:9px;font-size:12px;font-weight:600;color:var(--t3);cursor:pointer;border-bottom:2px solid transparent; }
+.sched-view-tab.on { color:var(--accent);border-bottom-color:var(--accent); }
 
 .room-sched { border-bottom: 1px solid var(--line); }
 .room-sched-hd {
@@ -863,9 +865,16 @@ body { padding-bottom: 58px; }
     </div>
     <div id="schedHeaderLinks" style="display:flex;flex-direction:column;gap:4px;align-items:flex-end;flex-shrink:0;"></div>
   </div>
+  <div style="display:flex;border-bottom:1px solid var(--line);flex-shrink:0;">
+    <div id="sched-view-checklist" class="sched-view-tab on" onclick="setSchedView('checklist')">Checklist</div>
+    <div id="sched-view-live" class="sched-view-tab" onclick="setSchedView('live')">Live Schedule</div>
+  </div>
   <div class="day-tabs" id="dayTabs"></div>
   <div class="room-tabs" id="roomTabs"></div>
   <div class="sched-body" id="schedBody"></div>
+  <div id="schedIframeWrap" style="display:none;flex:1;overflow:hidden;flex-direction:column;">
+    <iframe id="schedIframe" style="flex:1;width:100%;border:none;height:100%;" src=""></iframe>
+  </div>
 </div>
 
 <div class="overlay" id="overlay" onclick="closeSettings()"></div>
@@ -2674,6 +2683,33 @@ function openSchedule(crewId) {
 function closeSchedule() {
   document.getElementById('schedSheet').classList.remove('open');
   document.body.style.overflow = '';
+}
+
+let schedView = 'checklist';
+function setSchedView(view) {
+  schedView = view;
+  document.querySelectorAll('.sched-view-tab').forEach(t => t.classList.remove('on'));
+  document.getElementById('sched-view-' + view).classList.add('on');
+  const checklist = document.getElementById('schedBody');
+  const dayTabs   = document.getElementById('dayTabs');
+  const roomTabs  = document.getElementById('roomTabs');
+  const iframeWrap = document.getElementById('schedIframeWrap');
+  if (view === 'live') {
+    checklist.style.display  = 'none';
+    dayTabs.style.display    = 'none';
+    roomTabs.style.display   = 'none';
+    iframeWrap.style.display = 'flex';
+    const base = schedDay === 'sun' ? 'maintainersummiteu2026'
+               : schedDay === 'mon' ? 'colocatedeventseu2026'
+               : 'kccnceu2026';
+    const iframe = document.getElementById('schedIframe');
+    iframe.src = 'https://' + base + '.sched.com/';
+  } else {
+    checklist.style.display  = '';
+    dayTabs.style.display    = '';
+    roomTabs.style.display   = '';
+    iframeWrap.style.display = 'none';
+  }
 }
 
 function renderSchedule() {
