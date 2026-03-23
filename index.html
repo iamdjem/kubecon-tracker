@@ -781,7 +781,12 @@ body { padding-bottom: 58px; }
 <!-- PAGE: ROOMS -->
 <div id="page-rooms" class="page" style="padding:16px;padding-bottom:80px;overflow-y:auto;">
   <div style="font-size:16px;font-weight:700;color:var(--t1);margin-bottom:4px;">Room Control</div>
-  <div style="font-size:11px;color:var(--t3);margin-bottom:16px;">vMix · Record + Stream + MultiCorder</div>
+  <div style="font-size:11px;color:var(--t3);margin-bottom:12px;">vMix · Record + Stream + MultiCorder</div>
+  <div id="vmix-https-warn" style="display:none;background:#3d2a00;border:1px solid #996600;border-radius:8px;padding:10px 12px;margin-bottom:14px;font-size:11px;color:#ffb74d;line-height:1.5;">
+    ⚠️ <strong>HTTPS blocks vMix (HTTP)</strong> — buttons won't work here.<br>
+    Open on your laptop instead: <strong>http://localhost:8765</strong> → Rooms tab.<br>
+    Or in Chrome: tap the 🔒 lock → <em>Site settings</em> → allow <em>Insecure content</em>.
+  </div>
   <div id="vmix-cards" style="display:flex;flex-direction:column;gap:12px;"></div>
   <div style="margin-top:16px;background:var(--s2);border:1px solid var(--line2);border-radius:12px;padding:14px 16px;display:flex;align-items:center;justify-content:space-between;gap:12px;">
     <div style="font-size:13px;font-weight:600;color:var(--t1);">All Rooms</div>
@@ -2878,18 +2883,24 @@ async function vmixRefreshAll() {
 async function vmixOne(key, fn) {
   const room = VMIX_ROOMS.find(r => r.key === key);
   if (!room) return;
-  await vmixCall(room.ip, fn);
+  if (!room.ip) { showToast('⚠ No IP set for ' + room.name); return; }
+  showToast('⏳ ' + fn + '…');
+  const res = await vmixCall(room.ip, fn);
+  showToast(res.ok ? '✓ ' + fn : '✗ Failed: ' + (res.error || 'blocked?'));
   setTimeout(() => vmixRefreshStatus(key), 1000);
 }
 
 async function vmixRoomAction(key, action) {
   const room = VMIX_ROOMS.find(r => r.key === key);
   if (!room) return;
-  showToast(`${action === 'start' ? 'Starting' : 'Stopping'} ${room.name}…`);
+  if (!room.ip) { showToast('⚠ No IP set for ' + room.name); return; }
+  showToast('⏳ ' + (action === 'start' ? 'Starting' : 'Stopping') + ' ' + room.name + '…');
   const fns = action === 'start'
     ? ['StartRecording','StartStreaming','StartMultiCorder']
     : ['StopRecording','StopStreaming','StopMultiCorder'];
-  await Promise.all(fns.map(f => vmixCall(room.ip, f)));
+  const results = await Promise.all(fns.map(f => vmixCall(room.ip, f)));
+  const ok = results.filter(r => r.ok).length;
+  showToast(ok === 3 ? '✓ ' + room.name + ' done' : '✗ ' + ok + '/3 OK — HTTPS blocking?');
   setTimeout(() => vmixRefreshStatus(key), 1200);
 }
 
@@ -2924,6 +2935,12 @@ window.switchPage = function(page) {
 };
 
 vmixLoadIps();
+
+// Show HTTPS warning if needed
+if (location.protocol === 'https:') {
+  var w = document.getElementById('vmix-https-warn');
+  if (w) w.style.display = 'block';
+}
 
 // If page was rooms on last visit, render cards after all init settles
 if (currentPage === 'rooms') {
