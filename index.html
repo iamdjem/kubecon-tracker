@@ -768,8 +768,10 @@ body { padding-bottom: 58px; }
       <div id="filterRow" style="display:flex;gap:6px;"></div>
     </div>
   </div>
-  <div class="top-bar">
+  <div class="top-bar" style="display:flex;gap:8px;flex-wrap:wrap;">
     <button class="rst-btn" onclick="confirmReset()">Reset day</button>
+    <button class="rst-btn" onclick="copyFromPrevDay()" style="background:var(--s3,#222);border-color:var(--line2);color:var(--t2);">Copy structure from prev day</button>
+    <button class="rst-btn" onclick="fillFromPrevDay()" style="background:var(--s3,#222);border-color:var(--line2);color:var(--t2);">Fill status from prev day</button>
   </div>
   <div id="tracker"></div>
 </div>
@@ -1984,17 +1986,59 @@ function toggleFilter(id) { filter=filter===id?null:id; render(); }
 
 function confirmReset() {
   const dayLabel = (config.days||DEFAULT_DAYS).find(d=>d.key===currentDay)?.label || currentDay;
-  if (!confirm('Reset progress for ' + dayLabel + '?')) return;
-  // Remove only keys for current day
-  Object.keys(state).forEach(k => { if (k.startsWith(currentDay + '_')) delete state[k]; });
+  if (!confirm('Reset ALL progress for ' + dayLabel + '? Everything set to 0.')) return;
+  // Zero out all rooms for current day (override PREFILL too)
+  config.crew.forEach(c => c.rooms.forEach(r => {
+    const dr = currentDay + '_' + r.id;
+    state[dr] = {};
+    config.steps.forEach(s => { state[dr][s.key] = 0; });
+    if (fbDb) fbDb.child('state/' + dr).set(state[dr]);
+  }));
   saveState();
-  if (fbDb) {
-    // Delete each day-prefixed key from Firebase
-    config.crew.forEach(c => c.rooms.forEach(r => {
-      fbDb.child('state/' + currentDay + '_' + r.id).remove();
-    }));
-  }
   showToast('Reset ' + dayLabel); render();
+}
+
+function getPrevDayKey() {
+  const days = config.days || DEFAULT_DAYS;
+  const idx = days.findIndex(d => d.key === currentDay);
+  return idx > 0 ? days[idx - 1].key : null;
+}
+
+function copyFromPrevDay() {
+  // Copy structure only (all zeros) — useful to set up a fresh day matching previous day's rooms
+  const prevKey = getPrevDayKey();
+  if (!prevKey) { showToast('No previous day'); return; }
+  const prevLabel = (config.days||DEFAULT_DAYS).find(d=>d.key===prevKey)?.label || prevKey;
+  const curLabel  = (config.days||DEFAULT_DAYS).find(d=>d.key===currentDay)?.label || currentDay;
+  if (!confirm('Copy room structure from ' + prevLabel + ' to ' + curLabel + '? Current day progress will be cleared.')) return;
+  config.crew.forEach(c => c.rooms.forEach(r => {
+    const dr = currentDay + '_' + r.id;
+    state[dr] = {};
+    config.steps.forEach(s => { state[dr][s.key] = 0; });
+    if (fbDb) fbDb.child('state/' + dr).set(state[dr]);
+  }));
+  saveState();
+  showToast('Structure copied from ' + prevLabel); render();
+}
+
+function fillFromPrevDay() {
+  // Copy actual checked status from previous day into current day
+  const prevKey = getPrevDayKey();
+  if (!prevKey) { showToast('No previous day'); return; }
+  const prevLabel = (config.days||DEFAULT_DAYS).find(d=>d.key===prevKey)?.label || prevKey;
+  const curLabel  = (config.days||DEFAULT_DAYS).find(d=>d.key===currentDay)?.label || currentDay;
+  if (!confirm('Fill ' + curLabel + ' with status from ' + prevLabel + '? This will overwrite current day progress.')) return;
+  config.crew.forEach(c => c.rooms.forEach(r => {
+    const prevDr = prevKey + '_' + r.id;
+    const curDr  = currentDay + '_' + r.id;
+    state[curDr] = {};
+    config.steps.forEach(s => {
+      state[curDr][s.key] = state[prevDr]?.[s.key] || 0;
+    });
+    if (fbDb) fbDb.child('state/' + curDr).set(state[curDr]);
+  }));
+  saveState();
+  showToast('Status filled from ' + prevLabel); render();
 }
 
 function copyStatus() {
