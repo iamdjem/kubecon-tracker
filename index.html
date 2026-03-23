@@ -761,6 +761,7 @@ body { padding-bottom: 58px; }
       </button>
     </div>
   </div>
+  <div class="day-tabs" id="setupDayTabs" style="padding: 0 12px;"></div>
   <div class="filter-bar">
     <div class="filter-row">
       <div style="font-size:10px;font-weight:600;color:var(--t3);text-transform:uppercase;letter-spacing:0.8px;padding:5px 6px 5px 0;white-space:nowrap;align-self:center;">Filter</div>
@@ -768,7 +769,7 @@ body { padding-bottom: 58px; }
     </div>
   </div>
   <div class="top-bar">
-    <button class="rst-btn" onclick="confirmReset()">Reset all</button>
+    <button class="rst-btn" onclick="confirmReset()">Reset day</button>
   </div>
   <div id="tracker"></div>
 </div>
@@ -882,10 +883,19 @@ function avatarHtml(name, size=26) {
   return `<div class="avatar" style="width:${size}px;height:${size}px;background:${avatarColor(name)}">${avatarInitials(name)}</div>`;
 }
 
+const DEFAULT_DAYS = [
+  { key: 'd_mar23', label: 'Sun 23' },
+  { key: 'd_mar24', label: 'Mon 24' },
+  { key: 'd_mar25', label: 'Tue 25' },
+  { key: 'd_mar26', label: 'Wed 26' },
+  { key: 'd_mar27', label: 'Thu 27' },
+];
+
 const DEFAULT_CONFIG = {
   title: 'Setup Tracker',
   subtitle: 'KubeCon EU 2026 · RAI Amsterdam',
   firebaseUrl: 'https://kubecon-tracker-default-rtdb.europe-west1.firebasedatabase.app',
+  days: DEFAULT_DAYS,
   steps: [
     { key:'setup',  icon:'🔧', label:'Setup'  },
     { key:'ptz',    icon:'🤖', label:'PTZ'    },
@@ -1824,20 +1834,35 @@ let state  = JSON.parse(localStorage.getItem('kc_state') ||'{}');
 let filter = null;
 let fbDb   = null;
 
+// ─── Day tracking (simple prefix approach) ───────────────────────────────
+if (!config.days || !config.days.length) config.days = DEFAULT_DAYS;
+let currentDay = localStorage.getItem('kc_day') || config.days[0].key;
+if (!config.days.find(d => d.key === currentDay)) currentDay = config.days[0].key;
+
+function dayRid(rid) { return currentDay + '_' + rid; }
+
 function saveConfig() { localStorage.setItem('kc_config', JSON.stringify(config)); }
 function saveState()  { localStorage.setItem('kc_state',  JSON.stringify(state)); }
 function getVal(rid, sk) {
-  if (state[rid]?.[sk] !== undefined) return state[rid][sk];
+  const dr = dayRid(rid);
+  if (state[dr]?.[sk] !== undefined) return state[dr][sk];
   return PREFILL[rid]?.[sk] || 0;
 }
 function isDone(rid)   { return config.steps.every(s => getVal(rid, s.key)); }
 function countDone(rid){ return config.steps.filter(s => getVal(rid, s.key)).length; }
 
 function toggle(rid, sk) {
-  if (!state[rid]) { state[rid]={}; config.steps.forEach(s => state[rid][s.key]=getVal(rid,s.key)); }
-  state[rid][sk] ^= 1;
+  const dr = dayRid(rid);
+  if (!state[dr]) { state[dr]={}; config.steps.forEach(s => state[dr][s.key]=getVal(rid,s.key)); }
+  state[dr][sk] ^= 1;
   saveState();
-  if (fbDb) fbDb.child('state/'+rid).set(state[rid]);
+  if (fbDb) fbDb.child('state/'+dr).set(state[dr]);
+  render();
+}
+
+function switchDay(key) {
+  currentDay = key;
+  localStorage.setItem('kc_day', key);
   render();
 }
 
@@ -1851,7 +1876,7 @@ function initFirebase(url) {
         const app = firebase.initializeApp({ databaseURL: url }, 'tr');
         fbDb = firebase.database(app).ref('e3-kc26-x7k9m');
         fbDb.child('state').on('value', s => { const v=s.val(); if(v){state=v;saveState();render(); if(currentPage==='record')renderRecord(); if(currentPage==='overview')renderOverview();} });
-        fbDb.child('config').on('value', s => { const v=s.val(); if(v&&v.steps&&v.crew){config=v; if(!config.schedSteps||!config.schedSteps.find(s=>s.key==='obsbot'))config.schedSteps=DEFAULT_CONFIG.schedSteps; saveConfig();render();} });
+        fbDb.child('config').on('value', s => { const v=s.val(); if(v&&v.steps&&v.crew){config=v; if(!config.schedSteps||!config.schedSteps.find(s=>s.key==='obsbot'))config.schedSteps=DEFAULT_CONFIG.schedSteps; if(!config.days||!config.days.length)config.days=DEFAULT_DAYS; saveConfig();render();} });
         fbDb.child('vmix_ips').on('value', s => { const v=s.val(); if(v){ VMIX_ROOMS.forEach(r => { if(v[r.key]) r.ip=v[r.key]; }); vmixSaveIps(); if(currentPage==='rooms') renderVmixCards(); } });
         setFbStatus(true);
       } catch(e) { setFbStatus(false); }
@@ -1870,6 +1895,14 @@ function render() {
   document.getElementById('confSub').textContent   = config.subtitle;
   document.getElementById('confTitle2').textContent = config.title;
   document.getElementById('confSub2').textContent   = config.subtitle;
+
+  // Day tabs
+  const dayTabsEl = document.getElementById('setupDayTabs');
+  if (dayTabsEl) {
+    dayTabsEl.innerHTML = (config.days || DEFAULT_DAYS).map(d =>
+      `<div class="day-tab${d.key===currentDay?' on':''}" onclick="switchDay('${d.key}')">${d.label}</div>`
+    ).join('');
+  }
 
   // Chips
   document.getElementById('filterRow').innerHTML = config.crew.map(c =>
@@ -1935,10 +1968,18 @@ function render() {
 function toggleFilter(id) { filter=filter===id?null:id; render(); }
 
 function confirmReset() {
-  if (!confirm('Reset all progress?')) return;
-  state={}; saveState();
-  if (fbDb) fbDb.child('state').set({});
-  showToast('Progress reset'); render();
+  const dayLabel = (config.days||DEFAULT_DAYS).find(d=>d.key===currentDay)?.label || currentDay;
+  if (!confirm('Reset progress for ' + dayLabel + '?')) return;
+  // Remove only keys for current day
+  Object.keys(state).forEach(k => { if (k.startsWith(currentDay + '_')) delete state[k]; });
+  saveState();
+  if (fbDb) {
+    // Delete each day-prefixed key from Firebase
+    config.crew.forEach(c => c.rooms.forEach(r => {
+      fbDb.child('state/' + currentDay + '_' + r.id).remove();
+    }));
+  }
+  showToast('Reset ' + dayLabel); render();
 }
 
 function copyStatus() {
