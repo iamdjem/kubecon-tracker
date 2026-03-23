@@ -2206,9 +2206,13 @@ function saveSettings() {
   config.firebaseUrl = fbUrl;
   config.steps = config.steps.map(s=>({...s, key:s.key||'s_'+Date.now()}));
   if (config.schedSteps) config.schedSteps = config.schedSteps.map(s=>({...s, key:s.key||'ss_'+Date.now()}));
+  // Flush day label inputs (in case user didn't blur)
+  document.querySelectorAll('#daysList .si-label').forEach((inp, i) => {
+    if (config.days[i]) config.days[i].label = inp.value.trim() || config.days[i].label;
+  });
   saveConfig();
   if (fbDb) fbDb.child('config').set(config);
-  render(); closeSettings(); showToast('Saved');
+  render(); renderOverview(); closeSettings(); showToast('Saved');
 }
 
 function showToast(msg) {
