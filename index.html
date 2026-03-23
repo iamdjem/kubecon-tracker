@@ -2830,12 +2830,16 @@ function renderVmixCards() {
 async function vmixSaveIp(key) {
   const room = VMIX_ROOMS.find(r => r.key === key);
   if (!room) return;
-  room.ip = (document.getElementById('vmix-ip-' + key)||{}).value?.trim() || '';
+  const inp = document.getElementById('vmix-ip-' + key);
+  room.ip = inp ? inp.value.trim() : '';
   vmixSaveIps();
   // Also save to Firebase so all devices get the IP
   if (fbDb) fbDb.child('vmix_ips/' + key).set(room.ip);
-  showToast('IP saved for ' + room.name);
-  await vmixRefreshStatus(key);
+  // Visual feedback — change button text immediately
+  const btn = inp ? inp.nextElementSibling : null;
+  if (btn) { const orig = btn.textContent; btn.textContent = '✓ Saved'; btn.style.color = '#5dcc5d'; setTimeout(() => { btn.textContent = orig; btn.style.color = ''; }, 2000); }
+  showToast('✓ IP saved — ' + room.ip);
+  vmixRefreshStatus(key);
 }
 
 async function vmixCall(ip, fn) {
