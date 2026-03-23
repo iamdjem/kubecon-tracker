@@ -1837,8 +1837,22 @@ let fbDb   = null;
 
 // ─── Day tracking (simple prefix approach) ───────────────────────────────
 if (!config.days || !config.days.length) config.days = DEFAULT_DAYS;
-let currentDay = localStorage.getItem('kc_day') || config.days[0].key;
+
+function autoDetectDay() {
+  // Try to match today's date to a day key (format: d_mar23, d_mar24, etc.)
+  const now = new Date();
+  const months = ['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec'];
+  const mon = months[now.getMonth()];
+  const dd  = String(now.getDate()).padStart(2, '0');
+  const key = 'd_' + mon + dd;  // e.g. d_mar24
+  return (config.days || DEFAULT_DAYS).find(d => d.key === key) ? key : null;
+}
+
+// Auto-select today's day — override localStorage if today matches a known day key
+const todayKey = autoDetectDay();
+let currentDay = todayKey || localStorage.getItem('kc_day') || config.days[0].key;
 if (!config.days.find(d => d.key === currentDay)) currentDay = config.days[0].key;
+if (todayKey) localStorage.setItem('kc_day', todayKey);
 
 function dayRid(rid) { return currentDay + '_' + rid; }
 
