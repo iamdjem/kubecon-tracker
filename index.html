@@ -2098,6 +2098,20 @@ function renderSettings() {
       </button>
     </div>
     <div class="sg">
+      <div class="sg-lbl">Conference Days</div>
+      <div id="daysList">${(config.days||DEFAULT_DAYS).map((d,di)=>`
+        <div class="si" style="display:flex;align-items:center;gap:8px;">
+          <input class="si-label" value="${d.label}" onchange="updateDay(${di},this.value)"
+            style="flex:1;background:var(--s3,#1a1a1a);border:1px solid var(--line2);color:var(--t1);border-radius:6px;padding:6px 10px;font-size:13px;" />
+          <button onclick="deleteDay(${di})" style="background:none;border:none;color:var(--t3);cursor:pointer;font-size:16px;padding:4px;">✕</button>
+        </div>`).join('')}
+      </div>
+      <button class="add-btn" onclick="addDay()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Add day
+      </button>
+    </div>
+    <div class="sg">
       <div class="sg-lbl">Crew & Rooms</div>
       ${crewHtml}
       <button class="add-crew-btn" onclick="addCrew()">
@@ -2162,6 +2176,22 @@ function addCrew(){ config.crew.push({id:'c_'+Date.now(),name:'New Person',rooms
 function updateStep(si,f,v){ config.steps[si][f]=v.trim()||config.steps[si][f]; }
 function deleteStep(si){ if(config.steps.length<=1){showToast('Need at least one step');return;} config.steps.splice(si,1); renderSettings(); }
 function addStep(){ config.steps.push({key:'s_'+Date.now(),icon:'⭐',label:'New Step'}); renderSettings(); }
+
+function updateDay(di, val) { if(config.days[di]) config.days[di].label = val.trim() || config.days[di].label; }
+function deleteDay(di) {
+  if ((config.days||DEFAULT_DAYS).length <= 1) { showToast('Need at least one day'); return; }
+  if (!confirm('Remove day "' + config.days[di].label + '"? Checklist data for this day is kept.')) return;
+  config.days.splice(di, 1);
+  if (!config.days.find(d => d.key === currentDay)) { currentDay = config.days[0].key; localStorage.setItem('kc_day', currentDay); }
+  renderSettings();
+}
+function addDay() {
+  const key = 'd_' + Date.now();
+  config.days = config.days || [];
+  config.days.push({ key, label: 'New Day' });
+  renderSettings();
+  setTimeout(() => { const inputs = document.querySelectorAll('#daysList .si-label'); if(inputs.length) inputs[inputs.length-1].focus(); }, 50);
+}
 
 function updateSchedStep(si,field,val){ if(!config.schedSteps)config.schedSteps=[]; config.schedSteps[si][field]=val; }
 function deleteSchedStep(si){ if(!config.schedSteps)return; config.schedSteps.splice(si,1); renderSettings(); }
