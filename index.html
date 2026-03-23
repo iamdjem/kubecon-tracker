@@ -2814,16 +2814,26 @@ async function vmixAllAction(action) {
   setTimeout(vmixRefreshAll, 1200);
 }
 
-// Init rooms page on switchPage
-const _origSwitchPage = switchPage;
-function switchPage(page) {
-  _origSwitchPage(page);
+// Patch switchPage to handle rooms tab
+const _switchPageOrig = switchPage;
+window.switchPage = function(page) {
   if (page === 'rooms') {
+    document.getElementById('overlay').classList.remove('open');
+    document.getElementById('sheet').classList.remove('open');
+    document.body.style.overflow = '';
+    currentPage = page;
+    localStorage.setItem('kc_page', page);
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('on'));
+    document.getElementById('page-rooms').classList.add('active');
+    document.getElementById('nav-rooms').classList.add('on');
     vmixLoadIps();
     renderVmixCards();
     vmixRefreshAll();
+  } else {
+    _switchPageOrig(page);
   }
-}
+};
 
 vmixLoadIps();
 </script>
