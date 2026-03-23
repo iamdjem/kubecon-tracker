@@ -870,7 +870,7 @@ body { padding-bottom: 58px; }
 <div class="overlay" id="overlay" onclick="closeSettings()"></div>
 
 <!-- Confirm Modal -->
-<div id="confirm-modal" style="display:none;position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;">
+<div id="confirm-modal" style="display:none;position:fixed;inset:0;z-index:9999;align-items:center;justify-content:center;padding:20px;">
   <div id="confirm-backdrop" style="position:absolute;inset:0;background:rgba(0,0,0,0.7);" onclick="confirmCancel()"></div>
   <div style="position:relative;background:var(--s2,#1c1c1e);border:1px solid var(--line2,#333);border-radius:16px;padding:24px 20px;max-width:320px;width:100%;z-index:1;">
     <div id="confirm-title" style="font-size:15px;font-weight:700;color:var(--t1,#fff);margin-bottom:8px;"></div>
@@ -2335,7 +2335,10 @@ function showConfirm(title, body, okLabel, okStyle, cb) {
   ok.textContent = okLabel;
   ok.style.cssText = 'flex:1;border:none;border-radius:10px;padding:11px;font-size:14px;font-weight:700;cursor:pointer;' + okStyle;
   _confirmCb = cb;
-  document.getElementById('confirm-modal').style.display = 'flex';
+  const m = document.getElementById('confirm-modal');
+  m.style.display = 'flex';
+  m.style.alignItems = 'center';
+  m.style.justifyContent = 'center';
 }
 function confirmOk()     { document.getElementById('confirm-modal').style.display='none'; if(_confirmCb){const cb=_confirmCb;_confirmCb=null;cb();} }
 function confirmCancel() { document.getElementById('confirm-modal').style.display='none'; _confirmCb=null; }
