@@ -860,6 +860,20 @@ body { padding-bottom: 58px; }
 </div>
 
 <div class="overlay" id="overlay" onclick="closeSettings()"></div>
+
+<!-- Confirm Modal -->
+<div id="confirm-modal" style="display:none;position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;">
+  <div id="confirm-backdrop" style="position:absolute;inset:0;background:rgba(0,0,0,0.7);" onclick="confirmCancel()"></div>
+  <div style="position:relative;background:var(--s2,#1c1c1e);border:1px solid var(--line2,#333);border-radius:16px;padding:24px 20px;max-width:320px;width:100%;z-index:1;">
+    <div id="confirm-title" style="font-size:15px;font-weight:700;color:var(--t1,#fff);margin-bottom:8px;"></div>
+    <div id="confirm-body" style="font-size:13px;color:var(--t2,#aaa);line-height:1.5;margin-bottom:20px;"></div>
+    <div style="display:flex;gap:10px;">
+      <button onclick="confirmCancel()" style="flex:1;background:var(--s3,#2a2a2a);border:1px solid var(--line2,#333);color:var(--t2,#aaa);border-radius:10px;padding:11px;font-size:14px;font-weight:600;cursor:pointer;">Cancel</button>
+      <button id="confirm-ok" onclick="confirmOk()" style="flex:1;border:none;border-radius:10px;padding:11px;font-size:14px;font-weight:700;cursor:pointer;"></button>
+    </div>
+  </div>
+</div>
+
 <div class="sheet" id="sheet">
   <div class="sh-handle"></div>
   <div class="sh-hd">
@@ -1986,7 +2000,7 @@ function toggleFilter(id) { filter=filter===id?null:id; render(); }
 
 function confirmReset() {
   const dayLabel = (config.days||DEFAULT_DAYS).find(d=>d.key===currentDay)?.label || currentDay;
-  if (!confirm('Reset ALL progress for ' + dayLabel + '? Everything set to 0.')) return;
+  showConfirm('Reset ' + dayLabel, 'This will clear ALL progress for ' + dayLabel + '. Every checkbox will be set to 0.', 'Reset', 'background:#7a2d2d;color:#ff6b6b;', () => {
   // Zero out all rooms for current day (override PREFILL too)
   config.crew.forEach(c => c.rooms.forEach(r => {
     const dr = currentDay + '_' + r.id;
@@ -1996,6 +2010,7 @@ function confirmReset() {
   }));
   saveState();
   showToast('Reset ' + dayLabel); render();
+  });
 }
 
 function getPrevDayKey() {
@@ -2010,7 +2025,7 @@ function copyFromPrevDay() {
   if (!prevKey) { showToast('No previous day'); return; }
   const prevLabel = (config.days||DEFAULT_DAYS).find(d=>d.key===prevKey)?.label || prevKey;
   const curLabel  = (config.days||DEFAULT_DAYS).find(d=>d.key===currentDay)?.label || currentDay;
-  if (!confirm('Copy room structure from ' + prevLabel + ' to ' + curLabel + '? Current day progress will be cleared.')) return;
+  showConfirm('Copy from ' + prevLabel, 'This will reset ' + curLabel + ' to a blank slate (matching ' + prevLabel + '\'s structure). Current progress will be lost.', 'Copy', 'background:#2d4a7a;color:#6bb3ff;', () => {
   config.crew.forEach(c => c.rooms.forEach(r => {
     const dr = currentDay + '_' + r.id;
     state[dr] = {};
@@ -2019,6 +2034,7 @@ function copyFromPrevDay() {
   }));
   saveState();
   showToast('Structure copied from ' + prevLabel); render();
+  });
 }
 
 function fillFromPrevDay() {
@@ -2027,7 +2043,7 @@ function fillFromPrevDay() {
   if (!prevKey) { showToast('No previous day'); return; }
   const prevLabel = (config.days||DEFAULT_DAYS).find(d=>d.key===prevKey)?.label || prevKey;
   const curLabel  = (config.days||DEFAULT_DAYS).find(d=>d.key===currentDay)?.label || currentDay;
-  if (!confirm('Fill ' + curLabel + ' with status from ' + prevLabel + '? This will overwrite current day progress.')) return;
+  showConfirm('Fill from ' + prevLabel, 'Copy all checked/unchecked status from ' + prevLabel + ' into ' + curLabel + '. This will overwrite any progress already made today.', 'Fill', 'background:#2d4a7a;color:#6bb3ff;', () => {
   config.crew.forEach(c => c.rooms.forEach(r => {
     const prevDr = prevKey + '_' + r.id;
     const curDr  = currentDay + '_' + r.id;
@@ -2039,6 +2055,7 @@ function fillFromPrevDay() {
   }));
   saveState();
   showToast('Status filled from ' + prevLabel); render();
+  });
 }
 
 function copyStatus() {
@@ -2239,10 +2256,12 @@ function addStep(){ config.steps.push({key:'s_'+Date.now(),icon:'⭐',label:'New
 function updateDay(di, val) { if(config.days[di]) config.days[di].label = val.trim() || config.days[di].label; }
 function deleteDay(di) {
   if ((config.days||DEFAULT_DAYS).length <= 1) { showToast('Need at least one day'); return; }
-  if (!confirm('Remove day "' + config.days[di].label + '"? Checklist data for this day is kept.')) return;
-  config.days.splice(di, 1);
+  const dlabel = config.days[di].label;
+  showConfirm('Remove ' + dlabel, 'Remove this day from the tabs? Checklist data is kept and can be recovered by adding the day back.', 'Remove', 'background:#7a2d2d;color:#ff6b6b;', () => {
+    config.days.splice(di, 1);
   if (!config.days.find(d => d.key === currentDay)) { currentDay = config.days[0].key; localStorage.setItem('kc_day', currentDay); }
   renderSettings();
+  });
 }
 function addDay() {
   const key = 'd_' + Date.now();
@@ -2278,6 +2297,20 @@ function showToast(msg) {
   t.textContent=msg; t.classList.add('show');
   setTimeout(()=>t.classList.remove('show'),2000);
 }
+
+// ─── Confirm Modal ────────────────────────────────────────────────────────
+let _confirmCb = null;
+function showConfirm(title, body, okLabel, okStyle, cb) {
+  document.getElementById('confirm-title').textContent = title;
+  document.getElementById('confirm-body').textContent  = body;
+  const ok = document.getElementById('confirm-ok');
+  ok.textContent = okLabel;
+  ok.style.cssText = okStyle + 'flex:1;border:none;border-radius:10px;padding:11px;font-size:14px;font-weight:700;cursor:pointer;';
+  _confirmCb = cb;
+  document.getElementById('confirm-modal').style.display = 'flex';
+}
+function confirmOk()     { document.getElementById('confirm-modal').style.display='none'; if(_confirmCb){const cb=_confirmCb;_confirmCb=null;cb();} }
+function confirmCancel() { document.getElementById('confirm-modal').style.display='none'; _confirmCb=null; }
 
 // ═══════════════════════════════
 // PAGE NAVIGATION
