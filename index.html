@@ -3022,97 +3022,124 @@ function vmixSaveIps() {
 const vmixStatus = {};
 
 function vmixMakeCard(r) {
-  var st = vmixStatus[r.key] || {};
+  var st  = vmixStatus[r.key] || {};
   var err = st.ok === false;
+  var connected = r.ip && !err;
 
-  function statusColor(on) { return err ? '#cc5d5d' : on ? '#5dcc5d' : '#666'; }
-  function statusText(on)  { return err ? 'err' : on ? 'ON' : 'off'; }
-
-  function makeFnBtns(startFn, stopFn) {
-    var row = document.createElement('div');
-    row.style.cssText = 'display:flex;gap:4px;width:100%;';
-    var s = document.createElement('button');
-    s.textContent = '▶';
-    s.style.cssText = 'flex:1;border-radius:7px;padding:7px 0;font-size:13px;font-weight:700;cursor:pointer;border:1px solid #2d7a2d;background:#1a3d1a;color:#5dcc5d;';
-    s.onclick = function() { vmixOne(r.key, startFn); };
-    var x = document.createElement('button');
-    x.textContent = '■';
-    x.style.cssText = 'flex:1;border-radius:7px;padding:7px 0;font-size:13px;font-weight:700;cursor:pointer;border:1px solid #7a2d2d;background:#3d1a1a;color:#cc5d5d;';
-    x.onclick = function() { vmixOne(r.key, stopFn); };
-    row.appendChild(s);
-    row.appendChild(x);
-    return row;
+  function pill(on) {
+    if (err) return '<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#cc5d5d;"></span>';
+    if (on)  return '<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#5dcc5d;box-shadow:0 0 6px #5dcc5d88;"></span>';
+    return '<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#444;"></span>';
   }
 
   var card = document.createElement('div');
-  card.style.cssText = 'background:var(--s2);border:1px solid var(--line2);border-radius:12px;padding:14px 16px;';
+  card.style.cssText = 'background:var(--s2);border:1px solid var(--line2);border-radius:14px;overflow:hidden;';
 
-  // Title
-  var title = document.createElement('div');
-  title.style.cssText = 'font-size:15px;font-weight:700;color:var(--t1);margin-bottom:12px;';
-  title.textContent = r.name;
-  card.appendChild(title);
+  // ── Header ──
+  var hdr = document.createElement('div');
+  hdr.style.cssText = 'display:flex;align-items:center;justify-content:space-between;padding:14px 16px 10px;';
 
-  // IP row
+  var nameWrap = document.createElement('div');
+  nameWrap.style.cssText = 'display:flex;align-items:center;gap:8px;';
+  var nameDot = document.createElement('span');
+  nameDot.innerHTML = pill(st.recording || st.streaming || st.multicorder);
+  var nameEl = document.createElement('span');
+  nameEl.style.cssText = 'font-size:15px;font-weight:700;color:var(--t1);';
+  nameEl.textContent = r.name;
+  nameWrap.appendChild(nameDot);
+  nameWrap.appendChild(nameEl);
+
+  var ipToggle = document.createElement('button');
+  ipToggle.textContent = r.ip ? r.ip.split('.').slice(-1)[0] ? '⚙' : '⚙' : '+ IP';
+  ipToggle.title = r.ip || 'Set IP';
+  ipToggle.style.cssText = 'background:none;border:1px solid var(--line2);color:var(--t3);border-radius:6px;padding:3px 8px;font-size:11px;cursor:pointer;';
+  ipToggle.onclick = function() {
+    var row = card.querySelector('.vmix-ip-row');
+    row.style.display = row.style.display === 'none' ? 'flex' : 'none';
+  };
+
+  hdr.appendChild(nameWrap);
+  hdr.appendChild(ipToggle);
+  card.appendChild(hdr);
+
+  // ── IP row (hidden by default) ──
   var ipRow = document.createElement('div');
-  ipRow.style.cssText = 'display:flex;gap:8px;margin-bottom:12px;';
+  ipRow.className = 'vmix-ip-row';
+  ipRow.style.cssText = 'display:none;gap:8px;padding:0 16px 10px;';
   var inp = document.createElement('input');
   inp.id = 'vmix-ip-' + r.key;
   inp.value = r.ip;
-  inp.placeholder = '192.168.x.x';
-  inp.style.cssText = 'flex:1;background:#111;border:1px solid var(--line2);color:var(--t1);border-radius:7px;padding:7px 10px;font-size:12px;font-family:monospace;';
+  inp.placeholder = '10.x.x.x';
+  inp.style.cssText = 'flex:1;background:#111;border:1px solid var(--line2);color:var(--t1);border-radius:7px;padding:6px 10px;font-size:12px;font-family:monospace;';
   var saveBtn = document.createElement('button');
   saveBtn.textContent = 'Save';
-  saveBtn.style.cssText = 'background:#222;border:1px solid var(--line2);color:var(--t2);border-radius:7px;padding:7px 12px;font-size:12px;cursor:pointer;';
-  saveBtn.onclick = function() { vmixSaveIp(r.key); };
+  saveBtn.style.cssText = 'background:var(--accent);border:none;color:#000;border-radius:7px;padding:6px 14px;font-size:12px;font-weight:700;cursor:pointer;';
+  saveBtn.onclick = function() { vmixSaveIp(r.key); ipRow.style.display = 'none'; };
   ipRow.appendChild(inp);
   ipRow.appendChild(saveBtn);
   card.appendChild(ipRow);
 
-  // 3-column grid
-  var grid = document.createElement('div');
-  grid.style.cssText = 'display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:10px;';
+  // ── Status row ──
+  var statusRow = document.createElement('div');
+  statusRow.style.cssText = 'display:grid;grid-template-columns:1fr 1fr 1fr;border-top:1px solid var(--line2);border-bottom:1px solid var(--line2);';
 
-  var cols = [
-    { label: '⏺ REC',    startFn: 'StartRecording',   stopFn: 'StopRecording',   on: st.recording   },
-    { label: '📡 STREAM', startFn: 'StartStreaming',    stopFn: 'StopStreaming',    on: st.streaming   },
-    { label: '💾 MULTI',  startFn: 'StartMultiCorder', stopFn: 'StopMultiCorder', on: st.multicorder },
+  var fns = [
+    { label: 'REC',    startFn: 'StartRecording',   stopFn: 'StopRecording',   on: st.recording   },
+    { label: 'STREAM', startFn: 'StartStreaming',    stopFn: 'StopStreaming',    on: st.streaming   },
+    { label: 'MULTI',  startFn: 'StartMultiCorder', stopFn: 'StopMultiCorder', on: st.multicorder },
   ];
 
-  cols.forEach(function(c) {
-    var col = document.createElement('div');
-    col.style.cssText = 'display:flex;flex-direction:column;gap:5px;align-items:center;';
+  fns.forEach(function(f, i) {
+    var cell = document.createElement('div');
+    cell.style.cssText = 'display:flex;flex-direction:column;align-items:center;padding:10px 6px;gap:6px;' + (i < 2 ? 'border-right:1px solid var(--line2);' : '');
 
     var lbl = document.createElement('div');
-    lbl.style.cssText = 'font-size:9px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:0.4px;text-align:center;';
-    lbl.textContent = c.label;
-    col.appendChild(lbl);
+    lbl.style.cssText = 'font-size:9px;font-weight:700;letter-spacing:0.8px;color:var(--t3);';
+    lbl.textContent = f.label;
 
-    col.appendChild(makeFnBtns(c.startFn, c.stopFn));
+    var pillEl = document.createElement('div');
+    pillEl.innerHTML = pill(f.on);
+    pillEl.style.cssText = 'display:flex;align-items:center;gap:4px;font-size:10px;color:' + (err ? '#cc5d5d' : f.on ? '#5dcc5d' : '#555') + ';';
+    var pillTxt = document.createElement('span');
+    pillTxt.textContent = err ? 'ERR' : f.on ? 'LIVE' : 'OFF';
+    pillEl.appendChild(pillTxt);
 
-    var dot = document.createElement('div');
-    dot.style.cssText = 'font-size:9px;color:' + statusColor(c.on) + ';';
-    dot.textContent = (c.on ? '● ' : '○ ') + statusText(c.on);
-    col.appendChild(dot);
+    var btnRow = document.createElement('div');
+    btnRow.style.cssText = 'display:flex;gap:4px;width:100%;';
+    var bs = document.createElement('button');
+    bs.textContent = '▶';
+    bs.title = 'Start ' + f.label;
+    bs.style.cssText = 'flex:1;border-radius:6px;padding:6px 0;font-size:12px;cursor:pointer;border:1px solid #2d7a2d;background:#0d2e0d;color:#5dcc5d;font-weight:700;';
+    bs.onclick = function() { vmixOne(r.key, f.startFn); };
+    var bx = document.createElement('button');
+    bx.textContent = '■';
+    bx.title = 'Stop ' + f.label;
+    bx.style.cssText = 'flex:1;border-radius:6px;padding:6px 0;font-size:12px;cursor:pointer;border:1px solid #7a2d2d;background:#2e0d0d;color:#cc5d5d;font-weight:700;';
+    bx.onclick = function() { vmixOne(r.key, f.stopFn); };
+    btnRow.appendChild(bs);
+    btnRow.appendChild(bx);
 
-    grid.appendChild(col);
+    cell.appendChild(lbl);
+    cell.appendChild(pillEl);
+    cell.appendChild(btnRow);
+    statusRow.appendChild(cell);
   });
-  card.appendChild(grid);
+  card.appendChild(statusRow);
 
-  // Start/Stop all row
-  var allRow = document.createElement('div');
-  allRow.style.cssText = 'display:flex;gap:8px;border-top:1px solid var(--line2);padding-top:10px;';
+  // ── Master buttons ──
+  var masterRow = document.createElement('div');
+  masterRow.style.cssText = 'display:grid;grid-template-columns:1fr 1fr;';
   var startAll = document.createElement('button');
-  startAll.textContent = '▶ START ALL';
-  startAll.style.cssText = 'flex:1;background:#1a3d1a;border:1px solid #2d7a2d;color:#5dcc5d;border-radius:8px;padding:10px;font-size:12px;font-weight:700;cursor:pointer;';
+  startAll.innerHTML = '▶ &nbsp;START ALL';
+  startAll.style.cssText = 'padding:13px;font-size:13px;font-weight:700;cursor:pointer;border:none;border-right:1px solid var(--line2);background:#0d2e0d;color:#5dcc5d;border-radius:0 0 0 14px;letter-spacing:0.3px;';
   startAll.onclick = function() { vmixRoomAction(r.key, 'start'); };
   var stopAll = document.createElement('button');
-  stopAll.textContent = '■ STOP ALL';
-  stopAll.style.cssText = 'flex:1;background:#3d1a1a;border:1px solid #7a2d2d;color:#cc5d5d;border-radius:8px;padding:10px;font-size:12px;font-weight:700;cursor:pointer;';
+  stopAll.innerHTML = '■ &nbsp;STOP ALL';
+  stopAll.style.cssText = 'padding:13px;font-size:13px;font-weight:700;cursor:pointer;border:none;background:#2e0d0d;color:#cc5d5d;border-radius:0 0 14px 0;letter-spacing:0.3px;';
   stopAll.onclick = function() { vmixRoomAction(r.key, 'stop'); };
-  allRow.appendChild(startAll);
-  allRow.appendChild(stopAll);
-  card.appendChild(allRow);
+  masterRow.appendChild(startAll);
+  masterRow.appendChild(stopAll);
+  card.appendChild(masterRow);
 
   return card;
 }
