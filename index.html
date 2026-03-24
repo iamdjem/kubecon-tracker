@@ -2378,6 +2378,7 @@ function switchPage(page) {
   if (page === 'overview') renderOverview();
   if (page === 'today') renderToday();
   if (page === 'record') renderRecord();
+  if (page === 'rooms') { vmixLoadIps(); renderVmixCards(); }
 }
 
 function renderOverview() {
