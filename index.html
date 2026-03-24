@@ -3318,11 +3318,12 @@ if (location.protocol === 'https:') {
   if (w) w.style.display = 'block';
 }
 
-// If page was rooms on last visit, render cards after all init settles
+// If page was rooms on last visit, render cards + fetch status immediately
 if (currentPage === 'rooms') {
   requestAnimationFrame(function() {
     vmixLoadIps();
     renderVmixCards();
+    vmixRefreshAll();
   });
 }
 </script>
