@@ -3229,13 +3229,13 @@ async function vmixCall(ip, fn) {
 async function vmixGetStatus(ip) {
   if (!ip) return { ok: false, error: 'No IP', recording: false, streaming: false, multicorder: false };
   try {
-    const r = await fetch(`http://${ip}:8088/api`, { mode: 'cors' });
+    const r = await fetch(`/vmix-proxy?ip=${encodeURIComponent(ip)}`);
     const xml = await r.text();
     return {
       ok: true,
-      recording:   xml.includes('<recording>True</recording>') || xml.includes('<recording>true</recording>'),
-      streaming:   xml.includes('<streaming>True</streaming>') || xml.includes('<streaming>true</streaming>'),
-      multicorder: xml.includes('<multiCorder>True</multiCorder>') || xml.includes('<multicorder>true</multicorder>'),
+      recording:   /recording>True</i.test(xml),
+      streaming:   /streaming>True</i.test(xml),
+      multicorder: /multiCorder>True</i.test(xml) || /multicorder>True</i.test(xml),
     };
   } catch(e) { return { ok: false, error: e.message, recording: false, streaming: false, multicorder: false }; }
 }
@@ -3306,6 +3306,11 @@ window.switchPage = function(page) {
 };
 
 vmixLoadIps();
+
+// Auto-refresh vMix status every 8s when on Rooms tab
+setInterval(function() {
+  if (currentPage === 'rooms') vmixRefreshAll();
+}, 8000);
 
 // Show HTTPS warning if needed
 if (location.protocol === 'https:') {
