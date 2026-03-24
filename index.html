@@ -3124,18 +3124,22 @@ function vmixMakeCard(r) {
 
   fns.forEach(function(f, i) {
     var cell = document.createElement('div');
-    cell.style.cssText = 'display:flex;flex-direction:column;align-items:center;padding:10px 6px;gap:6px;' + (i < 2 ? 'border-right:1px solid var(--line2);' : '');
+    cell.style.cssText = 'display:flex;flex-direction:column;align-items:center;padding:8px 6px;gap:6px;' + (i < 2 ? 'border-right:1px solid var(--line2);' : '');
 
+    // Label + pill side by side
+    var topRow = document.createElement('div');
+    topRow.style.cssText = 'display:flex;align-items:center;gap:5px;';
     var lbl = document.createElement('div');
     lbl.style.cssText = 'font-size:9px;font-weight:700;letter-spacing:0.8px;color:var(--t3);';
     lbl.textContent = f.label;
-
     var pillEl = document.createElement('div');
     pillEl.innerHTML = pill(f.on);
-    pillEl.style.cssText = 'display:flex;align-items:center;gap:4px;font-size:10px;color:' + (err ? '#cc5d5d' : f.on ? '#5dcc5d' : '#555') + ';';
+    pillEl.style.cssText = 'display:flex;align-items:center;gap:3px;font-size:10px;color:' + (err ? '#ff5555' : f.on ? '#5dcc5d' : '#555') + ';';
     var pillTxt = document.createElement('span');
     pillTxt.textContent = err ? 'ERR' : f.on ? 'LIVE' : 'OFF';
     pillEl.appendChild(pillTxt);
+    topRow.appendChild(lbl);
+    topRow.appendChild(pillEl);
 
     var btnRow = document.createElement('div');
     btnRow.style.cssText = 'display:flex;gap:4px;width:100%;';
@@ -3166,8 +3170,7 @@ function vmixMakeCard(r) {
     btnRow.appendChild(bs);
     btnRow.appendChild(bx);
 
-    cell.appendChild(lbl);
-    cell.appendChild(pillEl);
+    cell.appendChild(topRow);
     cell.appendChild(btnRow);
     statusRow.appendChild(cell);
   });
