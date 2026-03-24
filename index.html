@@ -3233,9 +3233,9 @@ async function vmixGetStatus(ip) {
     const xml = await r.text();
     return {
       ok: true,
-      recording:   /recording>True</i.test(xml),
-      streaming:   /streaming>True</i.test(xml),
-      multicorder: /multiCorder>True</i.test(xml) || /multicorder>True</i.test(xml),
+      recording:   /<recording[^>]*>True<\/recording>/i.test(xml),
+      streaming:   /<streaming[^>]*>True<\/streaming>/i.test(xml),
+      multicorder: /<multiCorder[^>]*>True<\/multiCorder>/i.test(xml),
     };
   } catch(e) { return { ok: false, error: e.message, recording: false, streaming: false, multicorder: false }; }
 }

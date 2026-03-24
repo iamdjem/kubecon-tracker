@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Local server: serves static files + proxies vMix API calls to avoid CORS."""
-import http.server, urllib.request, urllib.parse, json, os, sys
+import http.server, urllib.request, urllib.parse, json, os
 
 PORT = 8080
 
@@ -8,8 +8,9 @@ class Handler(http.server.SimpleHTTPRequestHandler):
     def log_message(self, fmt, *args): pass  # silence logs
 
     def do_GET(self):
-        if self.path.startswith('/vmix-proxy?'):
-            qs = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)
+        parsed = urllib.parse.urlparse(self.path)
+        if parsed.path == '/vmix-proxy':
+            qs = urllib.parse.parse_qs(parsed.query)
             ip = qs.get('ip', [''])[0]
             fn = qs.get('fn', [''])[0]
             if not ip:
