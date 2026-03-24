@@ -3112,33 +3112,6 @@ function vmixMakeCard(r) {
   ipRow.appendChild(saveBtn);
   card.appendChild(ipRow);
 
-  // ── Audio meters ──
-  var meterWrap = document.createElement('div');
-  meterWrap.id = 'vmix-meter-' + r.key;
-  meterWrap.style.cssText = 'padding:6px 14px 8px;display:flex;flex-direction:column;gap:3px;border-top:1px solid var(--line2);';
-  function meterBar(val, label) {
-    var row = document.createElement('div');
-    row.style.cssText = 'display:flex;align-items:center;gap:6px;';
-    var lbl = document.createElement('span');
-    lbl.style.cssText = 'font-size:9px;color:#555;font-weight:700;width:10px;flex-shrink:0;';
-    lbl.textContent = label;
-    var track = document.createElement('div');
-    track.style.cssText = 'flex:1;height:6px;background:#1a1a1a;border-radius:3px;overflow:hidden;';
-    var fill = document.createElement('div');
-    var pct = Math.min(100, Math.round((val || 0) * 100 * 4)); // scale 0-1 → 0-100%
-    var color = pct > 80 ? '#ff4444' : pct > 50 ? '#ffaa00' : '#4a9e4a';
-    fill.style.cssText = 'height:100%;border-radius:3px;background:' + color + ';width:' + pct + '%;transition:width 0.15s;';
-    track.appendChild(fill);
-    var dbLbl = document.createElement('span');
-    dbLbl.style.cssText = 'font-size:9px;color:#444;width:28px;text-align:right;flex-shrink:0;font-family:monospace;';
-    dbLbl.textContent = val != null ? (val > 0 ? (20*Math.log10(val)).toFixed(0)+'dB' : '-∞') : '--';
-    row.appendChild(lbl); row.appendChild(track); row.appendChild(dbLbl);
-    return row;
-  }
-  meterWrap.appendChild(meterBar(st.meterL, 'L'));
-  meterWrap.appendChild(meterBar(st.meterR, 'R'));
-  card.appendChild(meterWrap);
-
   // ── Status row ──
   var statusRow = document.createElement('div');
   statusRow.style.cssText = 'display:grid;grid-template-columns:1fr 1fr 1fr;border-top:1px solid var(--line2);border-bottom:1px solid var(--line2);';
@@ -3340,7 +3313,7 @@ vmixLoadIps();
 // Auto-refresh vMix status every 8s when on Rooms tab
 setInterval(function() {
   if (currentPage === 'rooms') vmixRefreshAll();
-}, 2000);
+}, 8000);
 
 // Show HTTPS warning if needed
 if (location.protocol === 'https:') {
