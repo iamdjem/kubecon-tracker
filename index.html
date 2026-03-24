@@ -780,8 +780,8 @@ body { padding-bottom: 58px; }
   </div>
   <div class="top-bar" style="display:flex;gap:8px;flex-wrap:wrap;">
     <button class="rst-btn" onclick="confirmReset()">Reset</button>
-    <button class="rst-btn" onclick="copyFromPrevDay()" style="background:var(--s3,#222);border-color:var(--line2);color:var(--t2);">← Copy prev</button>
-    <button class="rst-btn" onclick="fillFromPrevDay()" style="background:var(--s3,#222);border-color:var(--line2);color:var(--t2);">← Fill prev</button>
+    <button class="rst-btn" onclick="copyFromPrevDay()" style="background:var(--s3,#222);border-color:var(--line2);color:var(--t2);">Copy from prev</button>
+    <button class="rst-btn" onclick="fillFromPrevDay()" style="background:var(--s3,#222);border-color:var(--line2);color:var(--t2);">Fill from prev</button>
   </div>
   <div id="tracker"></div>
 </div>
@@ -875,18 +875,11 @@ body { padding-bottom: 58px; }
       <div class="sched-title" id="schedTitle">Schedule</div>
       <div class="sched-sub" id="schedSub"></div>
     </div>
-    <div id="schedHeaderLinks" style="display:flex;flex-direction:column;gap:4px;align-items:flex-end;flex-shrink:0;"></div>
   </div>
-  <div style="display:flex;border-bottom:1px solid var(--line);flex-shrink:0;">
-    <div id="sched-view-checklist" class="sched-view-tab on" onclick="setSchedView('checklist')">Checklist</div>
-    <div id="sched-view-live" class="sched-view-tab" onclick="setSchedView('live')">Live Schedule</div>
-  </div>
-  <div class="day-tabs" id="dayTabs"></div>
-  <div class="room-tabs" id="roomTabs"></div>
-  <div class="sched-body" id="schedBody"></div>
-  <div id="schedIframeWrap" style="display:none;flex:1;overflow:hidden;flex-direction:column;">
-    <iframe id="schedIframe" style="flex:1;width:100%;border:none;height:100%;" src=""></iframe>
-  </div>
+  <!-- Room filter tabs -->
+  <div class="room-tabs" id="schedRoomTabs" style="flex-shrink:0;"></div>
+  <!-- Live iframe -->
+  <iframe id="schedIframe" style="flex:1;width:100%;border:none;" src=""></iframe>
 </div>
 
 <div class="overlay" id="overlay" onclick="closeSettings()"></div>
@@ -2686,8 +2679,8 @@ function openSchedule(crewId) {
   else schedDay = 'sun';
 
   document.getElementById('schedTitle').textContent = crew.name;
-  document.getElementById('schedSub').textContent = 'Room schedule — KubeCon EU 2026';
-  renderSchedule();
+  document.getElementById('schedSub').textContent = 'Live schedule — tap a room to filter';
+  renderScheduleSheet();
   document.getElementById('schedSheet').classList.add('open');
   document.body.style.overflow = 'hidden';
 }
@@ -2725,31 +2718,42 @@ function setMainSchedView(view) {
   }
 }
 
-let schedView = 'checklist';
-function setSchedView(view) {
-  schedView = view;
-  document.querySelectorAll('.sched-view-tab').forEach(t => t.classList.remove('on'));
-  document.getElementById('sched-view-' + view).classList.add('on');
-  const checklist = document.getElementById('schedBody');
-  const dayTabs   = document.getElementById('dayTabs');
-  const roomTabs  = document.getElementById('roomTabs');
-  const iframeWrap = document.getElementById('schedIframeWrap');
-  if (view === 'live') {
-    checklist.style.display  = 'none';
-    dayTabs.style.display    = 'none';
-    roomTabs.style.display   = 'none';
-    iframeWrap.style.display = 'flex';
-    const base = schedDay === 'sun' ? 'maintainersummiteu2026'
-               : schedDay === 'mon' ? 'colocatedeventseu2026'
-               : 'kccnceu2026';
-    const iframe = document.getElementById('schedIframe');
-    iframe.src = 'https://' + base + '.sched.com/';
-  } else {
-    checklist.style.display  = '';
-    dayTabs.style.display    = '';
-    roomTabs.style.display   = '';
-    iframeWrap.style.display = 'none';
-  }
+function getSchedBase() {
+  const today = new Date();
+  const march = [22,23,24,25,26];
+  const dayKeys = ['sun','mon','tue','wed','thu'];
+  const idx = march.indexOf(today.getDate());
+  const dayKey = (idx>=0 && today.getMonth()===2) ? dayKeys[idx] : 'tue';
+  return dayKey === 'sun' ? 'maintainersummiteu2026'
+       : dayKey === 'mon' ? 'colocatedeventseu2026'
+       : 'kccnceu2026';
+}
+
+function renderScheduleSheet() {
+  const crew = config.crew.find(c => c.id === schedCrewId);
+  if (!crew) return;
+  // Room filter tabs: All + each room
+  const roomTabsEl = document.getElementById('schedRoomTabs');
+  const allBtn = `<div class="room-tab${schedRoomFilter===null?' on':''}" onclick="setSchedRoomIframe(null)">All rooms</div>`;
+  const roomBtns = crew.rooms.map(r =>
+    `<div class="room-tab${schedRoomFilter===r.id?' on':''}" onclick="setSchedRoomIframe('${r.id}','${r.name}')">${r.name}</div>`
+  ).join('');
+  roomTabsEl.innerHTML = allBtn + roomBtns;
+  // Set iframe URL
+  updateSchedIframe(schedRoomFilter ? crew.rooms.find(r=>r.id===schedRoomFilter)?.name : null);
+}
+
+function setSchedRoomIframe(roomId, roomName) {
+  schedRoomFilter = roomId;
+  renderScheduleSheet();
+}
+
+function updateSchedIframe(roomName) {
+  const base = getSchedBase();
+  const url = roomName
+    ? 'https://' + base + '.sched.com/venue/' + encodeURIComponent(roomName.replace(/ /g,'+'))
+    : 'https://' + base + '.sched.com/';
+  document.getElementById('schedIframe').src = url;
 }
 
 function renderSchedule() {
