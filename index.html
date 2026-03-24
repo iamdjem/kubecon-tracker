@@ -3058,9 +3058,9 @@ function vmixMakeCard(r) {
   var badges = document.createElement('div');
   badges.style.cssText = 'display:flex;gap:5px;align-items:center;flex-wrap:wrap;';
   var activeFns = [
-    { on: st.recording,   label: 'REC',    color: '#cc3333' },
-    { on: st.streaming,   label: 'STREAM', color: '#cc8800' },
-    { on: st.multicorder, label: 'MULTI',  color: '#2277cc' },
+    { on: st.recording,   label: 'REC',    color: '#ff5555' },
+    { on: st.streaming,   label: 'STREAM', color: '#ffaa00' },
+    { on: st.multicorder, label: 'MULTI',  color: '#55aaff' },
   ];
   var anyActive = false;
   activeFns.forEach(function(f) {
@@ -3075,7 +3075,7 @@ function vmixMakeCard(r) {
   if (!anyActive && r.ip) {
     var idleBadge = document.createElement('span');
     idleBadge.textContent = 'IDLE';
-    idleBadge.style.cssText = 'font-size:10px;color:#444;letter-spacing:0.3px;';
+    idleBadge.style.cssText = 'font-size:10px;color:#666;letter-spacing:0.3px;';
     badges.appendChild(idleBadge);
   }
 
