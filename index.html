@@ -3114,12 +3114,26 @@ function vmixMakeCard(r) {
     bs.textContent = '▶';
     bs.title = 'Start ' + f.label;
     bs.style.cssText = 'flex:1;border-radius:6px;padding:10px 0;font-size:14px;cursor:pointer;border:1px solid #1e4d1e;background:#0a1f0a;color:#4a9e4a;font-weight:700;';
-    bs.onclick = function() { vmixOne(r.key, f.startFn); };
+    bs.onclick = async function() {
+      var btn = this; btn.disabled = true; btn.textContent = '…';
+      btn.style.opacity = '0.5';
+      await vmixOne(r.key, f.startFn);
+      btn.disabled = false; btn.textContent = '▶';
+      btn.style.opacity = '1'; btn.style.background = '#1a4d1a';
+      setTimeout(function(){ btn.style.background = '#0a1f0a'; }, 600);
+    };
     var bx = document.createElement('button');
     bx.textContent = '■';
     bx.title = 'Stop ' + f.label;
     bx.style.cssText = 'flex:1;border-radius:6px;padding:10px 0;font-size:14px;cursor:pointer;border:1px solid #4d1e1e;background:#1f0a0a;color:#9e4a4a;font-weight:700;';
-    bx.onclick = function() { vmixOne(r.key, f.stopFn); };
+    bx.onclick = async function() {
+      var btn = this; btn.disabled = true; btn.textContent = '…';
+      btn.style.opacity = '0.5';
+      await vmixOne(r.key, f.stopFn);
+      btn.disabled = false; btn.textContent = '■';
+      btn.style.opacity = '1'; btn.style.background = '#4d1a1a';
+      setTimeout(function(){ btn.style.background = '#1f0a0a'; }, 600);
+    };
     btnRow.appendChild(bs);
     btnRow.appendChild(bx);
 
