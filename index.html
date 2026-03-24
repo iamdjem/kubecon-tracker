@@ -3073,7 +3073,7 @@ function vmixMakeCard(r) {
   inp.style.cssText = 'flex:1;background:#111;border:1px solid var(--line2);color:var(--t1);border-radius:7px;padding:6px 10px;font-size:12px;font-family:monospace;';
   var saveBtn = document.createElement('button');
   saveBtn.textContent = 'Save';
-  saveBtn.style.cssText = 'background:var(--accent);border:none;color:#000;border-radius:7px;padding:6px 14px;font-size:12px;font-weight:700;cursor:pointer;';
+  saveBtn.style.cssText = 'background:#5dcc5d;border:none;color:#000;border-radius:7px;padding:6px 14px;font-size:12px;font-weight:700;cursor:pointer;';
   saveBtn.onclick = function() { vmixSaveIp(r.key); ipRow.style.display = 'none'; };
   ipRow.appendChild(inp);
   ipRow.appendChild(saveBtn);
