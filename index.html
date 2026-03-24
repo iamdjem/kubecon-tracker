@@ -3113,12 +3113,12 @@ function vmixMakeCard(r) {
     var bs = document.createElement('button');
     bs.textContent = '▶';
     bs.title = 'Start ' + f.label;
-    bs.style.cssText = 'flex:1;border-radius:6px;padding:6px 0;font-size:12px;cursor:pointer;border:1px solid #2d7a2d;background:#0d2e0d;color:#5dcc5d;font-weight:700;';
+    bs.style.cssText = 'flex:1;border-radius:6px;padding:10px 0;font-size:14px;cursor:pointer;border:1px solid #1e4d1e;background:#0a1f0a;color:#4a9e4a;font-weight:700;';
     bs.onclick = function() { vmixOne(r.key, f.startFn); };
     var bx = document.createElement('button');
     bx.textContent = '■';
     bx.title = 'Stop ' + f.label;
-    bx.style.cssText = 'flex:1;border-radius:6px;padding:6px 0;font-size:12px;cursor:pointer;border:1px solid #7a2d2d;background:#2e0d0d;color:#cc5d5d;font-weight:700;';
+    bx.style.cssText = 'flex:1;border-radius:6px;padding:10px 0;font-size:14px;cursor:pointer;border:1px solid #4d1e1e;background:#1f0a0a;color:#9e4a4a;font-weight:700;';
     bx.onclick = function() { vmixOne(r.key, f.stopFn); };
     btnRow.appendChild(bs);
     btnRow.appendChild(bx);
@@ -3135,11 +3135,11 @@ function vmixMakeCard(r) {
   masterRow.style.cssText = 'display:grid;grid-template-columns:1fr 1fr;';
   var startAll = document.createElement('button');
   startAll.innerHTML = '▶ &nbsp;START ALL';
-  startAll.style.cssText = 'padding:13px;font-size:13px;font-weight:700;cursor:pointer;border:none;border-right:1px solid var(--line2);background:#0d2e0d;color:#5dcc5d;border-radius:0 0 0 14px;letter-spacing:0.3px;';
+  startAll.style.cssText = 'padding:15px;font-size:14px;font-weight:700;cursor:pointer;border:none;border-right:1px solid var(--line2);background:#0a1f0a;color:#4a9e4a;border-radius:0 0 0 14px;letter-spacing:0.3px;';
   startAll.onclick = function() { vmixRoomAction(r.key, 'start'); };
   var stopAll = document.createElement('button');
   stopAll.innerHTML = '■ &nbsp;STOP ALL';
-  stopAll.style.cssText = 'padding:13px;font-size:13px;font-weight:700;cursor:pointer;border:none;background:#2e0d0d;color:#cc5d5d;border-radius:0 0 14px 0;letter-spacing:0.3px;';
+  stopAll.style.cssText = 'padding:15px;font-size:14px;font-weight:700;cursor:pointer;border:none;background:#1f0a0a;color:#9e4a4a;border-radius:0 0 14px 0;letter-spacing:0.3px;';
   stopAll.onclick = function() { vmixRoomAction(r.key, 'stop'); };
   masterRow.appendChild(startAll);
   masterRow.appendChild(stopAll);
