@@ -491,6 +491,10 @@ body { padding-bottom: 58px; }
 .hd-inline .hd-sub { font-size: 11px; color: var(--t3); margin-top: 1px; }
 
 .room-highlight { animation: roomFlash 1.5s ease; }
+@keyframes blink {
+  0%,100% { opacity: 1; }
+  50% { opacity: 0.35; }
+}
 @keyframes roomFlash {
   0%,100% { background: transparent; }
   20% { background: rgba(212,168,67,0.18); border-radius: 6px; }
@@ -3044,14 +3048,39 @@ function vmixMakeCard(r) {
   hdr.style.cssText = 'display:flex;align-items:center;justify-content:space-between;padding:14px 16px 10px;';
 
   var nameWrap = document.createElement('div');
-  nameWrap.style.cssText = 'display:flex;align-items:center;gap:8px;';
-  var nameDot = document.createElement('span');
-  nameDot.innerHTML = pill(st.recording || st.streaming || st.multicorder);
+  nameWrap.style.cssText = 'display:flex;align-items:center;gap:8px;flex:1;';
+
   var nameEl = document.createElement('span');
   nameEl.style.cssText = 'font-size:15px;font-weight:700;color:var(--t1);';
   nameEl.textContent = r.name;
-  nameWrap.appendChild(nameDot);
+
+  // Status badges — one per active function
+  var badges = document.createElement('div');
+  badges.style.cssText = 'display:flex;gap:5px;align-items:center;flex-wrap:wrap;';
+  var activeFns = [
+    { on: st.recording,   label: 'REC',    color: '#cc3333' },
+    { on: st.streaming,   label: 'STREAM', color: '#cc8800' },
+    { on: st.multicorder, label: 'MULTI',  color: '#2277cc' },
+  ];
+  var anyActive = false;
+  activeFns.forEach(function(f) {
+    var badge = document.createElement('span');
+    if (f.on) {
+      anyActive = true;
+      badge.textContent = '● ' + f.label;
+      badge.style.cssText = 'font-size:10px;font-weight:700;color:' + f.color + ';animation:blink 1.2s ease-in-out infinite;letter-spacing:0.3px;';
+    }
+    badges.appendChild(badge);
+  });
+  if (!anyActive && r.ip) {
+    var idleBadge = document.createElement('span');
+    idleBadge.textContent = 'IDLE';
+    idleBadge.style.cssText = 'font-size:10px;color:#444;letter-spacing:0.3px;';
+    badges.appendChild(idleBadge);
+  }
+
   nameWrap.appendChild(nameEl);
+  nameWrap.appendChild(badges);
 
   var ipToggle = document.createElement('button');
   ipToggle.textContent = r.ip ? r.ip.split('.').slice(-1)[0] ? '⚙' : '⚙' : '+ IP';
