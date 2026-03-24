@@ -3056,7 +3056,7 @@ function vmixMakeCard(r) {
 
   // Status badges — one per active function
   var badges = document.createElement('div');
-  badges.style.cssText = 'display:flex;gap:5px;align-items:center;flex-wrap:wrap;';
+  badges.style.cssText = 'display:inline-flex;gap:5px;align-items:center;flex-shrink:0;';
   var activeFns = [
     { on: st.recording,   label: 'REC',    color: '#ff5555' },
     { on: st.streaming,   label: 'STREAM', color: '#ffaa00' },
