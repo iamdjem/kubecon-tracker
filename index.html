@@ -3252,8 +3252,16 @@ function vmixUpdateProxyStatus(url) {
   const inp = document.getElementById('vmix-proxy-url');
   if (!el) return;
   if (inp && inp.value !== url) inp.value = url || '';
-  el.textContent = url ? `🔗 Proxy: ${url}` : 'No proxy set — direct HTTP (same network only)';
-  el.style.color = url ? 'var(--green)' : 'var(--t3)';
+  if (url) {
+    el.textContent = `🔗 Proxy active: ${url}`;
+    el.style.color = 'var(--green)';
+  } else if (location.protocol === 'https:') {
+    el.textContent = '⚠ No proxy set — buttons will not work. Scan QR from vMix Commander.';
+    el.style.color = '#ffb74d';
+  } else {
+    el.textContent = 'No proxy set — direct HTTP (same network only)';
+    el.style.color = 'var(--t3)';
+  }
 }
 async function vmixTestProxy() {
   const proxy = vmixGetProxyUrl();
@@ -3269,9 +3277,16 @@ async function vmixTestProxy() {
 async function vmixCall(ip, fn) {
   if (!ip) return { ok: false, error: 'No IP' };
   const proxy = vmixGetProxyUrl();
+  // On HTTPS with no proxy — blocked by browser, show clear message
+  if (!proxy && location.protocol === 'https:') {
+    showToast('⚠ Set a Proxy URL first — direct HTTP blocked on HTTPS');
+    // Scroll to proxy input
+    const inp = document.getElementById('vmix-proxy-url');
+    if (inp) inp.focus();
+    return { ok: false, error: 'No proxy set' };
+  }
   try {
     if (proxy) {
-      // Route through proxy: GET /vmix-proxy?ip=...&fn=...
       const r = await fetch(`${proxy}/vmix-proxy?ip=${encodeURIComponent(ip)}&fn=${encodeURIComponent(fn)}`, { signal: AbortSignal.timeout(5000) });
       return r.ok || r.status === 502 ? { ok: true } : { ok: false, error: `HTTP ${r.status}` };
     } else {
