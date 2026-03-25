@@ -146,18 +146,19 @@ body {
 
 /* ── ROOM ROW ── */
 .room {
-  display: flex; align-items: center;
-  padding: 12px 18px;
+  display: flex; align-items: center; flex-wrap: wrap;
+  padding: 10px 18px;
   border-top: 1px solid var(--line);
-  gap: 10px;
+  gap: 6px 10px;
   min-height: 60px;
   transition: background 0.1s;
 }
 .room-name {
   font-size: 12px; font-weight: 600; color: #808080;
-  flex: 0 0 100px; letter-spacing: 0;
+  flex: 1 1 auto; letter-spacing: 0; min-width: 0;
 }
-.steps-wrap { display: flex; gap: 5px; flex: 1; }
+.room-tag { margin-left: auto; }
+.steps-wrap { display: flex; gap: 5px; flex: 0 0 100%; }
 .step { display: flex; flex-direction: column; align-items: center; gap: 3px; flex: 0 0 auto; min-width: 40px; max-width: 64px; }
 .step input { display: none; }
 .step-box {
@@ -173,11 +174,12 @@ body {
   flex-shrink: 0;
 }
 
-/* Tablet 480–768px */
+/* Tablet 480–768px — single line */
 @media (min-width: 480px) {
-  .room { min-height: 68px; padding: 12px 20px; gap: 14px; }
+  .room { min-height: 68px; padding: 12px 20px; gap: 14px; flex-wrap: nowrap; align-items: center; }
   .room-name { font-size: 14px; flex: 0 0 120px; }
-  .steps-wrap { gap: 7px; max-width: 380px; }
+  .room-tag { margin-left: 0; }
+  .steps-wrap { gap: 7px; flex: 1; max-width: none; }
   .step { min-width: 48px; max-width: 72px; }
   .step-box { font-size: 18px; border-radius: 7px; width: 48px; height: 48px; }
 }
