@@ -2101,22 +2101,17 @@ function copyStatus() {
 }
 
 function sendWhatsApp() {
-  const dayLabel = (config.days||DEFAULT_DAYS).find(d=>d.key===currentDay)?.label || currentDay;
-  const lines = [config.title + ' — ' + dayLabel, ''];
+  const lines = ['SET UP MASTER LIST:'];
   config.crew.forEach(c => {
-    lines.push('*' + c.name + '*');
     c.rooms.forEach(room => {
-      const done  = isDone(room.id);
-      const count = countDone(room.id);
-      const total = config.steps.length;
-      const checks = config.steps.filter(s=>getVal(room.id,s.key)).map(s=>s.icon).join('');
-      const status = done ? '✅' : count > 0 ? '🔄' : '⬜';
-      lines.push(status + ' ' + room.name + (checks ? '  ' + checks : '') + (done ? '' : '  ' + count + '/' + total));
+      const checks = config.steps.filter(s => getVal(room.id, s.key)).map(s => s.icon).join('');
+      lines.push(`${room.name}-${c.name}${checks ? ' '+checks : ''}`);
     });
-    lines.push('');
   });
-  lines.push(config.steps.map(s=>s.icon+' '+s.label).join(' · '));
-  const url = 'https://wa.me/?text=' + encodeURIComponent(lines.join('\n'));
+  lines.push('');
+  lines.push(config.steps.map(s => `${s.icon} = ${s.label}`).join('\n'));
+  const text = lines.join('\n');
+  const url = 'https://wa.me/?text=' + encodeURIComponent(text);
   window.open(url, '_blank');
 }
 
