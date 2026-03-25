@@ -1,4 +1,4 @@
-const CACHE = 'tracker-v1774426001';
+const CACHE = 'tracker-v1774426093';
 const ASSETS = ['/kubecon-tracker/', '/kubecon-tracker/index.html'];
 
 self.addEventListener('install', e => {
