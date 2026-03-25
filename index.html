@@ -3230,9 +3230,15 @@ async function vmixSaveIp(key) {
   if (urlParam) {
     const clean = urlParam.trim().replace(/\/$/, '');
     localStorage.setItem('vmix_proxy_url', clean);
-    // Clean URL bar without reload
     window.history.replaceState({}, '', window.location.pathname);
   }
+  // Update status UI once DOM is ready (after proxy param is saved)
+  document.addEventListener('DOMContentLoaded', function() {
+    const url = localStorage.getItem('vmix_proxy_url') || '';
+    vmixUpdateProxyStatus(url);
+    const inp = document.getElementById('vmix-proxy-url');
+    if (inp && !inp.value) inp.value = url;
+  });
 })();
 
 // Proxy URL helpers
