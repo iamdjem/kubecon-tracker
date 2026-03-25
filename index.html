@@ -3224,6 +3224,17 @@ async function vmixSaveIp(key) {
   vmixRefreshStatus(key);
 }
 
+// Auto-read ?proxy= from URL (set by vMix Commander QR code scan)
+(function() {
+  const urlParam = new URLSearchParams(window.location.search).get('proxy');
+  if (urlParam) {
+    const clean = urlParam.trim().replace(/\/$/, '');
+    localStorage.setItem('vmix_proxy_url', clean);
+    // Clean URL bar without reload
+    window.history.replaceState({}, '', window.location.pathname);
+  }
+})();
+
 // Proxy URL helpers
 function vmixGetProxyUrl() {
   return localStorage.getItem('vmix_proxy_url') || '';
