@@ -150,27 +150,30 @@ body {
   padding: 8px 10px;
   border-top: 1px solid var(--line);
   gap: 6px;
-  min-height: 52px;
+  min-height: 48px;
   transition: background 0.1s;
 }
 .room-name {
   font-size: 11px; font-weight: 600; color: #808080;
-  flex: 0 0 68px; letter-spacing: 0;
+  flex: 0 0 65px; letter-spacing: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
-.steps-wrap { display: flex; gap: 4px; flex: 1; justify-content: flex-start; }
-.step { display: flex; flex-direction: column; align-items: center; gap: 2px; flex: 0 0 auto; }
+/* steps fill all remaining space between name and counter */
+.steps-wrap { display: flex; gap: 4px; flex: 1 1 0; min-width: 0; }
+/* each step box grows equally to fill steps-wrap */
+.step { display: flex; flex-direction: column; align-items: center; gap: 2px; flex: 1 1 0; min-width: 0; }
 .step input { display: none; }
 .step-box {
-  width: 32px; height: 32px;
+  /* square based on available width — use aspect-ratio trick */
+  width: 100%; aspect-ratio: 1;
+  max-width: 44px; max-height: 44px;
   border: 1px solid var(--line2);
   border-radius: 5px;
   background: var(--s2);
   display: flex; align-items: center; justify-content: center;
   cursor: pointer;
   transition: all 0.12s;
-  font-size: 14px;
+  font-size: clamp(12px, 3vw, 20px);
   position: relative;
-  flex-shrink: 0;
 }
 
 /* Tablet 480–768px */
@@ -178,16 +181,14 @@ body {
   .room { min-height: 68px; padding: 12px 20px; gap: 14px; }
   .room-name { font-size: 14px; flex: 0 0 120px; }
   .steps-wrap { gap: 7px; }
-  .step { min-width: 48px; }
-  .step-box { font-size: 18px; border-radius: 7px; width: 48px; height: 48px; }
+  .step-box { max-width: 52px; max-height: 52px; border-radius: 7px; font-size: 20px; }
 }
 /* Desktop 768px+ */
 @media (min-width: 768px) {
   .room { min-height: 80px; padding: 14px 24px; gap: 18px; }
   .room-name { font-size: 15px; flex: 0 0 140px; }
   .steps-wrap { gap: 10px; max-width: 420px; }
-  .step { min-width: 56px; max-width: 80px; }
-  .step-box { font-size: 22px; border-radius: 8px; width: 56px; height: 56px; }
+  .step-box { max-width: 64px; max-height: 64px; border-radius: 8px; font-size: 24px; }
 }
 .step-box:active { transform: scale(0.87); }
 .step-icon { opacity: 0.4; line-height: 1; transition: opacity 0.12s; }
