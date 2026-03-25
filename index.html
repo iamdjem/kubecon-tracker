@@ -802,9 +802,18 @@ body { padding-bottom: 58px; }
   <div style="font-size:16px;font-weight:700;color:var(--t1);margin-bottom:4px;">Room Control</div>
   <div style="font-size:11px;color:var(--t3);margin-bottom:12px;">vMix · Record + Stream + MultiCorder</div>
   <div id="vmix-https-warn" style="display:none;background:#3d2a00;border:1px solid #996600;border-radius:8px;padding:10px 12px;margin-bottom:14px;font-size:11px;color:#ffb74d;line-height:1.5;">
-    ⚠️ <strong>HTTPS blocks vMix (HTTP)</strong> — buttons won't work here.<br>
-    Open on your laptop instead: <strong>http://localhost:8765</strong> → Rooms tab.<br>
-    Or in Chrome: tap the 🔒 lock → <em>Site settings</em> → allow <em>Insecure content</em>.
+    ⚠️ <strong>HTTPS blocks direct vMix</strong> — use a proxy URL below.
+  </div>
+  <!-- Proxy URL setting -->
+  <div style="background:var(--s2);border:1px solid var(--line2);border-radius:10px;padding:12px 14px;margin-bottom:14px;">
+    <div style="font-size:11px;font-weight:600;color:var(--t2);margin-bottom:6px;">🔗 Proxy URL <span style="font-weight:400;color:var(--t3);">— required when off-network (Tailscale/ngrok)</span></div>
+    <div style="display:flex;gap:6px;align-items:center;">
+      <input id="vmix-proxy-url" type="url" placeholder="http://100.x.x.x:8080  (leave blank on local network)"
+        style="flex:1;background:var(--s3,#1a1a1a);border:1px solid var(--line2);border-radius:6px;padding:7px 10px;font-size:12px;color:var(--t1);font-family:monospace;min-width:0;">
+      <button onclick="vmixSaveProxyUrl()" style="background:var(--s3,#222);border:1px solid var(--line2);border-radius:6px;padding:7px 12px;font-size:12px;font-weight:600;color:var(--t2);cursor:pointer;white-space:nowrap;">Save</button>
+      <button onclick="vmixTestProxy()" style="background:var(--s3,#222);border:1px solid var(--line2);border-radius:6px;padding:7px 12px;font-size:12px;font-weight:600;color:var(--t2);cursor:pointer;white-space:nowrap;">Test</button>
+    </div>
+    <div id="vmix-proxy-status" style="font-size:10px;color:var(--t3);margin-top:5px;">No proxy set — direct HTTP (same network only)</div>
   </div>
   <div id="vmix-cards" style="display:flex;flex-direction:column;gap:12px;"></div>
   <div style="margin-top:16px;background:var(--s2);border:1px solid var(--line2);border-radius:12px;padding:14px 16px;display:flex;align-items:center;justify-content:space-between;gap:12px;">
@@ -1941,6 +1950,7 @@ function initFirebase(url) {
         fbDb.child('state').on('value', s => { const v=s.val(); if(v){state=v;saveState();render(); if(currentPage==='record')renderRecord(); if(currentPage==='overview')renderOverview();} });
         fbDb.child('config').on('value', s => { const v=s.val(); if(v&&v.steps&&v.crew){config=v; if(!config.schedSteps||!config.schedSteps.find(s=>s.key==='obsbot'))config.schedSteps=DEFAULT_CONFIG.schedSteps; if(!config.days||!config.days.length)config.days=DEFAULT_DAYS; saveConfig();render();} });
         fbDb.child('vmix_ips').on('value', s => { const v=s.val(); if(v){ VMIX_ROOMS.forEach(r => { if(v[r.key]) r.ip=v[r.key]; }); vmixSaveIps(); if(currentPage==='rooms') renderVmixCards(); } });
+        fbDb.child('vmix_proxy_url').on('value', s => { const v=s.val(); if(v!=null){ localStorage.setItem('vmix_proxy_url',v); vmixUpdateProxyStatus(v); } });
         setFbStatus(true);
       } catch(e) { setFbStatus(false); }
     }));
@@ -3214,18 +3224,58 @@ async function vmixSaveIp(key) {
   vmixRefreshStatus(key);
 }
 
+// Proxy URL helpers
+function vmixGetProxyUrl() {
+  return localStorage.getItem('vmix_proxy_url') || '';
+}
+function vmixSaveProxyUrl() {
+  const inp = document.getElementById('vmix-proxy-url');
+  const val = inp ? inp.value.trim().replace(/\/$/, '') : '';
+  localStorage.setItem('vmix_proxy_url', val);
+  if (fbDb) fbDb.child('vmix_proxy_url').set(val);
+  vmixUpdateProxyStatus(val);
+  showToast(val ? '✓ Proxy saved' : '✓ Proxy cleared');
+}
+function vmixUpdateProxyStatus(url) {
+  const el = document.getElementById('vmix-proxy-status');
+  const inp = document.getElementById('vmix-proxy-url');
+  if (!el) return;
+  if (inp && inp.value !== url) inp.value = url || '';
+  el.textContent = url ? `🔗 Proxy: ${url}` : 'No proxy set — direct HTTP (same network only)';
+  el.style.color = url ? 'var(--green)' : 'var(--t3)';
+}
+async function vmixTestProxy() {
+  const proxy = vmixGetProxyUrl();
+  if (!proxy) { showToast('⚠ No proxy URL set'); return; }
+  showToast('⏳ Testing proxy…');
+  try {
+    const r = await fetch(`${proxy}/vmix-proxy?ip=test`, { signal: AbortSignal.timeout(4000) });
+    // A 502 still means the proxy is reachable (vMix IP was just wrong)
+    showToast(r.status < 500 || r.status === 502 ? '✓ Proxy reachable!' : `✗ Proxy error: ${r.status}`);
+  } catch(e) { showToast(`✗ Can't reach proxy: ${e.message}`); }
+}
+
 async function vmixCall(ip, fn) {
   if (!ip) return { ok: false, error: 'No IP' };
+  const proxy = vmixGetProxyUrl();
   try {
-    const r = await fetch(`http://${ip}:8088/api/?Function=${fn}`, { mode: 'no-cors' });
-    return { ok: true };
+    if (proxy) {
+      // Route through proxy: GET /vmix-proxy?ip=...&fn=...
+      const r = await fetch(`${proxy}/vmix-proxy?ip=${encodeURIComponent(ip)}&fn=${encodeURIComponent(fn)}`, { signal: AbortSignal.timeout(5000) });
+      return r.ok || r.status === 502 ? { ok: true } : { ok: false, error: `HTTP ${r.status}` };
+    } else {
+      const r = await fetch(`http://${ip}:8088/api/?Function=${fn}`, { mode: 'no-cors' });
+      return { ok: true };
+    }
   } catch(e) { return { ok: false, error: e.message }; }
 }
 
 async function vmixGetStatus(ip) {
   if (!ip) return { ok: false, error: 'No IP', recording: false, streaming: false, multicorder: false };
+  const proxy = vmixGetProxyUrl();
+  const proxyUrl = proxy ? `${proxy}/vmix-proxy?ip=${encodeURIComponent(ip)}` : `/vmix-proxy?ip=${encodeURIComponent(ip)}`;
   try {
-    const r = await fetch(`/vmix-proxy?ip=${encodeURIComponent(ip)}`);
+    const r = await fetch(proxyUrl, { signal: AbortSignal.timeout(5000) });
     const xml = await r.text();
     const mMaster = xml.match(/<audio><master[^>]*meterF1="([^"]+)"[^>]*meterF2="([^"]+)"/i);
     return {
@@ -3297,6 +3347,7 @@ window.switchPage = function(page) {
     document.getElementById('page-rooms').classList.add('active');
     document.getElementById('nav-rooms').classList.add('on');
     vmixLoadIps();
+    vmixUpdateProxyStatus(vmixGetProxyUrl());
     renderVmixCards();
     vmixRefreshAll();
   } else {
@@ -3305,6 +3356,7 @@ window.switchPage = function(page) {
 };
 
 vmixLoadIps();
+vmixUpdateProxyStatus(vmixGetProxyUrl());
 
 // Auto-refresh vMix status every 8s when on Rooms tab
 setInterval(function() {
