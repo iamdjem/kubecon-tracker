@@ -3434,11 +3434,11 @@ setInterval(function() {
   if (currentPage === 'rooms') vmixRefreshAll();
 }, 8000);
 
-// Show HTTPS warning if needed
-if (location.protocol === 'https:') {
-  var w = document.getElementById('vmix-https-warn');
-  if (w) w.style.display = 'block';
-}
+// HTTPS warning hidden — proxy handles the HTTPS→HTTP bridge
+// if (location.protocol === 'https:') {
+//   var w = document.getElementById('vmix-https-warn');
+//   if (w) w.style.display = 'block';
+// }
 
 // If page was rooms on last visit, render cards + fetch status immediately
 if (currentPage === 'rooms') {
