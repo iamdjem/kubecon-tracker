@@ -3089,26 +3089,19 @@ function vmixMakeCard(r) {
   nameWrap.appendChild(nameEl);
   nameWrap.appendChild(badges);
 
-  hdr.appendChild(nameWrap);
-  card.appendChild(hdr);
-
-  // ── IP row (always visible below header) ──
-  var ipRow = document.createElement('div');
-  ipRow.style.cssText = 'display:flex;align-items:center;gap:8px;padding:0 16px 10px;';
-  var ipLabel = document.createElement('span');
-  ipLabel.textContent = 'IP:';
-  ipLabel.style.cssText = 'font-size:11px;color:var(--t3);font-family:monospace;flex-shrink:0;';
+  // ── Inline IP input (always visible in header, saves on blur/Enter) ──
   var inp = document.createElement('input');
   inp.id = 'vmix-ip-' + r.key;
   inp.value = r.ip;
   inp.placeholder = '10.x.x.x';
-  inp.style.cssText = 'flex:1;background:#111;border:1px solid var(--line2);color:var(--t2);border-radius:6px;padding:4px 8px;font-size:12px;font-family:monospace;outline:none;min-width:0;';
+  inp.style.cssText = 'background:#111;border:1px solid var(--line2);color:var(--t2);border-radius:6px;padding:3px 8px;font-size:11px;font-family:monospace;width:110px;outline:none;';
   inp.addEventListener('blur', function() { vmixSaveIp(r.key); inp.style.borderColor = 'var(--line2)'; });
   inp.addEventListener('keydown', function(e) { if (e.key === 'Enter') inp.blur(); });
   inp.addEventListener('focus', function() { inp.style.borderColor = 'var(--accent)'; });
-  ipRow.appendChild(ipLabel);
-  ipRow.appendChild(inp);
-  card.appendChild(ipRow);
+
+  hdr.appendChild(nameWrap);
+  hdr.appendChild(inp);
+  card.appendChild(hdr);
 
   // ── Status row ──
   var statusRow = document.createElement('div');
