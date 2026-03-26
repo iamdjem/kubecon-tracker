@@ -3089,35 +3089,20 @@ function vmixMakeCard(r) {
   nameWrap.appendChild(nameEl);
   nameWrap.appendChild(badges);
 
-  var ipToggle = document.createElement('button');
-  ipToggle.textContent = r.ip ? r.ip.split('.').slice(-1)[0] ? '⚙' : '⚙' : '+ IP';
-  ipToggle.title = r.ip || 'Set IP';
-  ipToggle.style.cssText = 'background:none;border:1px solid var(--line2);color:var(--t3);border-radius:6px;padding:3px 8px;font-size:11px;cursor:pointer;';
-  ipToggle.onclick = function() {
-    var row = card.querySelector('.vmix-ip-row');
-    row.style.display = row.style.display === 'none' ? 'flex' : 'none';
-  };
-
-  hdr.appendChild(nameWrap);
-  hdr.appendChild(ipToggle);
-  card.appendChild(hdr);
-
-  // ── IP row (hidden by default) ──
-  var ipRow = document.createElement('div');
-  ipRow.className = 'vmix-ip-row';
-  ipRow.style.cssText = 'display:none;gap:8px;padding:0 16px 10px;';
+  // ── Inline IP input (always visible, saves on blur/Enter) ──
   var inp = document.createElement('input');
   inp.id = 'vmix-ip-' + r.key;
   inp.value = r.ip;
   inp.placeholder = '10.x.x.x';
-  inp.style.cssText = 'flex:1;background:#111;border:1px solid var(--line2);color:var(--t1);border-radius:7px;padding:6px 10px;font-size:12px;font-family:monospace;';
-  var saveBtn = document.createElement('button');
-  saveBtn.textContent = 'Save';
-  saveBtn.style.cssText = 'background:#5dcc5d;border:none;color:#000;border-radius:7px;padding:6px 14px;font-size:12px;font-weight:700;cursor:pointer;';
-  saveBtn.onclick = function() { vmixSaveIp(r.key); ipRow.style.display = 'none'; };
-  ipRow.appendChild(inp);
-  ipRow.appendChild(saveBtn);
-  card.appendChild(ipRow);
+  inp.style.cssText = 'background:#111;border:1px solid var(--line2);color:var(--t2);border-radius:6px;padding:3px 8px;font-size:11px;font-family:monospace;width:110px;outline:none;';
+  inp.addEventListener('blur', function() { vmixSaveIp(r.key); });
+  inp.addEventListener('keydown', function(e) { if (e.key === 'Enter') { inp.blur(); } });
+  inp.addEventListener('focus', function() { inp.style.borderColor = 'var(--accent)'; });
+  inp.addEventListener('blur', function() { inp.style.borderColor = 'var(--line2)'; }, true);
+
+  hdr.appendChild(nameWrap);
+  hdr.appendChild(inp);
+  card.appendChild(hdr);
 
   // ── Status row ──
   var statusRow = document.createElement('div');
@@ -3214,15 +3199,16 @@ async function vmixSaveIp(key) {
   const room = VMIX_ROOMS.find(r => r.key === key);
   if (!room) return;
   const inp = document.getElementById('vmix-ip-' + key);
-  room.ip = inp ? inp.value.trim() : '';
+  const newIp = inp ? inp.value.trim() : '';
+  if (newIp === room.ip) return; // no change, skip
+  room.ip = newIp;
   vmixSaveIps();
   // Also save to Firebase so all devices get the IP
   if (fbDb) fbDb.child('vmix_ips/' + key).set(room.ip);
-  // Visual feedback — change button text immediately
-  const btn = inp ? inp.nextElementSibling : null;
-  if (btn) { const orig = btn.textContent; btn.textContent = '✓ Saved'; btn.style.color = '#5dcc5d'; setTimeout(() => { btn.textContent = orig; btn.style.color = ''; }, 2000); }
-  showToast('✓ IP saved — ' + room.ip);
-  vmixRefreshStatus(key);
+  if (room.ip) {
+    showToast('✓ IP saved — ' + room.ip);
+    vmixRefreshStatus(key);
+  }
 }
 
 // Auto-read ?proxy= from URL (set by vMix Commander QR code scan)
