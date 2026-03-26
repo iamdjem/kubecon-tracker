@@ -3342,6 +3342,31 @@ async function vmixRefreshAll() {
   await Promise.all(VMIX_ROOMS.map(r => vmixRefreshStatus(r.key)));
 }
 
+// Poll a single room until status changes or max attempts reached
+async function vmixPollUntilChanged(key, action, maxAttempts) {
+  const isStart = action === 'start';
+  for (let i = 0; i < (maxAttempts || 6); i++) {
+    await new Promise(r => setTimeout(r, 800));
+    await vmixRefreshStatus(key);
+    const st = vmixStatus[key] || {};
+    if (isStart ? (st.recording || st.streaming) : (!st.recording && !st.streaming)) break;
+  }
+}
+
+// Poll all rooms until status changes or max attempts reached
+async function vmixPollAllUntilChanged(action, maxAttempts) {
+  const isStart = action === 'start';
+  for (let i = 0; i < (maxAttempts || 6); i++) {
+    await new Promise(r => setTimeout(r, 800));
+    await vmixRefreshAll();
+    const allDone = VMIX_ROOMS.every(r => {
+      const st = vmixStatus[r.key] || {};
+      return isStart ? (st.recording || st.streaming) : (!st.recording && !st.streaming);
+    });
+    if (allDone) break;
+  }
+}
+
 async function vmixOne(key, fn) {
   const room = VMIX_ROOMS.find(r => r.key === key);
   if (!room) return;
@@ -3349,7 +3374,9 @@ async function vmixOne(key, fn) {
   showToast('⏳ ' + fn + '…');
   const res = await vmixCall(room.ip, fn);
   showToast(res.ok ? '✓ ' + fn : '✗ Failed: ' + (res.error || 'blocked?'));
-  setTimeout(() => vmixRefreshStatus(key), 1000);
+  // Poll for status update after action
+  const action = fn.toLowerCase().includes('stop') ? 'stop' : 'start';
+  vmixPollUntilChanged(key, action, 5);
 }
 
 async function vmixRoomAction(key, action) {
@@ -3363,7 +3390,8 @@ async function vmixRoomAction(key, action) {
   const results = await Promise.all(fns.map(f => vmixCall(room.ip, f)));
   const ok = results.filter(r => r.ok).length;
   showToast(ok === 3 ? '✓ ' + room.name + ' done' : '✗ ' + ok + '/3 OK — HTTPS blocking?');
-  setTimeout(() => vmixRefreshStatus(key), 1200);
+  // Poll until vMix confirms the new state
+  vmixPollUntilChanged(key, action, 6);
 }
 
 async function vmixAllAction(action) {
@@ -3372,7 +3400,8 @@ async function vmixAllAction(action) {
     ? ['StartRecording','StartStreaming','StartMultiCorder']
     : ['StopRecording','StopStreaming','StopMultiCorder'];
   await Promise.all(VMIX_ROOMS.flatMap(r => fns.map(f => vmixCall(r.ip, f))));
-  setTimeout(vmixRefreshAll, 1200);
+  // Poll all rooms until they reflect the new state
+  vmixPollAllUntilChanged(action, 6);
 }
 
 // Patch switchPage to handle rooms tab
