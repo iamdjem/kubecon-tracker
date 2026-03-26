@@ -1947,6 +1947,7 @@ function initFirebase(url) {
       try {
         const app = firebase.initializeApp({ databaseURL: url }, 'tr');
         fbDb = firebase.database(app).ref('e3-kc26-x7k9m');
+        window.fbDb = fbDb; // expose for QR scan handler
         fbDb.child('state').on('value', s => { const v=s.val(); if(v){state=v;saveState();render(); if(currentPage==='record')renderRecord(); if(currentPage==='overview')renderOverview();} });
         fbDb.child('config').on('value', s => { const v=s.val(); if(v&&v.steps&&v.crew){config=v; if(!config.schedSteps||!config.schedSteps.find(s=>s.key==='obsbot'))config.schedSteps=DEFAULT_CONFIG.schedSteps; if(!config.days||!config.days.length)config.days=DEFAULT_DAYS; saveConfig();render();} });
         fbDb.child('vmix_ips').on('value', s => { const v=s.val(); if(v){ VMIX_ROOMS.forEach(r => { if(v[r.key]) r.ip=v[r.key]; }); vmixSaveIps(); if(currentPage==='rooms') renderVmixCards(); } });
@@ -3232,6 +3233,16 @@ async function vmixSaveIp(key) {
     const clean = urlParam.trim().replace(/\/$/, '');
     localStorage.setItem('vmix_proxy_url', clean);
     window.history.replaceState({}, '', window.location.pathname);
+    // Push to Firebase immediately so the Firebase listener doesn't overwrite with the old URL
+    // We poll fbDb since Firebase may not be initialized yet at this point
+    const _pushQrUrlInterval = setInterval(() => {
+      if (window.fbDb) {
+        window.fbDb.child('vmix_proxy_url').set(clean);
+        clearInterval(_pushQrUrlInterval);
+      }
+    }, 200);
+    // Give up after 5s (Firebase may not be configured)
+    setTimeout(() => clearInterval(_pushQrUrlInterval), 5000);
   }
   // DOM is already loaded here — update UI immediately
   const url = localStorage.getItem('vmix_proxy_url') || '';
