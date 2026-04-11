@@ -27,8 +27,8 @@
   --line:    #1f1f1f;
   --line2:   #2a2a2a;
   --t1:      #e8e8e8;
-  --t2:      #666666;
-  --t3:      #333333;
+  --t2:      #b8b8b8;
+  --t3:      #8f8f8f;
   --accent:  #d4a843;
   --green:   #3d9970;
   --red:     #c0392b;
@@ -146,49 +146,48 @@ body {
 
 /* ── ROOM ROW ── */
 .room {
-  display: flex; align-items: center; flex-wrap: nowrap;
-  padding: 8px 10px;
+  display: flex; align-items: center;
+  padding: 12px 18px;
   border-top: 1px solid var(--line);
-  gap: 6px;
-  min-height: 48px;
+  gap: 10px;
+  min-height: 60px;
   transition: background 0.1s;
 }
 .room-name {
-  font-size: 11px; font-weight: 600; color: #808080;
-  flex: 0 0 65px; letter-spacing: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  font-size: 12px; font-weight: 600; color: #808080;
+  flex: 0 0 100px; letter-spacing: 0;
 }
-/* steps fill all remaining space between name and counter */
-.steps-wrap { display: flex; gap: 4px; flex: 1 1 0; min-width: 0; }
-/* each step box grows equally to fill steps-wrap */
-.step { display: flex; flex-direction: column; align-items: center; gap: 2px; flex: 1 1 0; min-width: 0; }
+.steps-wrap { display: flex; gap: 5px; flex: 1; }
+.step { display: flex; flex-direction: column; align-items: center; gap: 3px; flex: 0 0 auto; min-width: 40px; max-width: 64px; }
 .step input { display: none; }
 .step-box {
-  /* square based on available width — use aspect-ratio trick */
-  width: 100%; aspect-ratio: 1;
-  max-width: 44px; max-height: 44px;
+  width: 40px; height: 40px;
   border: 1px solid var(--line2);
   border-radius: 5px;
   background: var(--s2);
   display: flex; align-items: center; justify-content: center;
   cursor: pointer;
   transition: all 0.12s;
-  font-size: clamp(12px, 3vw, 20px);
+  font-size: 15px;
   position: relative;
+  flex-shrink: 0;
 }
 
 /* Tablet 480–768px */
 @media (min-width: 480px) {
   .room { min-height: 68px; padding: 12px 20px; gap: 14px; }
   .room-name { font-size: 14px; flex: 0 0 120px; }
-  .steps-wrap { gap: 7px; }
-  .step-box { max-width: 52px; max-height: 52px; border-radius: 7px; font-size: 20px; }
+  .steps-wrap { gap: 7px; max-width: 380px; }
+  .step { min-width: 48px; max-width: 72px; }
+  .step-box { font-size: 18px; border-radius: 7px; width: 48px; height: 48px; }
 }
 /* Desktop 768px+ */
 @media (min-width: 768px) {
   .room { min-height: 80px; padding: 14px 24px; gap: 18px; }
   .room-name { font-size: 15px; flex: 0 0 140px; }
   .steps-wrap { gap: 10px; max-width: 420px; }
-  .step-box { max-width: 64px; max-height: 64px; border-radius: 8px; font-size: 24px; }
+  .step { min-width: 56px; max-width: 80px; }
+  .step-box { font-size: 22px; border-radius: 8px; width: 56px; height: 56px; }
 }
 .step-box:active { transform: scale(0.87); }
 .step-icon { opacity: 0.4; line-height: 1; transition: opacity 0.12s; }
@@ -492,10 +491,6 @@ body { padding-bottom: 58px; }
 .hd-inline .hd-sub { font-size: 11px; color: var(--t3); margin-top: 1px; }
 
 .room-highlight { animation: roomFlash 1.5s ease; }
-@keyframes blink {
-  0%,100% { opacity: 1; }
-  50% { opacity: 0.35; }
-}
 @keyframes roomFlash {
   0%,100% { background: transparent; }
   20% { background: rgba(212,168,67,0.18); border-radius: 6px; }
@@ -802,18 +797,9 @@ body { padding-bottom: 58px; }
   <div style="font-size:16px;font-weight:700;color:var(--t1);margin-bottom:4px;">Room Control</div>
   <div style="font-size:11px;color:var(--t3);margin-bottom:12px;">vMix · Record + Stream + MultiCorder</div>
   <div id="vmix-https-warn" style="display:none;background:#3d2a00;border:1px solid #996600;border-radius:8px;padding:10px 12px;margin-bottom:14px;font-size:11px;color:#ffb74d;line-height:1.5;">
-    ⚠️ <strong>HTTPS blocks direct vMix</strong> — use a proxy URL below.
-  </div>
-  <!-- Proxy URL setting -->
-  <div style="background:var(--s2);border:1px solid var(--line2);border-radius:10px;padding:12px 14px;margin-bottom:14px;">
-    <div style="font-size:11px;font-weight:600;color:var(--t2);margin-bottom:6px;">🔗 Proxy URL <span style="font-weight:400;color:var(--t3);">— required when off-network (Tailscale/ngrok)</span></div>
-    <div style="display:flex;gap:6px;align-items:center;">
-      <input id="vmix-proxy-url" type="url" placeholder="http://100.x.x.x:8080  (leave blank on local network)"
-        style="flex:1;background:var(--s3,#1a1a1a);border:1px solid var(--line2);border-radius:6px;padding:7px 10px;font-size:12px;color:var(--t1);font-family:monospace;min-width:0;">
-      <button onclick="vmixSaveProxyUrl()" style="background:var(--s3,#222);border:1px solid var(--line2);border-radius:6px;padding:7px 12px;font-size:12px;font-weight:600;color:var(--t2);cursor:pointer;white-space:nowrap;">Save</button>
-      <button onclick="vmixTestProxy()" style="background:var(--s3,#222);border:1px solid var(--line2);border-radius:6px;padding:7px 12px;font-size:12px;font-weight:600;color:var(--t2);cursor:pointer;white-space:nowrap;">Test</button>
-    </div>
-    <div id="vmix-proxy-status" style="display:none;"></div>
+    ⚠️ <strong>HTTPS blocks vMix (HTTP)</strong> — buttons won't work here.<br>
+    Open on your laptop instead: <strong>http://localhost:8765</strong> → Rooms tab.<br>
+    Or in Chrome: tap the 🔒 lock → <em>Site settings</em> → allow <em>Insecure content</em>.
   </div>
   <div id="vmix-cards" style="display:flex;flex-direction:column;gap:12px;"></div>
   <div style="margin-top:16px;background:var(--s2);border:1px solid var(--line2);border-radius:12px;padding:14px 16px;display:flex;align-items:center;justify-content:space-between;gap:12px;">
@@ -863,19 +849,9 @@ body { padding-bottom: 58px; }
     <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
     Overview
   </div>
-  <div class="nav-tab" id="nav-today" onclick="switchPage('today')" style="display:none;">
+  <div class="nav-tab" id="nav-today" onclick="switchPage('today')">
     <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
     Schedule
-  </div>
-  <div class="nav-tab" id="nav-rooms" onclick="switchPage('rooms')">
-    <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4" fill="currentColor" stroke="none"/></svg>
-    Recording
-  </div>
-  <div class="nav-tab" id="nav-share" onclick="copyAppLink()" style="color:#25D366;">
-    <svg viewBox="0 0 32 32" fill="currentColor" style="width:22px;height:22px;">
-      <path d="M16 1C7.716 1 1 7.716 1 16c0 2.628.672 5.1 1.852 7.256L1 31l7.94-1.824A14.94 14.94 0 0 0 16 31c8.284 0 15-6.716 15-15S24.284 1 16 1zm0 27.4a12.35 12.35 0 0 1-6.3-1.726l-.452-.268-4.712 1.082 1.122-4.578-.296-.47A12.36 12.36 0 0 1 3.6 16C3.6 9.148 9.148 3.6 16 3.6S28.4 9.148 28.4 16 22.852 28.4 16 28.4zm6.77-9.28c-.37-.186-2.19-1.08-2.53-1.202-.34-.122-.586-.186-.832.186-.246.37-.954 1.202-1.17 1.448-.216.246-.43.278-.8.092-.37-.186-1.562-.576-2.976-1.836-1.1-.982-1.842-2.194-2.058-2.564-.216-.37-.022-.57.162-.754.166-.166.37-.432.556-.648.186-.216.248-.37.37-.616.124-.246.062-.462-.03-.648-.092-.186-.832-2.006-1.14-2.746-.3-.72-.606-.622-.832-.634l-.708-.012c-.246 0-.648.092-.988.462s-1.296 1.266-1.296 3.086 1.326 3.578 1.512 3.824c.186.246 2.61 3.986 6.326 5.59.884.382 1.572.61 2.108.78.886.282 1.692.242 2.33.146.71-.106 2.19-.896 2.5-1.762.308-.866.308-1.608.216-1.762-.092-.154-.338-.246-.708-.432z"/>
-    </svg>
-    Share
   </div>
   <div class="nav-tab" id="nav-settings" onclick="switchPage('settings')">
     <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
@@ -1891,6 +1867,8 @@ if (!config.schedSteps.find(s => s.key === 'obsbot')) config.schedSteps = DEFAUL
 let state  = JSON.parse(localStorage.getItem('kc_state') ||'{}');
 let filter = null;
 let fbDb   = null;
+let fbAuth = null;
+let fbInitStarted = false;
 
 // ─── Day tracking (simple prefix approach) ───────────────────────────────
 if (!config.days || !config.days.length) config.days = DEFAULT_DAYS;
@@ -1940,21 +1918,42 @@ function switchDay(key) {
 
 // Firebase
 function initFirebase(url) {
-  if (!url) return;
-  const load = (src, cb) => { const s=document.createElement('script'); s.src=src; s.onload=cb; document.head.appendChild(s); };
-  load('https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js', () =>
-    load('https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js', () => {
+  if (!url || fbInitStarted) return;
+  fbInitStarted = true;
+  const load = (src) => new Promise((resolve, reject) => {
+    if ([...document.scripts].some(s => s.src === src)) return resolve();
+    const s = document.createElement('script');
+    s.src = src;
+    s.onload = resolve;
+    s.onerror = reject;
+    document.head.appendChild(s);
+  });
+
+  Promise.resolve()
+    .then(() => load('https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js'))
+    .then(() => load('https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js'))
+    .then(() => load('https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js'))
+    .then(async () => {
       try {
-        const app = firebase.initializeApp({ databaseURL: url }, 'tr');
+        const app = firebase.apps?.find(a => a.name === 'tr') || firebase.initializeApp({ databaseURL: url }, 'tr');
+        fbAuth = firebase.auth(app);
+        if (!fbAuth.currentUser) {
+          await fbAuth.signInAnonymously();
+        }
         fbDb = firebase.database(app).ref('e3-kc26-x7k9m');
-        window.fbDb = fbDb; // expose for QR scan handler
         fbDb.child('state').on('value', s => { const v=s.val(); if(v){state=v;saveState();render(); if(currentPage==='record')renderRecord(); if(currentPage==='overview')renderOverview();} });
         fbDb.child('config').on('value', s => { const v=s.val(); if(v&&v.steps&&v.crew){config=v; if(!config.schedSteps||!config.schedSteps.find(s=>s.key==='obsbot'))config.schedSteps=DEFAULT_CONFIG.schedSteps; if(!config.days||!config.days.length)config.days=DEFAULT_DAYS; saveConfig();render();} });
         fbDb.child('vmix_ips').on('value', s => { const v=s.val(); if(v){ VMIX_ROOMS.forEach(r => { if(v[r.key]) r.ip=v[r.key]; }); vmixSaveIps(); if(currentPage==='rooms') renderVmixCards(); } });
-        fbDb.child('vmix_proxy_url').on('value', s => { const v=s.val(); if(v){ localStorage.setItem('vmix_proxy_url',v); vmixUpdateProxyStatus(v); } else { vmixUpdateProxyStatus(localStorage.getItem('vmix_proxy_url')||''); } });
         setFbStatus(true);
-      } catch(e) { setFbStatus(false); }
-    }));
+      } catch(e) {
+        console.error('Firebase init failed', e);
+        setFbStatus(false);
+      }
+    })
+    .catch(e => {
+      console.error('Firebase script load failed', e);
+      setFbStatus(false);
+    });
 }
 function setFbStatus(ok) {
   const d=document.getElementById('fbDot'), t=document.getElementById('fbTxt');
@@ -3055,53 +3054,44 @@ function vmixMakeCard(r) {
   hdr.style.cssText = 'display:flex;align-items:center;justify-content:space-between;padding:14px 16px 10px;';
 
   var nameWrap = document.createElement('div');
-  nameWrap.style.cssText = 'display:flex;align-items:center;gap:8px;flex:1;';
-
+  nameWrap.style.cssText = 'display:flex;align-items:center;gap:8px;';
+  var nameDot = document.createElement('span');
+  nameDot.innerHTML = pill(st.recording || st.streaming || st.multicorder);
   var nameEl = document.createElement('span');
   nameEl.style.cssText = 'font-size:15px;font-weight:700;color:var(--t1);';
   nameEl.textContent = r.name;
-
-  // Status badges — one per active function
-  var badges = document.createElement('div');
-  badges.style.cssText = 'display:inline-flex;gap:5px;align-items:center;flex-shrink:0;';
-  var activeFns = [
-    { on: st.recording,   label: 'REC',    color: '#ff5555' },
-    { on: st.streaming,   label: 'STREAM', color: '#ffaa00' },
-    { on: st.multicorder, label: 'MULTI',  color: '#55aaff' },
-  ];
-  var anyActive = false;
-  activeFns.forEach(function(f) {
-    var badge = document.createElement('span');
-    if (f.on) {
-      anyActive = true;
-      badge.textContent = '● ' + f.label;
-      badge.style.cssText = 'font-size:10px;font-weight:700;color:' + f.color + ';animation:blink 1.2s ease-in-out infinite;letter-spacing:0.3px;';
-    }
-    badges.appendChild(badge);
-  });
-  if (!anyActive && r.ip) {
-    var idleBadge = document.createElement('span');
-    idleBadge.textContent = 'IDLE';
-    idleBadge.style.cssText = 'font-size:10px;color:#666;letter-spacing:0.3px;';
-    badges.appendChild(idleBadge);
-  }
-
+  nameWrap.appendChild(nameDot);
   nameWrap.appendChild(nameEl);
-  nameWrap.appendChild(badges);
 
-  // ── Inline IP input (always visible in header, saves on blur/Enter) ──
+  var ipToggle = document.createElement('button');
+  ipToggle.textContent = r.ip ? r.ip.split('.').slice(-1)[0] ? '⚙' : '⚙' : '+ IP';
+  ipToggle.title = r.ip || 'Set IP';
+  ipToggle.style.cssText = 'background:none;border:1px solid var(--line2);color:var(--t3);border-radius:6px;padding:3px 8px;font-size:11px;cursor:pointer;';
+  ipToggle.onclick = function() {
+    var row = card.querySelector('.vmix-ip-row');
+    row.style.display = row.style.display === 'none' ? 'flex' : 'none';
+  };
+
+  hdr.appendChild(nameWrap);
+  hdr.appendChild(ipToggle);
+  card.appendChild(hdr);
+
+  // ── IP row (hidden by default) ──
+  var ipRow = document.createElement('div');
+  ipRow.className = 'vmix-ip-row';
+  ipRow.style.cssText = 'display:none;gap:8px;padding:0 16px 10px;';
   var inp = document.createElement('input');
   inp.id = 'vmix-ip-' + r.key;
   inp.value = r.ip;
   inp.placeholder = '10.x.x.x';
-  inp.style.cssText = 'background:#111;border:1px solid var(--line2);color:var(--t2);border-radius:6px;padding:3px 8px;font-size:11px;font-family:monospace;width:110px;outline:none;';
-  inp.addEventListener('blur', function() { vmixSaveIp(r.key); inp.style.borderColor = 'var(--line2)'; });
-  inp.addEventListener('keydown', function(e) { if (e.key === 'Enter') inp.blur(); });
-  inp.addEventListener('focus', function() { inp.style.borderColor = 'var(--accent)'; });
-
-  hdr.appendChild(nameWrap);
-  hdr.appendChild(inp);
-  card.appendChild(hdr);
+  inp.style.cssText = 'flex:1;background:#111;border:1px solid var(--line2);color:var(--t1);border-radius:7px;padding:6px 10px;font-size:12px;font-family:monospace;';
+  var saveBtn = document.createElement('button');
+  saveBtn.textContent = 'Save';
+  saveBtn.style.cssText = 'background:#5dcc5d;border:none;color:#000;border-radius:7px;padding:6px 14px;font-size:12px;font-weight:700;cursor:pointer;';
+  saveBtn.onclick = function() { vmixSaveIp(r.key); ipRow.style.display = 'none'; };
+  ipRow.appendChild(inp);
+  ipRow.appendChild(saveBtn);
+  card.appendChild(ipRow);
 
   // ── Status row ──
   var statusRow = document.createElement('div');
@@ -3115,53 +3105,36 @@ function vmixMakeCard(r) {
 
   fns.forEach(function(f, i) {
     var cell = document.createElement('div');
-    cell.style.cssText = 'display:flex;flex-direction:column;align-items:center;padding:8px 6px;gap:6px;' + (i < 2 ? 'border-right:1px solid var(--line2);' : '');
+    cell.style.cssText = 'display:flex;flex-direction:column;align-items:center;padding:10px 6px;gap:6px;' + (i < 2 ? 'border-right:1px solid var(--line2);' : '');
 
-    // Label + pill side by side
-    var topRow = document.createElement('div');
-    topRow.style.cssText = 'display:flex;align-items:center;gap:5px;';
     var lbl = document.createElement('div');
     lbl.style.cssText = 'font-size:9px;font-weight:700;letter-spacing:0.8px;color:var(--t3);';
     lbl.textContent = f.label;
+
     var pillEl = document.createElement('div');
     pillEl.innerHTML = pill(f.on);
-    pillEl.style.cssText = 'display:flex;align-items:center;gap:3px;font-size:10px;color:' + (err ? '#ff5555' : f.on ? '#5dcc5d' : '#555') + ';';
+    pillEl.style.cssText = 'display:flex;align-items:center;gap:4px;font-size:10px;color:' + (err ? '#cc5d5d' : f.on ? '#5dcc5d' : '#555') + ';';
     var pillTxt = document.createElement('span');
     pillTxt.textContent = err ? 'ERR' : f.on ? 'LIVE' : 'OFF';
     pillEl.appendChild(pillTxt);
-    topRow.appendChild(lbl);
-    topRow.appendChild(pillEl);
 
     var btnRow = document.createElement('div');
     btnRow.style.cssText = 'display:flex;gap:4px;width:100%;';
     var bs = document.createElement('button');
     bs.textContent = '▶';
     bs.title = 'Start ' + f.label;
-    bs.style.cssText = 'flex:1;border-radius:6px;padding:10px 0;font-size:14px;cursor:pointer;border:1px solid #1e4d1e;background:#0a1f0a;color:#4a9e4a;font-weight:700;';
-    bs.onclick = async function() {
-      var btn = this; btn.disabled = true; btn.textContent = '…';
-      btn.style.opacity = '0.5';
-      await vmixOne(r.key, f.startFn);
-      btn.disabled = false; btn.textContent = '▶';
-      btn.style.opacity = '1'; btn.style.background = '#1a4d1a';
-      setTimeout(function(){ btn.style.background = '#0a1f0a'; }, 600);
-    };
+    bs.style.cssText = 'flex:1;border-radius:6px;padding:6px 0;font-size:12px;cursor:pointer;border:1px solid #2d7a2d;background:#0d2e0d;color:#5dcc5d;font-weight:700;';
+    bs.onclick = function() { vmixOne(r.key, f.startFn); };
     var bx = document.createElement('button');
     bx.textContent = '■';
     bx.title = 'Stop ' + f.label;
-    bx.style.cssText = 'flex:1;border-radius:6px;padding:10px 0;font-size:14px;cursor:pointer;border:1px solid #4d1e1e;background:#1f0a0a;color:#9e4a4a;font-weight:700;';
-    bx.onclick = async function() {
-      var btn = this; btn.disabled = true; btn.textContent = '…';
-      btn.style.opacity = '0.5';
-      await vmixOne(r.key, f.stopFn);
-      btn.disabled = false; btn.textContent = '■';
-      btn.style.opacity = '1'; btn.style.background = '#4d1a1a';
-      setTimeout(function(){ btn.style.background = '#1f0a0a'; }, 600);
-    };
+    bx.style.cssText = 'flex:1;border-radius:6px;padding:6px 0;font-size:12px;cursor:pointer;border:1px solid #7a2d2d;background:#2e0d0d;color:#cc5d5d;font-weight:700;';
+    bx.onclick = function() { vmixOne(r.key, f.stopFn); };
     btnRow.appendChild(bs);
     btnRow.appendChild(bx);
 
-    cell.appendChild(topRow);
+    cell.appendChild(lbl);
+    cell.appendChild(pillEl);
     cell.appendChild(btnRow);
     statusRow.appendChild(cell);
   });
@@ -3172,11 +3145,11 @@ function vmixMakeCard(r) {
   masterRow.style.cssText = 'display:grid;grid-template-columns:1fr 1fr;';
   var startAll = document.createElement('button');
   startAll.innerHTML = '▶ &nbsp;START ALL';
-  startAll.style.cssText = 'padding:15px;font-size:14px;font-weight:700;cursor:pointer;border:none;border-right:1px solid var(--line2);background:#0a1f0a;color:#4a9e4a;border-radius:0 0 0 14px;letter-spacing:0.3px;';
+  startAll.style.cssText = 'padding:13px;font-size:13px;font-weight:700;cursor:pointer;border:none;border-right:1px solid var(--line2);background:#0d2e0d;color:#5dcc5d;border-radius:0 0 0 14px;letter-spacing:0.3px;';
   startAll.onclick = function() { vmixRoomAction(r.key, 'start'); };
   var stopAll = document.createElement('button');
   stopAll.innerHTML = '■ &nbsp;STOP ALL';
-  stopAll.style.cssText = 'padding:15px;font-size:14px;font-weight:700;cursor:pointer;border:none;background:#1f0a0a;color:#9e4a4a;border-radius:0 0 14px 0;letter-spacing:0.3px;';
+  stopAll.style.cssText = 'padding:13px;font-size:13px;font-weight:700;cursor:pointer;border:none;background:#2e0d0d;color:#cc5d5d;border-radius:0 0 14px 0;letter-spacing:0.3px;';
   stopAll.onclick = function() { vmixRoomAction(r.key, 'stop'); };
   masterRow.appendChild(startAll);
   masterRow.appendChild(stopAll);
@@ -3198,120 +3171,35 @@ async function vmixSaveIp(key) {
   const room = VMIX_ROOMS.find(r => r.key === key);
   if (!room) return;
   const inp = document.getElementById('vmix-ip-' + key);
-  const newIp = inp ? inp.value.trim() : '';
-  if (newIp === room.ip) return; // no change, skip
-  room.ip = newIp;
+  room.ip = inp ? inp.value.trim() : '';
   vmixSaveIps();
   // Also save to Firebase so all devices get the IP
   if (fbDb) fbDb.child('vmix_ips/' + key).set(room.ip);
-  if (room.ip) {
-    showToast('✓ IP saved — ' + room.ip);
-    vmixRefreshStatus(key);
-  }
-}
-
-// Auto-read ?proxy= from URL (set by vMix Commander QR code scan)
-// Script is at bottom of body so DOM is already ready — call directly
-(function() {
-  const urlParam = new URLSearchParams(window.location.search).get('proxy');
-  if (urlParam) {
-    const clean = urlParam.trim().replace(/\/$/, '');
-    localStorage.setItem('vmix_proxy_url', clean);
-    window.history.replaceState({}, '', window.location.pathname);
-    // Push to Firebase immediately so the Firebase listener doesn't overwrite with the old URL
-    // We poll fbDb since Firebase may not be initialized yet at this point
-    const _pushQrUrlInterval = setInterval(() => {
-      if (window.fbDb) {
-        window.fbDb.child('vmix_proxy_url').set(clean);
-        clearInterval(_pushQrUrlInterval);
-      }
-    }, 200);
-    // Give up after 5s (Firebase may not be configured)
-    setTimeout(() => clearInterval(_pushQrUrlInterval), 5000);
-  }
-  // DOM is already loaded here — update UI immediately
-  const url = localStorage.getItem('vmix_proxy_url') || '';
-  vmixUpdateProxyStatus(url);
-  const inp = document.getElementById('vmix-proxy-url');
-  if (inp) inp.value = url;
-})();
-
-// Proxy URL helpers
-function vmixGetProxyUrl() {
-  return localStorage.getItem('vmix_proxy_url') || '';
-}
-function vmixSaveProxyUrl() {
-  const inp = document.getElementById('vmix-proxy-url');
-  const val = inp ? inp.value.trim().replace(/\/$/, '') : '';
-  localStorage.setItem('vmix_proxy_url', val);
-  if (fbDb) fbDb.child('vmix_proxy_url').set(val);
-  vmixUpdateProxyStatus(val);
-  showToast(val ? '✓ Proxy saved' : '✓ Proxy cleared');
-}
-function vmixUpdateProxyStatus(url) {
-  const el = document.getElementById('vmix-proxy-status');
-  const inp = document.getElementById('vmix-proxy-url');
-  if (!el) return;
-  if (inp && inp.value !== url) inp.value = url || '';
-  if (url) {
-    el.textContent = `🔗 Proxy active: ${url}`;
-    el.style.color = 'var(--green)';
-  } else if (location.protocol === 'https:') {
-    el.textContent = '⚠ No proxy set — buttons will not work. Scan QR from vMix Commander.';
-    el.style.color = '#ffb74d';
-  } else {
-    el.textContent = 'No proxy set — direct HTTP (same network only)';
-    el.style.color = 'var(--t3)';
-  }
-}
-async function vmixTestProxy() {
-  const proxy = vmixGetProxyUrl();
-  if (!proxy) { showToast('⚠ No proxy URL set'); return; }
-  showToast('⏳ Testing proxy…');
-  try {
-    const r = await fetch(`${proxy}/vmix-proxy?ip=test`, { signal: AbortSignal.timeout(4000) });
-    // A 502 still means the proxy is reachable (vMix IP was just wrong)
-    showToast(r.status < 500 || r.status === 502 ? '✓ Proxy reachable!' : `✗ Proxy error: ${r.status}`);
-  } catch(e) { showToast(`✗ Can't reach proxy: ${e.message}`); }
+  // Visual feedback — change button text immediately
+  const btn = inp ? inp.nextElementSibling : null;
+  if (btn) { const orig = btn.textContent; btn.textContent = '✓ Saved'; btn.style.color = '#5dcc5d'; setTimeout(() => { btn.textContent = orig; btn.style.color = ''; }, 2000); }
+  showToast('✓ IP saved — ' + room.ip);
+  vmixRefreshStatus(key);
 }
 
 async function vmixCall(ip, fn) {
   if (!ip) return { ok: false, error: 'No IP' };
-  const proxy = vmixGetProxyUrl();
-  // On HTTPS with no proxy — blocked by browser, show clear message
-  if (!proxy && location.protocol === 'https:') {
-    showToast('⚠ Set a Proxy URL first — direct HTTP blocked on HTTPS');
-    // Scroll to proxy input
-    const inp = document.getElementById('vmix-proxy-url');
-    if (inp) inp.focus();
-    return { ok: false, error: 'No proxy set' };
-  }
   try {
-    if (proxy) {
-      const r = await fetch(`${proxy}/vmix-proxy?ip=${encodeURIComponent(ip)}&fn=${encodeURIComponent(fn)}`, { signal: AbortSignal.timeout(5000) });
-      return r.ok || r.status === 502 ? { ok: true } : { ok: false, error: `HTTP ${r.status}` };
-    } else {
-      const r = await fetch(`http://${ip}:8088/api/?Function=${fn}`, { mode: 'no-cors' });
-      return { ok: true };
-    }
+    const r = await fetch(`http://${ip}:8088/api/?Function=${fn}`, { mode: 'no-cors' });
+    return { ok: true };
   } catch(e) { return { ok: false, error: e.message }; }
 }
 
 async function vmixGetStatus(ip) {
   if (!ip) return { ok: false, error: 'No IP', recording: false, streaming: false, multicorder: false };
-  const proxy = vmixGetProxyUrl();
-  const proxyUrl = proxy ? `${proxy}/vmix-proxy?ip=${encodeURIComponent(ip)}` : `/vmix-proxy?ip=${encodeURIComponent(ip)}`;
   try {
-    const r = await fetch(proxyUrl, { signal: AbortSignal.timeout(5000) });
+    const r = await fetch(`http://${ip}:8088/api`, { mode: 'cors' });
     const xml = await r.text();
-    const mMaster = xml.match(/<audio><master[^>]*meterF1="([^"]+)"[^>]*meterF2="([^"]+)"/i);
     return {
       ok: true,
-      recording:   /<recording[^>]*>True<\/recording>/i.test(xml),
-      streaming:   /<streaming[^>]*>True<\/streaming>/i.test(xml),
-      multicorder: /<multiCorder[^>]*>True<\/multiCorder>/i.test(xml),
-      meterL: mMaster ? parseFloat(mMaster[1]) : null,
-      meterR: mMaster ? parseFloat(mMaster[2]) : null,
+      recording:   xml.includes('<recording>True</recording>') || xml.includes('<recording>true</recording>'),
+      streaming:   xml.includes('<streaming>True</streaming>') || xml.includes('<streaming>true</streaming>'),
+      multicorder: xml.includes('<multiCorder>True</multiCorder>') || xml.includes('<multicorder>true</multicorder>'),
     };
   } catch(e) { return { ok: false, error: e.message, recording: false, streaming: false, multicorder: false }; }
 }
@@ -3327,31 +3215,6 @@ async function vmixRefreshAll() {
   await Promise.all(VMIX_ROOMS.map(r => vmixRefreshStatus(r.key)));
 }
 
-// Poll a single room until status changes or max attempts reached
-async function vmixPollUntilChanged(key, action, maxAttempts) {
-  const isStart = action === 'start';
-  for (let i = 0; i < (maxAttempts || 6); i++) {
-    await new Promise(r => setTimeout(r, 800));
-    await vmixRefreshStatus(key);
-    const st = vmixStatus[key] || {};
-    if (isStart ? (st.recording || st.streaming) : (!st.recording && !st.streaming)) break;
-  }
-}
-
-// Poll all rooms until status changes or max attempts reached
-async function vmixPollAllUntilChanged(action, maxAttempts) {
-  const isStart = action === 'start';
-  for (let i = 0; i < (maxAttempts || 6); i++) {
-    await new Promise(r => setTimeout(r, 800));
-    await vmixRefreshAll();
-    const allDone = VMIX_ROOMS.every(r => {
-      const st = vmixStatus[r.key] || {};
-      return isStart ? (st.recording || st.streaming) : (!st.recording && !st.streaming);
-    });
-    if (allDone) break;
-  }
-}
-
 async function vmixOne(key, fn) {
   const room = VMIX_ROOMS.find(r => r.key === key);
   if (!room) return;
@@ -3359,9 +3222,7 @@ async function vmixOne(key, fn) {
   showToast('⏳ ' + fn + '…');
   const res = await vmixCall(room.ip, fn);
   showToast(res.ok ? '✓ ' + fn : '✗ Failed: ' + (res.error || 'blocked?'));
-  // Poll for status update after action
-  const action = fn.toLowerCase().includes('stop') ? 'stop' : 'start';
-  vmixPollUntilChanged(key, action, 5);
+  setTimeout(() => vmixRefreshStatus(key), 1000);
 }
 
 async function vmixRoomAction(key, action) {
@@ -3375,8 +3236,7 @@ async function vmixRoomAction(key, action) {
   const results = await Promise.all(fns.map(f => vmixCall(room.ip, f)));
   const ok = results.filter(r => r.ok).length;
   showToast(ok === 3 ? '✓ ' + room.name + ' done' : '✗ ' + ok + '/3 OK — HTTPS blocking?');
-  // Poll until vMix confirms the new state
-  vmixPollUntilChanged(key, action, 6);
+  setTimeout(() => vmixRefreshStatus(key), 1200);
 }
 
 async function vmixAllAction(action) {
@@ -3385,8 +3245,7 @@ async function vmixAllAction(action) {
     ? ['StartRecording','StartStreaming','StartMultiCorder']
     : ['StopRecording','StopStreaming','StopMultiCorder'];
   await Promise.all(VMIX_ROOMS.flatMap(r => fns.map(f => vmixCall(r.ip, f))));
-  // Poll all rooms until they reflect the new state
-  vmixPollAllUntilChanged(action, 6);
+  setTimeout(vmixRefreshAll, 1200);
 }
 
 // Patch switchPage to handle rooms tab
@@ -3403,7 +3262,6 @@ window.switchPage = function(page) {
     document.getElementById('page-rooms').classList.add('active');
     document.getElementById('nav-rooms').classList.add('on');
     vmixLoadIps();
-    vmixUpdateProxyStatus(vmixGetProxyUrl());
     renderVmixCards();
     vmixRefreshAll();
   } else {
@@ -3412,25 +3270,18 @@ window.switchPage = function(page) {
 };
 
 vmixLoadIps();
-vmixUpdateProxyStatus(vmixGetProxyUrl());
 
-// Auto-refresh vMix status every 8s when on Rooms tab
-setInterval(function() {
-  if (currentPage === 'rooms') vmixRefreshAll();
-}, 8000);
+// Show HTTPS warning if needed
+if (location.protocol === 'https:') {
+  var w = document.getElementById('vmix-https-warn');
+  if (w) w.style.display = 'block';
+}
 
-// HTTPS warning hidden — proxy handles the HTTPS→HTTP bridge
-// if (location.protocol === 'https:') {
-//   var w = document.getElementById('vmix-https-warn');
-//   if (w) w.style.display = 'block';
-// }
-
-// If page was rooms on last visit, render cards + fetch status immediately
+// If page was rooms on last visit, render cards after all init settles
 if (currentPage === 'rooms') {
   requestAnimationFrame(function() {
     vmixLoadIps();
     renderVmixCards();
-    vmixRefreshAll();
   });
 }
 </script>
