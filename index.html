@@ -2137,13 +2137,17 @@ function renderEventSwitcher() {
   const wrap = document.getElementById('eventSwitcherWrap');
   if (!wrap) return;
   const entries = Object.values(appData.events).sort((a, b) => (a.archived === b.archived) ? ((b.updatedAt||0) - (a.updatedAt||0)) : (a.archived ? 1 : -1));
-  wrap.innerHTML = `<div class="event-switcher">${entries.map(ev => `
-    <div class="event-chip${ev.id===currentEventId?' on':''}" onclick="switchEvent('${ev.id}')">
-      <span class="event-chip-title">${ev.name || ev.config?.title || 'Untitled Event'}</span>
-      <span class="event-chip-meta">${ev.archived ? 'Archived' : 'Live event'}</span>
-    </div>`).join('')}
-    <button class="event-add-btn" onclick="createEvent()">+ Event</button>
-  </div>`;
+  wrap.innerHTML = `
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 18px 6px;">
+      <div style="font-size:11px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:0.6px;">Events</div>
+      <button class="event-add-btn" onclick="createEvent()">+ New Event</button>
+    </div>
+    <div class="event-switcher">${entries.map(ev => `
+      <div class="event-chip${ev.id===currentEventId?' on':''}" onclick="switchEvent('${ev.id}')">
+        <span class="event-chip-title">${ev.name || ev.config?.title || 'Untitled Event'}</span>
+        <span class="event-chip-meta">${ev.archived ? 'Archived' : 'Live event'}</span>
+      </div>`).join('')}
+    </div>`;
 }
 
 function render() {
