@@ -2424,7 +2424,7 @@ function renderEventSwitcher() {
           <div style="font-size:14px;font-weight:700;color:var(--t1);margin-top:4px;">${escapeHtml(current?.name || 'Untitled Event')}</div>
           <div style="font-size:11px;color:var(--t3);margin-top:2px;">${escapeHtml(eventMetaLine(current) || (current?.archived ? 'Archived event' : 'Live event'))}</div>
         </div>
-        <button class="event-add-btn" onclick="createEvent()">+ New Event</button>
+        <button id="setup-add-event-btn" class="event-add-btn" type="button" onclick="createEvent()">+ New Event</button>
       </div>
       <div class="event-switcher">${liveEvents.map(ev => `
         <div class="event-chip${ev.id===currentEventId?' on':''}" onclick="switchEvent('${ev.id}')">
@@ -2435,6 +2435,8 @@ function renderEventSwitcher() {
       </div>
       <div class="event-summary">${archivedEvents.length ? `${archivedEvents.length} archived event${archivedEvents.length===1?'':'s'} available in Settings.` : 'Archived events stay hidden here so live switching is simpler on mobile.'}</div>
     </div>`;
+  const addBtn = document.getElementById('setup-add-event-btn');
+  if (addBtn) addBtn.addEventListener('click', createEvent);
 }
 
 function render() {
