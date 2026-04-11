@@ -1963,12 +1963,18 @@ function switchEvent(eventId) {
 }
 function createEvent() {
   const source = currentEvent();
-  const ev = makeEvent({ name: source.name + ' Copy', config: source.config, state: {} });
+  const ev = makeEvent({
+    name: (source?.name || source?.config?.title || 'New Event') + ' Copy',
+    config: source?.config,
+    state: {}
+  });
   appData.events[ev.id] = ev;
   currentEventId = ev.id;
   syncActiveEvent();
-  saveConfig();
+  saveAppData();
+  pushEventData();
   renderAll();
+  renderSettings();
   showToast('New event created');
 }
 function updateEventName(eventId, value) {
@@ -1976,13 +1982,18 @@ function updateEventName(eventId, value) {
   if (!ev) return;
   ev.name = value.trim() || ev.name;
   if (eventId === currentEventId) { config.title = ev.name; }
+  saveAppData();
+  pushEventData();
+  renderEventSwitcher();
 }
 function toggleEventArchive(eventId) {
   const ev = appData.events[eventId];
   if (!ev) return;
   ev.archived = !ev.archived;
-  saveConfig();
+  saveAppData();
+  pushEventData();
   renderAll();
+  renderSettings();
   showToast(ev.archived ? 'Event archived' : 'Event restored');
 }
 function ensureActiveEventForState() { if (!config || !state) syncActiveEvent(); }
