@@ -733,10 +733,13 @@ body { padding-bottom: 58px; }
 .room-tab.on { background: var(--accent); color: #000; border-color: var(--accent); }
 .room-tab:active { opacity: 0.8; }
 
+.event-toolbar { display:flex; align-items:flex-start; justify-content:space-between; gap:12px; margin-bottom:8px; flex-wrap:wrap; }
+.event-toolbar-copy { min-width:0; }
 .event-switcher { display:flex; gap:8px; overflow-x:auto; scrollbar-width:none; -webkit-overflow-scrolling:touch; }
 .event-switcher::-webkit-scrollbar { display:none; }
 .event-chip {
   min-width: 0;
+  flex: 0 0 160px;
   padding: 8px 10px;
   border: 1px solid var(--line2);
   border-radius: 8px;
@@ -746,15 +749,27 @@ body { padding-bottom: 58px; }
   display:flex; flex-direction:column; gap:2px;
 }
 .event-chip.on { border-color: var(--accent); background: rgba(212,168,67,0.12); color: var(--t1); }
-.event-chip-title { font-size: 12px; font-weight: 700; white-space: nowrap; }
-.event-chip-meta { font-size: 10px; color: var(--t3); white-space: nowrap; }
+.event-chip.archived { opacity: 0.72; }
+.event-chip-title { font-size: 12px; font-weight: 700; white-space: nowrap; overflow:hidden; text-overflow:ellipsis; }
+.event-chip-meta { font-size: 10px; color: var(--t3); white-space: nowrap; overflow:hidden; text-overflow:ellipsis; }
+.event-chip-status { font-size: 9px; font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase; color: var(--accent); }
 .event-add-btn { flex:0 0 auto; padding: 8px 12px; border:1px dashed var(--line2); border-radius:8px; background:transparent; color:var(--t2); font:inherit; font-size:12px; font-weight:700; cursor:pointer; }
 .event-admin-item { background: var(--s2); border:1px solid var(--line); border-radius:8px; padding:10px; margin-bottom:8px; }
 .event-admin-row { display:flex; align-items:center; gap:8px; margin-top:8px; flex-wrap:wrap; }
 .event-admin-actions { display:flex; gap:8px; flex-wrap:wrap; }
+.event-admin-grid { display:grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap:8px; margin-top:8px; }
+.event-admin-grid .si { margin-bottom:0; }
 .event-pill { font-size:10px; font-weight:700; padding:3px 7px; border-radius:999px; border:1px solid var(--line2); color:var(--t3); }
 .event-pill.live { color: var(--green); border-color: rgba(61,153,112,0.35); background: rgba(61,153,112,0.08); }
 .event-pill.archived { color: var(--accent); border-color: rgba(212,168,67,0.35); background: rgba(212,168,67,0.08); }
+.event-summary { font-size:11px; color:var(--t3); margin-top:8px; line-height:1.45; }
+.event-empty { padding:12px; border:1px dashed var(--line2); border-radius:8px; color:var(--t3); font-size:12px; text-align:center; }
+
+@media (max-width: 479px) {
+  .event-switcher { overflow: visible; flex-wrap: wrap; }
+  .event-chip { flex: 1 1 calc(50% - 4px); }
+  .event-admin-grid { grid-template-columns: 1fr; }
+}
 </style>
 </head>
 <body>
@@ -1870,6 +1885,29 @@ const LEGACY_STATE_KEY = 'kc_state';
 
 function clone(obj) { return JSON.parse(JSON.stringify(obj)); }
 function newEventId() { return 'ev_' + Date.now(); }
+function escapeHtml(value) {
+  return String(value ?? '').replace(/[&<>"']/g, ch => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[ch]));
+}
+function eventMetaLine(ev) {
+  return [ev?.location, ev?.dateLabel].filter(Boolean).join(' · ') || ev?.config?.subtitle || '';
+}
+function touchEvent(ev) { if (ev) ev.updatedAt = Date.now(); }
+function syncEventConfigMetadata(ev) {
+  if (!ev) return;
+  ev.name = ev.name || ev.config?.title || 'Untitled Event';
+  ev.config = normalizeConfig(ev.config);
+  ev.config.title = ev.name;
+  ev.config.subtitle = eventMetaLine(ev) || ev.config.subtitle || DEFAULT_CONFIG.subtitle;
+}
+function getOrderedEvents(includeArchived = true) {
+  return Object.values(appData.events)
+    .filter(ev => includeArchived || !ev.archived)
+    .sort((a, b) => (a.archived === b.archived) ? ((b.updatedAt||0) - (a.updatedAt||0)) : (a.archived ? 1 : -1));
+}
+function getNextLiveEventId(excludeId = null) {
+  const next = getOrderedEvents(false).find(ev => ev.id !== excludeId);
+  return next?.id || null;
+}
 function normalizeConfig(raw) {
   const cfg = raw && typeof raw === 'object' ? clone(raw) : clone(DEFAULT_CONFIG);
   if (!cfg.title) cfg.title = DEFAULT_CONFIG.title;
@@ -1886,21 +1924,35 @@ function normalizeState(raw) {
 }
 function makeEvent(base = {}) {
   const cfg = normalizeConfig(base.config || base);
-  return {
+  const ev = {
     id: base.id || newEventId(),
     name: base.name || cfg.title || 'New Event',
+    location: base.location || '',
+    dateLabel: base.dateLabel || '',
     archived: base.archived === true,
+    archivedAt: base.archivedAt || null,
     createdAt: base.createdAt || Date.now(),
-    updatedAt: Date.now(),
+    updatedAt: base.updatedAt || Date.now(),
     config: cfg,
     state: normalizeState(base.state),
   };
+  if (!ev.location && !ev.dateLabel && cfg.subtitle && cfg.subtitle !== DEFAULT_CONFIG.subtitle) {
+    const parts = cfg.subtitle.split('·').map(v => v.trim()).filter(Boolean);
+    if (parts.length > 1) {
+      ev.location = parts[0] || '';
+      ev.dateLabel = parts.slice(1).join(' · ');
+    } else {
+      ev.dateLabel = cfg.subtitle;
+    }
+  }
+  syncEventConfigMetadata(ev);
+  return ev;
 }
 function loadAppData() {
   const legacyConfig = JSON.parse(localStorage.getItem(LEGACY_CONFIG_KEY) || 'null') || clone(DEFAULT_CONFIG);
   const legacyState = JSON.parse(localStorage.getItem(LEGACY_STATE_KEY) || '{}');
   const stored = JSON.parse(localStorage.getItem(APP_STORE_KEY) || 'null');
-  if (stored && stored.events && typeof stored.events === 'object') {
+  if (stored && stored.events && typeof stored.events === 'object' && Object.keys(stored.events).length) {
     const events = {};
     Object.entries(stored.events).forEach(([id, ev]) => { events[id] = makeEvent({ ...ev, id }); });
     const currentEventId = stored.currentEventId && events[stored.currentEventId] ? stored.currentEventId : Object.keys(events)[0];
@@ -1925,8 +1977,7 @@ function syncActiveEvent() {
   const ev = currentEvent();
   ev.config = normalizeConfig(ev.config);
   ev.state = normalizeState(ev.state);
-  ev.name = ev.name || ev.config.title || 'Untitled Event';
-  ev.updatedAt = Date.now();
+  syncEventConfigMetadata(ev);
   config = ev.config;
   state = ev.state;
   if (!config.days || !config.days.length) config.days = clone(DEFAULT_DAYS);
@@ -1934,8 +1985,8 @@ function syncActiveEvent() {
 function saveAppData() {
   const ev = currentEvent();
   if (ev) {
-    ev.name = ev.name || ev.config.title || 'Untitled Event';
-    ev.updatedAt = Date.now();
+    syncEventConfigMetadata(ev);
+    touchEvent(ev);
   }
   localStorage.setItem(APP_STORE_KEY, JSON.stringify(appData));
   localStorage.setItem(LEGACY_CONFIG_KEY, JSON.stringify(config));
@@ -1960,17 +2011,23 @@ function switchEvent(eventId) {
   if (!config.days.find(d => d.key === currentDay)) currentDay = config.days[0].key;
   saveConfig();
   renderAll();
+  if (currentPage === 'settings') renderSettings();
 }
 function createEvent() {
-  const baseName = prompt('New event name', 'New Event');
-  if (baseName === null) return;
   const source = currentEvent();
+  const baseName = prompt('New event name', `${source?.name || 'New Event'} copy`);
+  if (baseName === null) return;
   const cleanName = (baseName || '').trim() || 'New Event';
   const baseConfig = clone(source?.config || DEFAULT_CONFIG);
-  baseConfig.title = cleanName;
+  const metaGuess = eventMetaLine(source);
+  const baseMeta = prompt('Venue / dates (optional)', metaGuess);
+  if (baseMeta === null) return;
+  const metaParts = (baseMeta || '').split('·').map(v => v.trim()).filter(Boolean);
   const ev = makeEvent({
     name: cleanName,
-    config: baseConfig,
+    location: metaParts[0] || '',
+    dateLabel: metaParts.slice(1).join(' · '),
+    config: { ...baseConfig, title: cleanName, subtitle: (baseMeta || '').trim() || baseConfig.subtitle || '' },
     state: {}
   });
   appData.events[ev.id] = ev;
@@ -1981,26 +2038,83 @@ function createEvent() {
   saveAppData();
   pushEventData();
   renderAll();
+  if (currentPage === 'settings') renderSettings();
   showToast('Event created');
 }
-function updateEventName(eventId, value) {
+function updateEventField(eventId, field, value) {
   const ev = appData.events[eventId];
   if (!ev) return;
-  ev.name = value.trim() || ev.name;
-  if (eventId === currentEventId) { config.title = ev.name; }
-  saveAppData();
-  pushEventData();
-  renderEventSwitcher();
-}
-function toggleEventArchive(eventId) {
-  const ev = appData.events[eventId];
-  if (!ev) return;
-  ev.archived = !ev.archived;
+  const trimmed = (value || '').trim();
+  if (field === 'name') ev.name = trimmed || ev.name || 'Untitled Event';
+  else ev[field] = trimmed;
+  syncEventConfigMetadata(ev);
+  if (eventId === currentEventId) syncActiveEvent();
+  touchEvent(ev);
   saveAppData();
   pushEventData();
   renderAll();
-  renderSettings();
+  if (currentPage === 'settings') renderSettings();
+}
+function updateEventName(eventId, value) { updateEventField(eventId, 'name', value); }
+function toggleEventArchive(eventId) {
+  const ev = appData.events[eventId];
+  if (!ev) return;
+  if (!ev.archived) {
+    const liveCount = getOrderedEvents(false).length;
+    if (liveCount <= 1) { showToast('Keep at least one live event'); return; }
+    if (eventId === currentEventId) {
+      const nextId = getNextLiveEventId(eventId);
+      if (nextId) currentEventId = nextId;
+    }
+    ev.archived = true;
+    ev.archivedAt = Date.now();
+  } else {
+    ev.archived = false;
+    ev.archivedAt = null;
+  }
+  touchEvent(ev);
+  syncActiveEvent();
+  saveAppData();
+  pushEventData();
+  renderAll();
+  if (currentPage === 'settings') renderSettings();
   showToast(ev.archived ? 'Event archived' : 'Event restored');
+}
+function exportEventReport(mode = 'json') {
+  const ev = currentEvent();
+  const snapshot = {
+    exportedAt: new Date().toISOString(),
+    event: {
+      id: ev.id,
+      name: ev.name,
+      location: ev.location || '',
+      dateLabel: ev.dateLabel || '',
+      archived: !!ev.archived,
+      createdAt: ev.createdAt || null,
+      updatedAt: ev.updatedAt || null,
+    },
+    summary: {
+      totalRooms: config.crew.reduce((sum, crew) => sum + crew.rooms.length, 0),
+      completeRooms: config.crew.reduce((sum, crew) => sum + crew.rooms.filter(r => isDone(r.id)).length, 0),
+      steps: config.steps.length,
+      crew: config.crew.length,
+    },
+    config,
+    state,
+  };
+  if (mode === 'copy') {
+    const text = JSON.stringify(snapshot, null, 2);
+    navigator.clipboard.writeText(text).then(() => showToast('Event JSON copied')).catch(() => prompt('Copy this:', text));
+    return;
+  }
+  const blob = new Blob([JSON.stringify(snapshot, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `${(ev.name || 'event').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'') || 'event'}-report.json`;
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 0);
+  showToast('Event report downloaded');
 }
 function ensureActiveEventForState() { if (!config || !state) syncActiveEvent(); }
 syncActiveEvent();
@@ -2142,20 +2256,27 @@ function setFbStatus(ok) {
 function renderEventSwitcher() {
   const wrap = document.getElementById('eventSwitcherWrap');
   if (!wrap) return;
-  const entries = Object.values(appData.events)
-    .sort((a, b) => (a.archived === b.archived) ? ((b.updatedAt||0) - (a.updatedAt||0)) : (a.archived ? 1 : -1));
+  const liveEvents = getOrderedEvents(false);
+  const archivedEvents = getOrderedEvents(true).filter(ev => ev.archived);
+  const current = currentEvent();
   wrap.innerHTML = `
     <div style="padding:10px 18px 6px;border-bottom:1px solid var(--line);">
-      <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:8px;">
-        <div style="font-size:11px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:0.6px;">Events</div>
+      <div class="event-toolbar">
+        <div class="event-toolbar-copy">
+          <div style="font-size:11px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:0.6px;">Current event</div>
+          <div style="font-size:14px;font-weight:700;color:var(--t1);margin-top:4px;">${escapeHtml(current?.name || 'Untitled Event')}</div>
+          <div style="font-size:11px;color:var(--t3);margin-top:2px;">${escapeHtml(eventMetaLine(current) || (current?.archived ? 'Archived event' : 'Live event'))}</div>
+        </div>
         <button class="event-add-btn" onclick="createEvent()">+ New Event</button>
       </div>
-      <div class="event-switcher">${entries.map(ev => `
+      <div class="event-switcher">${liveEvents.map(ev => `
         <div class="event-chip${ev.id===currentEventId?' on':''}" onclick="switchEvent('${ev.id}')">
-          <span class="event-chip-title">${ev.name || ev.config?.title || 'Untitled Event'}</span>
-          <span class="event-chip-meta">${ev.archived ? 'Archived' : 'Live event'}</span>
-        </div>`).join('')}
+          <span class="event-chip-title">${escapeHtml(ev.name || ev.config?.title || 'Untitled Event')}</span>
+          <span class="event-chip-meta">${escapeHtml(eventMetaLine(ev) || 'Live event')}</span>
+          ${ev.id===currentEventId ? '<span class="event-chip-status">Current</span>' : ''}
+        </div>`).join('') || '<div class="event-empty">No live events yet</div>'}
       </div>
+      <div class="event-summary">${archivedEvents.length ? `${archivedEvents.length} archived event${archivedEvents.length===1?'':'s'} available in Settings.` : 'Archived events stay hidden here so live switching is simpler on mobile.'}</div>
     </div>`;
 }
 
@@ -2400,15 +2521,20 @@ function renderSettings() {
   body.innerHTML=`
     <div class="sg">
       <div class="sg-lbl">Events</div>
-      ${Object.values(appData.events).sort((a, b) => (a.archived === b.archived) ? ((b.updatedAt||0) - (a.updatedAt||0)) : (a.archived ? 1 : -1)).map(ev => `
+      ${getOrderedEvents(true).map(ev => `
         <div class="event-admin-item">
-          <input class="si" value="${ev.name || ev.config?.title || ''}" onchange="updateEventName('${ev.id}', this.value)" style="margin-bottom:0;">
+          <input class="si" value="${escapeHtml(ev.name || ev.config?.title || '')}" onchange="updateEventField('${ev.id}', 'name', this.value)" placeholder="Event name" style="margin-bottom:0;">
+          <div class="event-admin-grid">
+            <input class="si" value="${escapeHtml(ev.location || '')}" onchange="updateEventField('${ev.id}', 'location', this.value)" placeholder="Venue / city">
+            <input class="si" value="${escapeHtml(ev.dateLabel || '')}" onchange="updateEventField('${ev.id}', 'dateLabel', this.value)" placeholder="Dates">
+          </div>
           <div class="event-admin-row">
             <span class="event-pill ${ev.archived ? 'archived' : 'live'}">${ev.archived ? 'ARCHIVED' : 'LIVE'}</span>
             ${ev.id === currentEventId ? '<span class="event-pill live">CURRENT</span>' : ''}
+            ${eventMetaLine(ev) ? `<span class="event-pill">${escapeHtml(eventMetaLine(ev))}</span>` : ''}
           </div>
           <div class="event-admin-row event-admin-actions">
-            ${ev.id === currentEventId ? '<button class="rst-btn" type="button">Current</button>' : `<button class="rst-btn" type="button" onclick="switchEvent('${ev.id}')">Switch to event</button>`}
+            ${ev.id === currentEventId ? '<button class="rst-btn" type="button">Current event</button>' : `<button class="rst-btn" type="button" onclick="switchEvent('${ev.id}')">Switch to event</button>`}
             <button class="rst-btn" type="button" onclick="toggleEventArchive('${ev.id}')">${ev.archived ? 'Unarchive' : 'Archive'}</button>
           </div>
         </div>`).join('')}
@@ -2416,7 +2542,15 @@ function renderSettings() {
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
         Add event
       </button>
-      <div style="font-size:11px;color:var(--t3);margin-top:8px;">Archived events stay editable and keep all their history.</div>
+      <div class="event-summary">Live events stay easy to switch on the main screen. Archived events stay here for history and can be restored anytime.</div>
+    </div>
+    <div class="sg">
+      <div class="sg-lbl">Export</div>
+      <div class="event-admin-row event-admin-actions">
+        <button class="rst-btn" type="button" onclick="exportEventReport('json')">Download current event JSON</button>
+        <button class="rst-btn" type="button" onclick="exportEventReport('copy')">Copy current event JSON</button>
+      </div>
+      <div class="event-summary">Foundation export only for now, but stable enough for backup/report handoff.</div>
     </div>
     <div class="sg">
       <div class="sg-lbl">Conference</div>
@@ -2549,6 +2683,9 @@ function saveSettings() {
   config.title    = document.getElementById('s_title').value.trim()||config.title;
   currentEvent().name = config.title;
   config.subtitle = document.getElementById('s_sub').value.trim()||config.subtitle;
+  const subtitleParts = config.subtitle.split('·').map(v => v.trim()).filter(Boolean);
+  currentEvent().location = subtitleParts[0] || currentEvent().location || '';
+  currentEvent().dateLabel = subtitleParts.length > 1 ? subtitleParts.slice(1).join(' · ') : (subtitleParts[0] || currentEvent().dateLabel || '');
   const fbUrl     = document.getElementById('s_fb').value.trim();
   if (fbUrl && fbUrl!==config.firebaseUrl) { config.firebaseUrl=fbUrl; initFirebase(fbUrl); }
   config.firebaseUrl = fbUrl;
