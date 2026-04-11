@@ -732,6 +732,29 @@ body { padding-bottom: 58px; }
 }
 .room-tab.on { background: var(--accent); color: #000; border-color: var(--accent); }
 .room-tab:active { opacity: 0.8; }
+
+.event-switcher { display:flex; gap:8px; overflow-x:auto; scrollbar-width:none; -webkit-overflow-scrolling:touch; }
+.event-switcher::-webkit-scrollbar { display:none; }
+.event-chip {
+  min-width: 0;
+  padding: 8px 10px;
+  border: 1px solid var(--line2);
+  border-radius: 8px;
+  background: var(--s2);
+  color: var(--t2);
+  cursor: pointer;
+  display:flex; flex-direction:column; gap:2px;
+}
+.event-chip.on { border-color: var(--accent); background: rgba(212,168,67,0.12); color: var(--t1); }
+.event-chip-title { font-size: 12px; font-weight: 700; white-space: nowrap; }
+.event-chip-meta { font-size: 10px; color: var(--t3); white-space: nowrap; }
+.event-add-btn { flex:0 0 auto; padding: 8px 12px; border:1px dashed var(--line2); border-radius:8px; background:transparent; color:var(--t2); font:inherit; font-size:12px; font-weight:700; cursor:pointer; }
+.event-admin-item { background: var(--s2); border:1px solid var(--line); border-radius:8px; padding:10px; margin-bottom:8px; }
+.event-admin-row { display:flex; align-items:center; gap:8px; margin-top:8px; flex-wrap:wrap; }
+.event-admin-actions { display:flex; gap:8px; flex-wrap:wrap; }
+.event-pill { font-size:10px; font-weight:700; padding:3px 7px; border-radius:999px; border:1px solid var(--line2); color:var(--t3); }
+.event-pill.live { color: var(--green); border-color: rgba(61,153,112,0.35); background: rgba(61,153,112,0.08); }
+.event-pill.archived { color: var(--accent); border-color: rgba(212,168,67,0.35); background: rgba(212,168,67,0.08); }
 </style>
 </head>
 <body>
@@ -755,6 +778,7 @@ body { padding-bottom: 58px; }
       </div>
     </div>
   </div>
+  <div id="eventSwitcherWrap" style="padding:10px 12px 0;"></div>
   <div class="day-tabs" id="setupDayTabs" style="padding: 0 12px;"></div>
   <div class="filter-bar">
     <div class="filter-row">
@@ -1840,19 +1864,131 @@ const SCHEDULE = {
 
 
 
-let config = JSON.parse(localStorage.getItem('kc_config')||'null') || DEFAULT_CONFIG;
-// Backfill new config fields for existing users
-if (!config.schedSteps) config.schedSteps = DEFAULT_CONFIG.schedSteps;
-// Force-migrate schedSteps if they don't have the new recording keys
-if (!config.schedSteps.find(s => s.key === 'obsbot')) config.schedSteps = DEFAULT_CONFIG.schedSteps;
-let state  = JSON.parse(localStorage.getItem('kc_state') ||'{}');
+const APP_STORE_KEY = 'kc_app';
+const LEGACY_CONFIG_KEY = 'kc_config';
+const LEGACY_STATE_KEY = 'kc_state';
+
+function clone(obj) { return JSON.parse(JSON.stringify(obj)); }
+function newEventId() { return 'ev_' + Date.now(); }
+function normalizeConfig(raw) {
+  const cfg = raw && typeof raw === 'object' ? clone(raw) : clone(DEFAULT_CONFIG);
+  if (!cfg.title) cfg.title = DEFAULT_CONFIG.title;
+  if (!cfg.subtitle) cfg.subtitle = DEFAULT_CONFIG.subtitle;
+  if (!cfg.firebaseUrl && DEFAULT_CONFIG.firebaseUrl) cfg.firebaseUrl = DEFAULT_CONFIG.firebaseUrl;
+  if (!Array.isArray(cfg.steps) || !cfg.steps.length) cfg.steps = clone(DEFAULT_CONFIG.steps);
+  if (!Array.isArray(cfg.crew) || !cfg.crew.length) cfg.crew = clone(DEFAULT_CONFIG.crew);
+  if (!Array.isArray(cfg.days) || !cfg.days.length) cfg.days = clone(DEFAULT_DAYS);
+  if (!Array.isArray(cfg.schedSteps) || !cfg.schedSteps.find(s => s.key === 'obsbot')) cfg.schedSteps = clone(DEFAULT_CONFIG.schedSteps);
+  return cfg;
+}
+function normalizeState(raw) {
+  return raw && typeof raw === 'object' ? clone(raw) : {};
+}
+function makeEvent(base = {}) {
+  const cfg = normalizeConfig(base.config || base);
+  return {
+    id: base.id || newEventId(),
+    name: base.name || cfg.title || 'New Event',
+    archived: base.archived === true,
+    createdAt: base.createdAt || Date.now(),
+    updatedAt: Date.now(),
+    config: cfg,
+    state: normalizeState(base.state),
+  };
+}
+function loadAppData() {
+  const legacyConfig = JSON.parse(localStorage.getItem(LEGACY_CONFIG_KEY) || 'null') || clone(DEFAULT_CONFIG);
+  const legacyState = JSON.parse(localStorage.getItem(LEGACY_STATE_KEY) || '{}');
+  const stored = JSON.parse(localStorage.getItem(APP_STORE_KEY) || 'null');
+  if (stored && stored.events && typeof stored.events === 'object') {
+    const events = {};
+    Object.entries(stored.events).forEach(([id, ev]) => { events[id] = makeEvent({ ...ev, id }); });
+    const currentEventId = stored.currentEventId && events[stored.currentEventId] ? stored.currentEventId : Object.keys(events)[0];
+    return { currentEventId, events };
+  }
+  const initialEvent = makeEvent({ id: 'ev_default', name: legacyConfig.title || 'Setup Tracker', config: legacyConfig, state: legacyState });
+  return { currentEventId: initialEvent.id, events: { [initialEvent.id]: initialEvent } };
+}
+let appData = loadAppData();
+let currentEventId = appData.currentEventId;
+let config = null;
+let state = null;
 let filter = null;
 let fbDb   = null;
 let fbAuth = null;
 let fbInitStarted = false;
 
+function currentEvent() { return appData.events[currentEventId]; }
+function syncActiveEvent() {
+  if (!appData.events[currentEventId]) currentEventId = Object.keys(appData.events)[0];
+  appData.currentEventId = currentEventId;
+  const ev = currentEvent();
+  ev.config = normalizeConfig(ev.config);
+  ev.state = normalizeState(ev.state);
+  ev.name = ev.name || ev.config.title || 'Untitled Event';
+  ev.updatedAt = Date.now();
+  config = ev.config;
+  state = ev.state;
+  if (!config.days || !config.days.length) config.days = clone(DEFAULT_DAYS);
+}
+function saveAppData() {
+  const ev = currentEvent();
+  if (ev) {
+    ev.name = ev.name || ev.config.title || 'Untitled Event';
+    ev.updatedAt = Date.now();
+  }
+  localStorage.setItem(APP_STORE_KEY, JSON.stringify(appData));
+  localStorage.setItem(LEGACY_CONFIG_KEY, JSON.stringify(config));
+  localStorage.setItem(LEGACY_STATE_KEY, JSON.stringify(state));
+}
+function pushEventData() {
+  if (!fbDb) return;
+  fbDb.child('events').set(appData.events);
+  fbDb.child('currentEventId').set(currentEventId);
+  fbDb.child('config').set(config);
+  fbDb.child('state').set(state);
+}
+function saveConfig(push=true) { saveAppData(); if (push) pushEventData(); }
+function saveState(push=true)  { saveAppData(); if (push) pushEventData(); }
+function renderAll() { render(); renderOverview(); if (currentPage === 'today') renderToday(); if (currentPage === 'record') renderRecord(); }
+function switchEvent(eventId) {
+  if (!appData.events[eventId]) return;
+  currentEventId = eventId;
+  syncActiveEvent();
+  const todayKey = autoDetectDay();
+  currentDay = todayKey || localStorage.getItem('kc_day') || config.days[0].key;
+  if (!config.days.find(d => d.key === currentDay)) currentDay = config.days[0].key;
+  saveConfig();
+  renderAll();
+}
+function createEvent() {
+  const source = currentEvent();
+  const ev = makeEvent({ name: source.name + ' Copy', config: source.config, state: {} });
+  appData.events[ev.id] = ev;
+  currentEventId = ev.id;
+  syncActiveEvent();
+  saveConfig();
+  renderAll();
+  showToast('New event created');
+}
+function updateEventName(eventId, value) {
+  const ev = appData.events[eventId];
+  if (!ev) return;
+  ev.name = value.trim() || ev.name;
+  if (eventId === currentEventId) { config.title = ev.name; }
+}
+function toggleEventArchive(eventId) {
+  const ev = appData.events[eventId];
+  if (!ev) return;
+  ev.archived = !ev.archived;
+  saveConfig();
+  renderAll();
+  showToast(ev.archived ? 'Event archived' : 'Event restored');
+}
+function ensureActiveEventForState() { if (!config || !state) syncActiveEvent(); }
+syncActiveEvent();
+
 // ─── Day tracking (simple prefix approach) ───────────────────────────────
-if (!config.days || !config.days.length) config.days = DEFAULT_DAYS;
 
 function autoDetectDay() {
   // Try to match today's date to a day key (format: d_mar23, d_mar24, etc.)
@@ -1872,8 +2008,6 @@ if (todayKey) localStorage.setItem('kc_day', todayKey);
 
 function dayRid(rid) { return currentDay + '_' + rid; }
 
-function saveConfig() { localStorage.setItem('kc_config', JSON.stringify(config)); }
-function saveState()  { localStorage.setItem('kc_state',  JSON.stringify(state)); }
 function getVal(rid, sk) {
   const dr = dayRid(rid);
   if (state[dr]?.[sk] !== undefined) return state[dr][sk];
@@ -1887,7 +2021,6 @@ function toggle(rid, sk) {
   if (!state[dr]) { state[dr]={}; config.steps.forEach(s => state[dr][s.key]=getVal(rid,s.key)); }
   state[dr][sk] ^= 1;
   saveState();
-  if (fbDb) fbDb.child('state/'+dr).set(state[dr]);
   render();
 }
 
@@ -1922,8 +2055,53 @@ function initFirebase(url) {
           await fbAuth.signInAnonymously();
         }
         fbDb = firebase.database(app).ref('e3-kc26-x7k9m');
-        fbDb.child('state').on('value', s => { const v=s.val(); if(v){state=v;saveState();render(); if(currentPage==='record')renderRecord(); if(currentPage==='overview')renderOverview();} });
-        fbDb.child('config').on('value', s => { const v=s.val(); if(v&&v.steps&&v.crew){config=v; if(!config.schedSteps||!config.schedSteps.find(s=>s.key==='obsbot'))config.schedSteps=DEFAULT_CONFIG.schedSteps; if(!config.days||!config.days.length)config.days=DEFAULT_DAYS; saveConfig();render();} });
+        Promise.all([
+          fbDb.child('events').once('value'),
+          fbDb.child('currentEventId').once('value'),
+          fbDb.child('config').once('value'),
+          fbDb.child('state').once('value'),
+        ]).then(([eventsSnap, currentSnap, configSnap, stateSnap]) => {
+          const remoteEvents = eventsSnap.val();
+          if (remoteEvents && typeof remoteEvents === 'object') return;
+          const remoteConfig = configSnap.val();
+          const remoteState = stateSnap.val();
+          if (remoteConfig && remoteConfig.steps && remoteConfig.crew) {
+            const seededEvent = makeEvent({
+              id: currentSnap.val() || currentEventId || 'ev_default',
+              name: remoteConfig.title || 'Setup Tracker',
+              config: remoteConfig,
+              state: remoteState || {},
+            });
+            appData = { currentEventId: seededEvent.id, events: { [seededEvent.id]: seededEvent } };
+            currentEventId = seededEvent.id;
+            syncActiveEvent();
+            saveAppData();
+          }
+          pushEventData();
+        }).catch(() => {});
+        fbDb.child('events').on('value', s => {
+          const v = s.val();
+          if (v && typeof v === 'object') {
+            const events = {};
+            Object.entries(v).forEach(([id, ev]) => { events[id] = makeEvent({ ...ev, id }); });
+            appData.events = events;
+            if (!appData.events[currentEventId]) currentEventId = Object.keys(appData.events)[0];
+            syncActiveEvent();
+            saveAppData();
+            renderAll();
+          }
+        });
+        fbDb.child('currentEventId').on('value', s => {
+          const v = s.val();
+          if (v && appData.events[v]) {
+            currentEventId = v;
+            syncActiveEvent();
+            saveAppData();
+            renderAll();
+          }
+        });
+        fbDb.child('state').on('value', s => { const v=s.val(); if(v && !Object.keys(appData.events || {}).length){ state=v; saveState(false); renderAll(); } });
+        fbDb.child('config').on('value', s => { const v=s.val(); if(v&&v.steps&&v.crew && !Object.keys(appData.events || {}).length){ config=normalizeConfig(v); saveConfig(false); renderAll(); } });
         fbDb.child('vmix_ips').on('value', s => { const v=s.val(); if(v){ VMIX_ROOMS.forEach(r => { if(v[r.key]) r.ip=v[r.key]; }); vmixSaveIps(); if(currentPage==='rooms') renderVmixCards(); } });
         setFbStatus(true);
       } catch(e) {
@@ -1944,7 +2122,22 @@ function setFbStatus(ok) {
 }
 
 // Render
+function renderEventSwitcher() {
+  const wrap = document.getElementById('eventSwitcherWrap');
+  if (!wrap) return;
+  const entries = Object.values(appData.events).sort((a, b) => (a.archived === b.archived) ? ((b.updatedAt||0) - (a.updatedAt||0)) : (a.archived ? 1 : -1));
+  wrap.innerHTML = `<div class="event-switcher">${entries.map(ev => `
+    <div class="event-chip${ev.id===currentEventId?' on':''}" onclick="switchEvent('${ev.id}')">
+      <span class="event-chip-title">${ev.name || ev.config?.title || 'Untitled Event'}</span>
+      <span class="event-chip-meta">${ev.archived ? 'Archived' : 'Live event'}</span>
+    </div>`).join('')}
+    <button class="event-add-btn" onclick="createEvent()">+ Event</button>
+  </div>`;
+}
+
 function render() {
+  ensureActiveEventForState();
+  renderEventSwitcher();
   document.getElementById('confTitle').textContent = config.title;
   document.getElementById('confSub').textContent   = config.subtitle;
   document.getElementById('confTitle2').textContent = config.title;
@@ -2029,7 +2222,6 @@ function confirmReset() {
     const dr = currentDay + '_' + r.id;
     state[dr] = {};
     config.steps.forEach(s => { state[dr][s.key] = 0; });
-    if (fbDb) fbDb.child('state/' + dr).set(state[dr]);
   }));
   saveState();
   showToast('Reset ' + dayLabel); render();
@@ -2053,7 +2245,6 @@ function copyFromPrevDay() {
     const dr = currentDay + '_' + r.id;
     state[dr] = {};
     config.steps.forEach(s => { state[dr][s.key] = 0; });
-    if (fbDb) fbDb.child('state/' + dr).set(state[dr]);
   }));
   saveState();
   showToast('Structure copied from ' + prevLabel); render();
@@ -2074,7 +2265,6 @@ function fillFromPrevDay() {
     config.steps.forEach(s => {
       state[curDr][s.key] = state[prevDr]?.[s.key] || 0;
     });
-    if (fbDb) fbDb.child('state/' + curDr).set(state[curDr]);
   }));
   saveState();
   showToast('Status filled from ' + prevLabel); render();
@@ -2184,6 +2374,26 @@ function renderSettings() {
     </div>`).join('')}</div>`;
 
   body.innerHTML=`
+    <div class="sg">
+      <div class="sg-lbl">Events</div>
+      ${Object.values(appData.events).sort((a, b) => (a.archived === b.archived) ? ((b.updatedAt||0) - (a.updatedAt||0)) : (a.archived ? 1 : -1)).map(ev => `
+        <div class="event-admin-item">
+          <input class="si" value="${ev.name || ev.config?.title || ''}" onchange="updateEventName('${ev.id}', this.value)" style="margin-bottom:0;">
+          <div class="event-admin-row">
+            <span class="event-pill ${ev.archived ? 'archived' : 'live'}">${ev.archived ? 'ARCHIVED' : 'LIVE'}</span>
+            ${ev.id === currentEventId ? '<span class="event-pill live">CURRENT</span>' : ''}
+          </div>
+          <div class="event-admin-row event-admin-actions">
+            ${ev.id === currentEventId ? '<button class="rst-btn" type="button">Current</button>' : `<button class="rst-btn" type="button" onclick="switchEvent('${ev.id}')">Switch to event</button>`}
+            <button class="rst-btn" type="button" onclick="toggleEventArchive('${ev.id}')">${ev.archived ? 'Unarchive' : 'Archive'}</button>
+          </div>
+        </div>`).join('')}
+      <button class="add-btn" onclick="createEvent()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Add event
+      </button>
+      <div style="font-size:11px;color:var(--t3);margin-top:8px;">Archived events stay editable and keep all their history.</div>
+    </div>
     <div class="sg">
       <div class="sg-lbl">Conference</div>
       <input class="si" id="s_title" value="${config.title}" placeholder="Name">
@@ -2313,6 +2523,7 @@ function addSchedStep(){ if(!config.schedSteps)config.schedSteps=[]; config.sche
 
 function saveSettings() {
   config.title    = document.getElementById('s_title').value.trim()||config.title;
+  currentEvent().name = config.title;
   config.subtitle = document.getElementById('s_sub').value.trim()||config.subtitle;
   const fbUrl     = document.getElementById('s_fb').value.trim();
   if (fbUrl && fbUrl!==config.firebaseUrl) { config.firebaseUrl=fbUrl; initFirebase(fbUrl); }
@@ -2325,8 +2536,7 @@ function saveSettings() {
     if (config.days[i]) config.days[i].label = inp.value.trim() || config.days[i].label;
   });
   saveConfig();
-  if (fbDb) fbDb.child('config').set(config);
-  render(); renderOverview(); closeSettings(); showToast('Saved');
+  renderAll(); closeSettings(); showToast('Saved');
 }
 
 function showToast(msg) {
@@ -2513,8 +2723,6 @@ if (config.firebaseUrl) initFirebase(config.firebaseUrl);
 render();
 // Restore last visited page
 if (currentPage !== 'setup') switchPage(currentPage);
-// Push schedSteps to Firebase if missing (one-time migration)
-setTimeout(() => { if (fbDb && config.schedSteps) fbDb.child('config/schedSteps').once('value', s => { if (!s.val()) fbDb.child('config/schedSteps').set(config.schedSteps); }); }, 3000);
 
 // Register service worker for PWA
 if ('serviceWorker' in navigator) {
@@ -2752,7 +2960,6 @@ function toggleRecDone(roomId, key) {
   const cur = state.rec[roomId][key] === true;
   state.rec[roomId][key] = !cur;
   saveState();
-  if (fbDb) fbDb.child('state/rec/'+roomId+'/'+key).set(!cur);
   renderRecord();
 }
 
@@ -2809,7 +3016,6 @@ function toggleSchedDone(crewId, roomId, day, idx) {
   const cur = state.sched[crewId][roomId][day][idx] === true;
   state.sched[crewId][roomId][day][idx] = !cur;
   saveState();
-  if (fbDb) fbDb.child('state/sched/'+crewId+'/'+roomId+'/'+day+'/'+idx).set(!cur);
   if (currentPage === 'today') renderSchedMain();
   else renderSchedule();
 }
@@ -2827,7 +3033,6 @@ function toggleSchedStep(crewId, roomId, day, idx, stepKey) {
   const cur = state.schedSteps[crewId][roomId][day][idx][stepKey] === true;
   state.schedSteps[crewId][roomId][day][idx][stepKey] = !cur;
   saveState();
-  if (fbDb) fbDb.child('state/schedSteps/'+crewId+'/'+roomId+'/'+day+'/'+idx+'/'+stepKey).set(!cur);
   // Re-render whichever schedule view is active
   if (currentPage === 'today') renderSchedMain();
   else renderSchedule();
