@@ -1962,20 +1962,26 @@ function switchEvent(eventId) {
   renderAll();
 }
 function createEvent() {
+  const baseName = prompt('New event name', 'New Event');
+  if (baseName === null) return;
   const source = currentEvent();
+  const cleanName = (baseName || '').trim() || 'New Event';
+  const baseConfig = clone(source?.config || DEFAULT_CONFIG);
+  baseConfig.title = cleanName;
   const ev = makeEvent({
-    name: (source?.name || source?.config?.title || 'New Event') + ' Copy',
-    config: source?.config,
+    name: cleanName,
+    config: baseConfig,
     state: {}
   });
   appData.events[ev.id] = ev;
   currentEventId = ev.id;
   syncActiveEvent();
+  const todayKey = autoDetectDay();
+  currentDay = todayKey || config.days[0]?.key || DEFAULT_DAYS[0].key;
   saveAppData();
   pushEventData();
   renderAll();
-  renderSettings();
-  showToast('New event created');
+  showToast('Event created');
 }
 function updateEventName(eventId, value) {
   const ev = appData.events[eventId];
@@ -2136,17 +2142,20 @@ function setFbStatus(ok) {
 function renderEventSwitcher() {
   const wrap = document.getElementById('eventSwitcherWrap');
   if (!wrap) return;
-  const entries = Object.values(appData.events).sort((a, b) => (a.archived === b.archived) ? ((b.updatedAt||0) - (a.updatedAt||0)) : (a.archived ? 1 : -1));
+  const entries = Object.values(appData.events)
+    .sort((a, b) => (a.archived === b.archived) ? ((b.updatedAt||0) - (a.updatedAt||0)) : (a.archived ? 1 : -1));
   wrap.innerHTML = `
-    <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 18px 6px;">
-      <div style="font-size:11px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:0.6px;">Events</div>
-      <button class="event-add-btn" onclick="createEvent()">+ New Event</button>
-    </div>
-    <div class="event-switcher">${entries.map(ev => `
-      <div class="event-chip${ev.id===currentEventId?' on':''}" onclick="switchEvent('${ev.id}')">
-        <span class="event-chip-title">${ev.name || ev.config?.title || 'Untitled Event'}</span>
-        <span class="event-chip-meta">${ev.archived ? 'Archived' : 'Live event'}</span>
-      </div>`).join('')}
+    <div style="padding:10px 18px 6px;border-bottom:1px solid var(--line);">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:8px;">
+        <div style="font-size:11px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:0.6px;">Events</div>
+        <button class="event-add-btn" onclick="createEvent()">+ New Event</button>
+      </div>
+      <div class="event-switcher">${entries.map(ev => `
+        <div class="event-chip${ev.id===currentEventId?' on':''}" onclick="switchEvent('${ev.id}')">
+          <span class="event-chip-title">${ev.name || ev.config?.title || 'Untitled Event'}</span>
+          <span class="event-chip-meta">${ev.archived ? 'Archived' : 'Live event'}</span>
+        </div>`).join('')}
+      </div>
     </div>`;
 }
 
