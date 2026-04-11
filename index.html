@@ -2100,7 +2100,21 @@ function submitEventModal() {
   closeEventModal();
   upsertEventAndRefresh(ev, mode === 'duplicate' ? 'Event duplicated' : 'Event created');
 }
-function createEvent() { openEventModal('create', currentEventId); }
+function createEvent() {
+  try {
+    openEventModal('create', currentEventId);
+  } catch (e) {
+    console.error('createEvent failed', e);
+    const fallbackName = prompt('New event name', 'New Event');
+    if (fallbackName === null) return;
+    const source = currentEvent();
+    const cleanName = (fallbackName || '').trim() || 'New Event';
+    const baseConfig = clone(source?.config || DEFAULT_CONFIG);
+    baseConfig.title = cleanName;
+    const ev = makeEvent({ name: cleanName, config: baseConfig, state: {} });
+    upsertEventAndRefresh(ev, 'Event created');
+  }
+}
 function duplicateEvent(eventId) { openEventModal('duplicate', eventId); }
 function deleteEvent(eventId) {
   const ev = appData.events[eventId];
