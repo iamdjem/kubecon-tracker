@@ -733,28 +733,44 @@ body { padding-bottom: 58px; }
 .room-tab.on { background: var(--accent); color: #000; border-color: var(--accent); }
 .room-tab:active { opacity: 0.8; }
 
-.event-toolbar { display:flex; align-items:flex-start; justify-content:space-between; gap:12px; margin-bottom:8px; flex-wrap:wrap; }
-.event-toolbar-copy { min-width:0; }
-.event-switcher { display:flex; gap:8px; overflow-x:auto; scrollbar-width:none; -webkit-overflow-scrolling:touch; }
+.event-toolbar { display:flex; align-items:stretch; justify-content:space-between; gap:12px; margin-bottom:10px; flex-wrap:wrap; }
+.event-toolbar-copy { min-width:0; flex:1 1 260px; }
+.event-current-card { min-width:0; padding:12px 14px; border:1px solid rgba(212,168,67,0.32); border-radius:12px; background:linear-gradient(180deg, rgba(212,168,67,0.12), rgba(212,168,67,0.05)); }
+.event-current-eyebrow { font-size:11px; font-weight:700; color:var(--t3); text-transform:uppercase; letter-spacing:0.6px; }
+.event-current-title { font-size:15px; font-weight:800; color:var(--t1); margin-top:4px; line-height:1.25; }
+.event-current-meta { font-size:11px; color:var(--t3); margin-top:3px; line-height:1.4; }
+.event-switcher-label { display:flex; align-items:center; justify-content:space-between; gap:8px; margin:2px 0 8px; }
+.event-switcher-label strong { font-size:11px; color:var(--t2); text-transform:uppercase; letter-spacing:0.55px; }
+.event-switcher { display:flex; gap:10px; overflow-x:auto; scrollbar-width:none; -webkit-overflow-scrolling:touch; padding-bottom:2px; }
 .event-switcher::-webkit-scrollbar { display:none; }
 .event-chip {
   min-width: 0;
-  flex: 0 0 160px;
-  padding: 8px 10px;
+  flex: 0 0 196px;
+  min-height: 84px;
+  padding: 12px;
   border: 1px solid var(--line2);
-  border-radius: 8px;
+  border-radius: 12px;
   background: var(--s2);
   color: var(--t2);
   cursor: pointer;
   display:flex; flex-direction:column; gap:2px;
+  justify-content:space-between;
+  font:inherit;
+  text-align:left;
+  appearance:none; -webkit-appearance:none;
 }
 .event-chip.on { border-color: var(--accent); background: rgba(212,168,67,0.12); color: var(--t1); }
 .event-chip.archived { opacity: 0.72; }
-.event-chip-title { font-size: 12px; font-weight: 700; white-space: nowrap; overflow:hidden; text-overflow:ellipsis; }
-.event-chip-meta { font-size: 10px; color: var(--t3); white-space: nowrap; overflow:hidden; text-overflow:ellipsis; }
-.event-chip-status { font-size: 9px; font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase; color: var(--accent); }
-.event-add-btn { flex:0 0 auto; padding: 8px 12px; border:1px dashed var(--line2); border-radius:8px; background:transparent; color:var(--t2); font:inherit; font-size:12px; font-weight:700; cursor:pointer; }
-.event-admin-item { background: var(--s2); border:1px solid var(--line); border-radius:8px; padding:10px; margin-bottom:8px; }
+.event-chip-title { font-size: 13px; font-weight: 800; line-height:1.3; overflow:hidden; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; }
+.event-chip-meta { font-size: 11px; color: var(--t3); line-height:1.4; overflow:hidden; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; }
+.event-chip-status { font-size: 10px; font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase; color: var(--accent); }
+.event-add-btn { flex:0 0 auto; min-height:48px; padding: 12px 14px; border:1px dashed var(--line2); border-radius:12px; background:transparent; color:var(--t2); font:inherit; font-size:13px; font-weight:700; cursor:pointer; }
+.event-switcher-empty { padding:14px; border:1px dashed var(--line2); border-radius:12px; color:var(--t3); font-size:12px; text-align:center; }
+.event-admin-section { margin-bottom:16px; }
+.event-admin-heading { display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:8px; }
+.event-admin-heading-title { font-size:12px; font-weight:800; color:var(--t1); }
+.event-admin-heading-copy { font-size:11px; color:var(--t3); line-height:1.4; margin-top:2px; }
+.event-admin-item { background: var(--s2); border:1px solid var(--line); border-radius:12px; padding:12px; margin-bottom:10px; }
 .event-admin-row { display:flex; align-items:center; gap:8px; margin-top:8px; flex-wrap:wrap; }
 .event-admin-actions { display:flex; gap:8px; flex-wrap:wrap; }
 .event-admin-grid { display:grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap:8px; margin-top:8px; }
@@ -776,8 +792,11 @@ body { padding-bottom: 58px; }
 .report-preview { margin-top:10px; padding:10px 12px; border:1px solid var(--line2); border-radius:10px; background:rgba(255,255,255,0.02); color:var(--t2); font-size:11px; line-height:1.5; white-space:pre-wrap; max-height:200px; overflow:auto; }
 
 @media (max-width: 479px) {
-  .event-switcher { overflow: visible; flex-wrap: wrap; }
-  .event-chip { flex: 1 1 calc(50% - 4px); }
+  .event-toolbar { gap:10px; }
+  .event-toolbar-copy { flex-basis:100%; }
+  .event-switcher { overflow: visible; flex-wrap: wrap; gap:8px; }
+  .event-chip { flex: 1 1 100%; min-height: 78px; }
+  .event-add-btn { width:100%; }
   .event-admin-grid { grid-template-columns: 1fr; }
 }
 </style>
@@ -921,7 +940,7 @@ body { padding-bottom: 58px; }
 </div>
 
 <div id="event-modal" class="modal-shell" aria-hidden="true">
-  <div class="modal-backdrop" onclick="closeEventModal()"></div>
+  <div class="modal-backdrop" data-event-modal-close="true"></div>
   <div class="modal-card">
     <div id="event-modal-title" class="modal-title">New event</div>
     <div id="event-modal-copy" class="modal-copy">Create a new event without leaving the app.</div>
@@ -935,8 +954,8 @@ body { padding-bottom: 58px; }
       <span style="font-size:12px;color:var(--t2);line-height:1.45;"><strong style="color:var(--t1);display:block;margin-bottom:2px;">Copy checklist progress</strong>Duplicate the current room/day progress too, not just the event structure.</span>
     </label>
     <div class="modal-actions">
-      <button class="rst-btn" type="button" onclick="closeEventModal()">Cancel</button>
-      <button id="event-modal-submit" class="save-btn" type="button" onclick="submitEventModal()" style="margin-top:0;">Create</button>
+      <button class="rst-btn" type="button" data-event-modal-close="true">Cancel</button>
+      <button id="event-modal-submit" class="save-btn" type="button" data-event-modal-submit="true" style="margin-top:0;">Create</button>
     </div>
   </div>
 </div>
@@ -2034,8 +2053,9 @@ function saveConfig(push=true) { saveAppData(); if (push) pushEventData(); }
 function saveState(push=true)  { saveAppData(); if (push) pushEventData(); }
 function renderAll() { render(); renderOverview(); if (currentPage === 'today') renderToday(); if (currentPage === 'record') renderRecord(); }
 let eventModalState = null;
-function switchEvent(eventId) {
+function switchEvent(eventId, opts = {}) {
   if (!appData.events[eventId]) return;
+  const fromEventId = currentEventId;
   currentEventId = eventId;
   syncActiveEvent();
   const todayKey = autoDetectDay();
@@ -2044,6 +2064,7 @@ function switchEvent(eventId) {
   saveConfig();
   renderAll();
   if (currentPage === 'settings') renderSettings();
+  if (opts.toast !== false && fromEventId !== eventId) showToast(`Switched to ${currentEvent()?.name || 'event'}`);
 }
 function upsertEventAndRefresh(ev, toastLabel = 'Event saved') {
   appData.events[ev.id] = ev;
@@ -2057,9 +2078,39 @@ function upsertEventAndRefresh(ev, toastLabel = 'Event saved') {
   if (currentPage === 'settings') renderSettings();
   showToast(toastLabel);
 }
+function ensureEventModal() {
+  let modal = document.getElementById('event-modal');
+  if (modal) return modal;
+  const host = document.createElement('div');
+  host.innerHTML = `
+    <div id="event-modal" class="modal-shell" aria-hidden="true">
+      <div class="modal-backdrop" data-event-modal-close="true"></div>
+      <div class="modal-card">
+        <div id="event-modal-title" class="modal-title">New event</div>
+        <div id="event-modal-copy" class="modal-copy">Create a new event without leaving the app.</div>
+        <input id="event-modal-name" class="si" placeholder="Event name">
+        <div class="event-admin-grid" style="margin-top:0;">
+          <input id="event-modal-location" class="si" placeholder="Venue / city">
+          <input id="event-modal-date" class="si" placeholder="Dates">
+        </div>
+        <label id="event-modal-copy-state-wrap" class="modal-check" style="display:none;">
+          <input id="event-modal-copy-state" type="checkbox">
+          <span style="font-size:12px;color:var(--t2);line-height:1.45;"><strong style="color:var(--t1);display:block;margin-bottom:2px;">Copy checklist progress</strong>Duplicate the current room/day progress too, not just the event structure.</span>
+        </label>
+        <div class="modal-actions">
+          <button class="rst-btn" type="button" data-event-modal-close="true">Cancel</button>
+          <button id="event-modal-submit" class="save-btn" type="button" data-event-modal-submit="true" style="margin-top:0;">Create</button>
+        </div>
+      </div>
+    </div>`;
+  modal = host.firstElementChild;
+  document.body.appendChild(modal);
+  return modal;
+}
 function openEventModal(mode = 'create', eventId = currentEventId) {
   const source = appData.events[eventId] || currentEvent();
   const isDuplicate = mode === 'duplicate';
+  const modal = ensureEventModal();
   eventModalState = { mode, sourceId: source?.id || currentEventId };
   document.getElementById('event-modal-title').textContent = isDuplicate ? 'Duplicate event' : 'New event';
   document.getElementById('event-modal-copy').textContent = isDuplicate ? 'Create a copy of this event. You can keep just the setup structure or also duplicate live checklist progress.' : 'Start a new event using the current event as a template for conference settings and crew layout.';
@@ -2069,14 +2120,14 @@ function openEventModal(mode = 'create', eventId = currentEventId) {
   document.getElementById('event-modal-date').value = source?.dateLabel || '';
   document.getElementById('event-modal-copy-state-wrap').style.display = isDuplicate ? 'flex' : 'none';
   document.getElementById('event-modal-copy-state').checked = isDuplicate;
-  const modal = document.getElementById('event-modal');
   modal.style.display = 'flex';
   modal.setAttribute('aria-hidden', 'false');
-  setTimeout(() => document.getElementById('event-modal-name').focus(), 0);
+  setTimeout(() => document.getElementById('event-modal-name')?.focus(), 0);
 }
 function closeEventModal() {
   eventModalState = null;
   const modal = document.getElementById('event-modal');
+  if (!modal) return;
   modal.style.display = 'none';
   modal.setAttribute('aria-hidden', 'true');
 }
@@ -2417,26 +2468,32 @@ function renderEventSwitcher() {
   const archivedEvents = getOrderedEvents(true).filter(ev => ev.archived);
   const current = currentEvent();
   wrap.innerHTML = `
-    <div style="padding:10px 18px 6px;border-bottom:1px solid var(--line);">
+    <div style="padding:10px 18px 10px;border-bottom:1px solid var(--line);">
       <div class="event-toolbar">
         <div class="event-toolbar-copy">
-          <div style="font-size:11px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:0.6px;">Current event</div>
-          <div style="font-size:14px;font-weight:700;color:var(--t1);margin-top:4px;">${escapeHtml(current?.name || 'Untitled Event')}</div>
-          <div style="font-size:11px;color:var(--t3);margin-top:2px;">${escapeHtml(eventMetaLine(current) || (current?.archived ? 'Archived event' : 'Live event'))}</div>
+          <div class="event-current-card">
+            <div class="event-current-eyebrow">Current event</div>
+            <div class="event-current-title">${escapeHtml(current?.name || 'Untitled Event')}</div>
+            <div class="event-current-meta">${escapeHtml(eventMetaLine(current) || (current?.archived ? 'Archived event' : 'Live event'))}</div>
+          </div>
         </div>
-        <button id="setup-add-event-btn" class="event-add-btn" type="button" onclick="createEvent()">+ New Event</button>
+        <button class="event-add-btn" type="button" data-create-event="true">+ New Event</button>
+      </div>
+      <div class="event-switcher-label">
+        <strong>Switch live event</strong>
+        <span class="event-chip-status">${liveEvents.length} active</span>
       </div>
       <div class="event-switcher">${liveEvents.map(ev => `
-        <div class="event-chip${ev.id===currentEventId?' on':''}" onclick="switchEvent('${ev.id}')">
-          <span class="event-chip-title">${escapeHtml(ev.name || ev.config?.title || 'Untitled Event')}</span>
-          <span class="event-chip-meta">${escapeHtml(eventMetaLine(ev) || 'Live event')}</span>
-          ${ev.id===currentEventId ? '<span class="event-chip-status">Current</span>' : ''}
-        </div>`).join('') || '<div class="event-empty">No live events yet</div>'}
+        <button class="event-chip${ev.id===currentEventId?' on':''}" type="button" data-switch-event="${escapeHtml(ev.id)}">
+          <span>
+            <span class="event-chip-title">${escapeHtml(ev.name || ev.config?.title || 'Untitled Event')}</span>
+            <span class="event-chip-meta">${escapeHtml(eventMetaLine(ev) || 'Live event')}</span>
+          </span>
+          ${ev.id===currentEventId ? '<span class="event-chip-status">Current</span>' : '<span class="event-chip-status">Tap to switch</span>'}
+        </button>`).join('') || '<div class="event-switcher-empty">No live events yet</div>'}
       </div>
-      <div class="event-summary">${archivedEvents.length ? `${archivedEvents.length} archived event${archivedEvents.length===1?'':'s'} available in Settings.` : 'Archived events stay hidden here so live switching is simpler on mobile.'}</div>
+      <div class="event-summary">${archivedEvents.length ? `${archivedEvents.length} archived event${archivedEvents.length===1?'':'s'} are tucked into Settings so switching stays simple on mobile.` : 'Archived events stay hidden here so live switching is simpler on mobile.'}</div>
     </div>`;
-  const addBtn = document.getElementById('setup-add-event-btn');
-  if (addBtn) addBtn.addEventListener('click', createEvent);
 }
 
 function render() {
@@ -2677,10 +2734,11 @@ function renderSettings() {
       </div>
     </div>`).join('')}</div>`;
 
-  body.innerHTML=`
-    <div class="sg">
-      <div class="sg-lbl">Events</div>
-      ${getOrderedEvents(true).map(ev => `
+  const orderedEvents = getOrderedEvents(true);
+  const liveEvents = orderedEvents.filter(ev => !ev.archived);
+  const archivedEvents = orderedEvents.filter(ev => ev.archived);
+
+  const renderEventCard = ev => `
         <div class="event-admin-item">
           <input class="si" value="${escapeHtml(ev.name || ev.config?.title || '')}" onchange="updateEventField('${ev.id}', 'name', this.value)" placeholder="Event name" style="margin-bottom:0;">
           <div class="event-admin-grid">
@@ -2693,17 +2751,41 @@ function renderSettings() {
             ${eventMetaLine(ev) ? `<span class="event-pill">${escapeHtml(eventMetaLine(ev))}</span>` : ''}
           </div>
           <div class="event-admin-row event-admin-actions">
-            ${ev.id === currentEventId ? '<button class="rst-btn" type="button">Current event</button>' : `<button class="rst-btn" type="button" onclick="switchEvent('${ev.id}')">Switch to event</button>`}
-            <button class="rst-btn" type="button" onclick="duplicateEvent('${ev.id}')">Duplicate</button>
-            <button class="rst-btn" type="button" onclick="toggleEventArchive('${ev.id}')">${ev.archived ? 'Unarchive' : 'Archive'}</button>
-            <button class="rst-btn" type="button" onclick="deleteEvent('${ev.id}')" ${Object.keys(appData.events).length <= 1 ? 'disabled' : ''}>Delete</button>
+            ${ev.id === currentEventId ? '<button class="rst-btn" type="button" disabled>Current event</button>' : `<button class="rst-btn" type="button" data-switch-event="${escapeHtml(ev.id)}">Switch to event</button>`}
+            <button class="rst-btn" type="button" data-duplicate-event="${escapeHtml(ev.id)}">Duplicate</button>
+            <button class="rst-btn" type="button" data-toggle-archive-event="${escapeHtml(ev.id)}">${ev.archived ? 'Unarchive' : 'Archive'}</button>
+            <button class="rst-btn" type="button" data-delete-event="${escapeHtml(ev.id)}" ${Object.keys(appData.events).length <= 1 ? 'disabled' : ''}>Delete</button>
           </div>
-        </div>`).join('')}
-      <button class="add-btn" onclick="createEvent()">
+        </div>`;
+
+  body.innerHTML=`
+    <div class="sg">
+      <div class="sg-lbl">Events</div>
+      <div class="event-admin-section">
+        <div class="event-admin-heading">
+          <div>
+            <div class="event-admin-heading-title">Live events</div>
+            <div class="event-admin-heading-copy">These stay available in the main switcher for fast handoffs during the show.</div>
+          </div>
+          <span class="event-pill live">${liveEvents.length}</span>
+        </div>
+        ${liveEvents.map(renderEventCard).join('') || '<div class="event-empty">No live events yet</div>'}
+      </div>
+      <div class="event-admin-section">
+        <div class="event-admin-heading">
+          <div>
+            <div class="event-admin-heading-title">Archived events</div>
+            <div class="event-admin-heading-copy">Past events stay out of the main switcher, but you can restore, duplicate, export, or delete them here.</div>
+          </div>
+          <span class="event-pill archived">${archivedEvents.length}</span>
+        </div>
+        ${archivedEvents.map(renderEventCard).join('') || '<div class="event-empty">No archived events yet</div>'}
+      </div>
+      <button class="add-btn" type="button" data-create-event="true">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
         Add event
       </button>
-      <div class="event-summary">Live events stay easy to switch on the main screen. Archived events stay here for history and can be restored anytime.</div>
+      <div class="event-summary">Create a fresh event, duplicate a proven setup, archive events once the show is over, and restore anything you need later.</div>
     </div>
     <div class="sg">
       <div class="sg-lbl">Export</div>
@@ -2889,12 +2971,59 @@ function showConfirm(title, body, okLabel, okStyle, cb) {
 }
 function confirmOk()     { document.getElementById('confirm-modal').style.display='none'; if(_confirmCb){const cb=_confirmCb;_confirmCb=null;cb();} }
 function confirmCancel() { document.getElementById('confirm-modal').style.display='none'; _confirmCb=null; }
-document.addEventListener('keydown', e => {
-  if (e.key === 'Escape') {
-    if (document.getElementById('event-modal').style.display === 'flex') closeEventModal();
-    if (document.getElementById('confirm-modal').style.display === 'flex') confirmCancel();
+document.addEventListener('click', e => {
+  const createBtn = e.target.closest('[data-create-event="true"]');
+  if (createBtn) {
+    e.preventDefault();
+    e.stopPropagation();
+    ensureEventModal();
+    createEvent();
+    return;
   }
-  if (e.key === 'Enter' && document.getElementById('event-modal').style.display === 'flex' && !e.shiftKey) {
+  const switchBtn = e.target.closest('[data-switch-event]');
+  if (switchBtn) {
+    e.preventDefault();
+    switchEvent(switchBtn.dataset.switchEvent);
+    return;
+  }
+  const duplicateBtn = e.target.closest('[data-duplicate-event]');
+  if (duplicateBtn) {
+    e.preventDefault();
+    duplicateEvent(duplicateBtn.dataset.duplicateEvent);
+    return;
+  }
+  const archiveBtn = e.target.closest('[data-toggle-archive-event]');
+  if (archiveBtn) {
+    e.preventDefault();
+    toggleEventArchive(archiveBtn.dataset.toggleArchiveEvent);
+    return;
+  }
+  const deleteBtn = e.target.closest('[data-delete-event]');
+  if (deleteBtn) {
+    e.preventDefault();
+    deleteEvent(deleteBtn.dataset.deleteEvent);
+    return;
+  }
+  const closeBtn = e.target.closest('[data-event-modal-close="true"]');
+  if (closeBtn) {
+    e.preventDefault();
+    closeEventModal();
+    return;
+  }
+  const submitBtn = e.target.closest('[data-event-modal-submit="true"]');
+  if (submitBtn) {
+    e.preventDefault();
+    submitEventModal();
+  }
+});
+document.addEventListener('keydown', e => {
+  const eventModal = document.getElementById('event-modal');
+  const confirmModal = document.getElementById('confirm-modal');
+  if (e.key === 'Escape') {
+    if (eventModal && eventModal.style.display === 'flex') closeEventModal();
+    if (confirmModal && confirmModal.style.display === 'flex') confirmCancel();
+  }
+  if (e.key === 'Enter' && eventModal && eventModal.style.display === 'flex' && !e.shiftKey) {
     const tag = document.activeElement?.tagName;
     if (tag !== 'TEXTAREA') { e.preventDefault(); submitEventModal(); }
   }
