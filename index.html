@@ -764,6 +764,16 @@ body { padding-bottom: 58px; }
 .event-pill.archived { color: var(--accent); border-color: rgba(212,168,67,0.35); background: rgba(212,168,67,0.08); }
 .event-summary { font-size:11px; color:var(--t3); margin-top:8px; line-height:1.45; }
 .event-empty { padding:12px; border:1px dashed var(--line2); border-radius:8px; color:var(--t3); font-size:12px; text-align:center; }
+.modal-shell { display:none; position:fixed; inset:0; z-index:10000; align-items:center; justify-content:center; padding:20px; }
+.modal-backdrop { position:absolute; inset:0; background:rgba(0,0,0,0.72); }
+.modal-card { position:relative; width:min(100%, 360px); background:var(--s2); border:1px solid var(--line2); border-radius:16px; padding:20px; z-index:1; }
+.modal-title { font-size:16px; font-weight:700; color:var(--t1); margin-bottom:6px; }
+.modal-copy { font-size:12px; color:var(--t3); line-height:1.45; margin-bottom:14px; }
+.modal-actions { display:flex; gap:10px; margin-top:16px; }
+.modal-actions button { flex:1; }
+.modal-check { display:flex; align-items:flex-start; gap:10px; padding:10px 12px; border:1px solid var(--line2); border-radius:10px; background:rgba(255,255,255,0.02); margin-top:10px; }
+.modal-check input { margin-top:2px; }
+.report-preview { margin-top:10px; padding:10px 12px; border:1px solid var(--line2); border-radius:10px; background:rgba(255,255,255,0.02); color:var(--t2); font-size:11px; line-height:1.5; white-space:pre-wrap; max-height:200px; overflow:auto; }
 
 @media (max-width: 479px) {
   .event-switcher { overflow: visible; flex-wrap: wrap; }
@@ -906,6 +916,27 @@ body { padding-bottom: 58px; }
     <div style="display:flex;gap:10px;">
       <button onclick="confirmCancel()" style="flex:1;background:var(--s3,#2a2a2a);border:1px solid var(--line2,#333);color:var(--t2,#aaa);border-radius:10px;padding:11px;font-size:14px;font-weight:600;cursor:pointer;">Cancel</button>
       <button id="confirm-ok" onclick="confirmOk()" style="flex:1;border:none;border-radius:10px;padding:11px;font-size:14px;font-weight:700;cursor:pointer;color:#fff;"></button>
+    </div>
+  </div>
+</div>
+
+<div id="event-modal" class="modal-shell" aria-hidden="true">
+  <div class="modal-backdrop" onclick="closeEventModal()"></div>
+  <div class="modal-card">
+    <div id="event-modal-title" class="modal-title">New event</div>
+    <div id="event-modal-copy" class="modal-copy">Create a new event without leaving the app.</div>
+    <input id="event-modal-name" class="si" placeholder="Event name">
+    <div class="event-admin-grid" style="margin-top:0;">
+      <input id="event-modal-location" class="si" placeholder="Venue / city">
+      <input id="event-modal-date" class="si" placeholder="Dates">
+    </div>
+    <label id="event-modal-copy-state-wrap" class="modal-check" style="display:none;">
+      <input id="event-modal-copy-state" type="checkbox">
+      <span style="font-size:12px;color:var(--t2);line-height:1.45;"><strong style="color:var(--t1);display:block;margin-bottom:2px;">Copy checklist progress</strong>Duplicate the current room/day progress too, not just the event structure.</span>
+    </label>
+    <div class="modal-actions">
+      <button class="rst-btn" type="button" onclick="closeEventModal()">Cancel</button>
+      <button id="event-modal-submit" class="save-btn" type="button" onclick="submitEventModal()" style="margin-top:0;">Create</button>
     </div>
   </div>
 </div>
@@ -2002,6 +2033,7 @@ function pushEventData() {
 function saveConfig(push=true) { saveAppData(); if (push) pushEventData(); }
 function saveState(push=true)  { saveAppData(); if (push) pushEventData(); }
 function renderAll() { render(); renderOverview(); if (currentPage === 'today') renderToday(); if (currentPage === 'record') renderRecord(); }
+let eventModalState = null;
 function switchEvent(eventId) {
   if (!appData.events[eventId]) return;
   currentEventId = eventId;
@@ -2013,23 +2045,7 @@ function switchEvent(eventId) {
   renderAll();
   if (currentPage === 'settings') renderSettings();
 }
-function createEvent() {
-  const source = currentEvent();
-  const baseName = prompt('New event name', `${source?.name || 'New Event'} copy`);
-  if (baseName === null) return;
-  const cleanName = (baseName || '').trim() || 'New Event';
-  const baseConfig = clone(source?.config || DEFAULT_CONFIG);
-  const metaGuess = eventMetaLine(source);
-  const baseMeta = prompt('Venue / dates (optional)', metaGuess);
-  if (baseMeta === null) return;
-  const metaParts = (baseMeta || '').split('·').map(v => v.trim()).filter(Boolean);
-  const ev = makeEvent({
-    name: cleanName,
-    location: metaParts[0] || '',
-    dateLabel: metaParts.slice(1).join(' · '),
-    config: { ...baseConfig, title: cleanName, subtitle: (baseMeta || '').trim() || baseConfig.subtitle || '' },
-    state: {}
-  });
+function upsertEventAndRefresh(ev, toastLabel = 'Event saved') {
   appData.events[ev.id] = ev;
   currentEventId = ev.id;
   syncActiveEvent();
@@ -2039,7 +2055,75 @@ function createEvent() {
   pushEventData();
   renderAll();
   if (currentPage === 'settings') renderSettings();
-  showToast('Event created');
+  showToast(toastLabel);
+}
+function openEventModal(mode = 'create', eventId = currentEventId) {
+  const source = appData.events[eventId] || currentEvent();
+  const isDuplicate = mode === 'duplicate';
+  eventModalState = { mode, sourceId: source?.id || currentEventId };
+  document.getElementById('event-modal-title').textContent = isDuplicate ? 'Duplicate event' : 'New event';
+  document.getElementById('event-modal-copy').textContent = isDuplicate ? 'Create a copy of this event. You can keep just the setup structure or also duplicate live checklist progress.' : 'Start a new event using the current event as a template for conference settings and crew layout.';
+  document.getElementById('event-modal-submit').textContent = isDuplicate ? 'Duplicate' : 'Create';
+  document.getElementById('event-modal-name').value = isDuplicate ? `${source?.name || 'New Event'} copy` : '';
+  document.getElementById('event-modal-location').value = source?.location || '';
+  document.getElementById('event-modal-date').value = source?.dateLabel || '';
+  document.getElementById('event-modal-copy-state-wrap').style.display = isDuplicate ? 'flex' : 'none';
+  document.getElementById('event-modal-copy-state').checked = isDuplicate;
+  const modal = document.getElementById('event-modal');
+  modal.style.display = 'flex';
+  modal.setAttribute('aria-hidden', 'false');
+  setTimeout(() => document.getElementById('event-modal-name').focus(), 0);
+}
+function closeEventModal() {
+  eventModalState = null;
+  const modal = document.getElementById('event-modal');
+  modal.style.display = 'none';
+  modal.setAttribute('aria-hidden', 'true');
+}
+function submitEventModal() {
+  if (!eventModalState) return;
+  const mode = eventModalState.mode;
+  const source = appData.events[eventModalState.sourceId] || currentEvent();
+  const cleanName = (document.getElementById('event-modal-name').value || '').trim() || 'New Event';
+  const location = (document.getElementById('event-modal-location').value || '').trim();
+  const dateLabel = (document.getElementById('event-modal-date').value || '').trim();
+  const baseConfig = clone(source?.config || DEFAULT_CONFIG);
+  const includeState = mode === 'duplicate' && document.getElementById('event-modal-copy-state').checked;
+  const subtitle = [location, dateLabel].filter(Boolean).join(' · ');
+  const ev = makeEvent({
+    name: cleanName,
+    location,
+    dateLabel,
+    config: { ...baseConfig, title: cleanName, subtitle: subtitle || baseConfig.subtitle || '' },
+    state: includeState ? clone(source?.state || {}) : {}
+  });
+  closeEventModal();
+  upsertEventAndRefresh(ev, mode === 'duplicate' ? 'Event duplicated' : 'Event created');
+}
+function createEvent() { openEventModal('create', currentEventId); }
+function duplicateEvent(eventId) { openEventModal('duplicate', eventId); }
+function deleteEvent(eventId) {
+  const ev = appData.events[eventId];
+  if (!ev) return;
+  const total = Object.keys(appData.events).length;
+  if (total <= 1) { showToast('Keep at least one event'); return; }
+  showConfirm(
+    'Delete event?',
+    `${ev.name || 'This event'} will be removed permanently from this tracker. This cannot be undone from inside the app.`,
+    'Delete',
+    'background:#b3261e;',
+    () => {
+      const nextId = eventId === currentEventId ? (getNextLiveEventId(eventId) || Object.keys(appData.events).find(id => id !== eventId)) : currentEventId;
+      delete appData.events[eventId];
+      currentEventId = nextId;
+      syncActiveEvent();
+      saveAppData();
+      pushEventData();
+      renderAll();
+      if (currentPage === 'settings') renderSettings();
+      showToast('Event deleted');
+    }
+  );
 }
 function updateEventField(eventId, field, value) {
   const ev = appData.events[eventId];
@@ -2080,9 +2164,12 @@ function toggleEventArchive(eventId) {
   if (currentPage === 'settings') renderSettings();
   showToast(ev.archived ? 'Event archived' : 'Event restored');
 }
-function exportEventReport(mode = 'json') {
+function eventReportBaseName(ev = currentEvent()) {
+  return `${(ev.name || 'event').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'') || 'event'}-report`;
+}
+function buildEventSnapshot() {
   const ev = currentEvent();
-  const snapshot = {
+  return {
     exportedAt: new Date().toISOString(),
     event: {
       id: ev.id,
@@ -2102,18 +2189,74 @@ function exportEventReport(mode = 'json') {
     config,
     state,
   };
+}
+function buildEventSummaryText() {
+  const snapshot = buildEventSnapshot();
+  const percent = snapshot.summary.totalRooms ? Math.round((snapshot.summary.completeRooms / snapshot.summary.totalRooms) * 100) : 0;
+  const lines = [
+    `${snapshot.event.name || 'Untitled Event'} status report`,
+    [snapshot.event.location, snapshot.event.dateLabel].filter(Boolean).join(' · ') || 'No venue or date set',
+    '',
+    `Exported: ${new Date(snapshot.exportedAt).toLocaleString()}`,
+    `Overall: ${snapshot.summary.completeRooms}/${snapshot.summary.totalRooms} rooms complete (${percent}%)`,
+    `Crews: ${snapshot.summary.crew}`,
+    `Checklist steps per room: ${snapshot.summary.steps}`,
+    ''
+  ];
+  config.crew.forEach(crew => {
+    const doneRooms = crew.rooms.filter(room => isDone(room.id)).length;
+    lines.push(`${crew.name}: ${doneRooms}/${crew.rooms.length} rooms complete`);
+    crew.rooms.forEach(room => {
+      const done = countDone(room.id);
+      const pending = config.steps.filter(step => !getVal(room.id, step.key)).map(step => step.name);
+      lines.push(`- ${room.name}: ${done}/${config.steps.length}${pending.length ? `, pending ${pending.join(', ')}` : ', complete'}`);
+    });
+    lines.push('');
+  });
+  return lines.join('\n').trim();
+}
+function downloadTextFile(filename, text, type = 'text/plain') {
+  const blob = new Blob([text], { type });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 0);
+}
+function printEventSummary() {
+  const ev = currentEvent();
+  const summary = escapeHtml(buildEventSummaryText()).replace(/\n/g, '<br>');
+  const win = window.open('', '_blank', 'noopener,noreferrer');
+  if (!win) { showToast('Allow pop-ups to print report'); return; }
+  win.document.write(`<!doctype html><html><head><title>${escapeHtml(ev.name || 'Event report')}</title><style>body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;padding:32px;color:#111;line-height:1.5;}h1{font-size:22px;margin:0 0 16px;}pre{white-space:pre-wrap;font:14px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace;}</style></head><body><h1>${escapeHtml(ev.name || 'Event report')}</h1><pre>${summary.replace(/<br>/g,'\n')}</pre></body></html>`);
+  win.document.close();
+  win.focus();
+  win.print();
+}
+function exportEventReport(mode = 'json') {
+  const ev = currentEvent();
+  const snapshot = buildEventSnapshot();
   if (mode === 'copy') {
     const text = JSON.stringify(snapshot, null, 2);
     navigator.clipboard.writeText(text).then(() => showToast('Event JSON copied')).catch(() => prompt('Copy this:', text));
     return;
   }
-  const blob = new Blob([JSON.stringify(snapshot, null, 2)], { type: 'application/json' });
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = `${(ev.name || 'event').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'') || 'event'}-report.json`;
-  document.body.appendChild(a);
-  a.click();
-  setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 0);
+  if (mode === 'summary-copy') {
+    const text = buildEventSummaryText();
+    navigator.clipboard.writeText(text).then(() => showToast('Summary copied')).catch(() => prompt('Copy this:', text));
+    return;
+  }
+  if (mode === 'summary-download') {
+    downloadTextFile(`${eventReportBaseName(ev)}.txt`, buildEventSummaryText());
+    showToast('Summary downloaded');
+    return;
+  }
+  if (mode === 'summary-print') {
+    printEventSummary();
+    return;
+  }
+  downloadTextFile(`${eventReportBaseName(ev)}.json`, JSON.stringify(snapshot, null, 2), 'application/json');
   showToast('Event report downloaded');
 }
 function ensureActiveEventForState() { if (!config || !state) syncActiveEvent(); }
@@ -2535,7 +2678,9 @@ function renderSettings() {
           </div>
           <div class="event-admin-row event-admin-actions">
             ${ev.id === currentEventId ? '<button class="rst-btn" type="button">Current event</button>' : `<button class="rst-btn" type="button" onclick="switchEvent('${ev.id}')">Switch to event</button>`}
+            <button class="rst-btn" type="button" onclick="duplicateEvent('${ev.id}')">Duplicate</button>
             <button class="rst-btn" type="button" onclick="toggleEventArchive('${ev.id}')">${ev.archived ? 'Unarchive' : 'Archive'}</button>
+            <button class="rst-btn" type="button" onclick="deleteEvent('${ev.id}')" ${Object.keys(appData.events).length <= 1 ? 'disabled' : ''}>Delete</button>
           </div>
         </div>`).join('')}
       <button class="add-btn" onclick="createEvent()">
@@ -2547,10 +2692,16 @@ function renderSettings() {
     <div class="sg">
       <div class="sg-lbl">Export</div>
       <div class="event-admin-row event-admin-actions">
+        <button class="rst-btn" type="button" onclick="exportEventReport('summary-download')">Download status summary</button>
+        <button class="rst-btn" type="button" onclick="exportEventReport('summary-copy')">Copy status summary</button>
+        <button class="rst-btn" type="button" onclick="exportEventReport('summary-print')">Print summary</button>
+      </div>
+      <div class="event-admin-row event-admin-actions">
         <button class="rst-btn" type="button" onclick="exportEventReport('json')">Download current event JSON</button>
         <button class="rst-btn" type="button" onclick="exportEventReport('copy')">Copy current event JSON</button>
       </div>
-      <div class="event-summary">Foundation export only for now, but stable enough for backup/report handoff.</div>
+      <div class="report-preview">${escapeHtml(buildEventSummaryText())}</div>
+      <div class="event-summary">Readable handoff summary for printing or copy/paste, plus the raw JSON backup/export.</div>
     </div>
     <div class="sg">
       <div class="sg-lbl">Conference</div>
@@ -2722,6 +2873,16 @@ function showConfirm(title, body, okLabel, okStyle, cb) {
 }
 function confirmOk()     { document.getElementById('confirm-modal').style.display='none'; if(_confirmCb){const cb=_confirmCb;_confirmCb=null;cb();} }
 function confirmCancel() { document.getElementById('confirm-modal').style.display='none'; _confirmCb=null; }
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') {
+    if (document.getElementById('event-modal').style.display === 'flex') closeEventModal();
+    if (document.getElementById('confirm-modal').style.display === 'flex') confirmCancel();
+  }
+  if (e.key === 'Enter' && document.getElementById('event-modal').style.display === 'flex' && !e.shiftKey) {
+    const tag = document.activeElement?.tagName;
+    if (tag !== 'TEXTAREA') { e.preventDefault(); submitEventModal(); }
+  }
+});
 
 // ═══════════════════════════════
 // PAGE NAVIGATION
