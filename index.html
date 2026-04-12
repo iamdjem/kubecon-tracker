@@ -2012,7 +2012,6 @@ function pushEventData() {
   _fbPushing = true;
   Promise.all([
     fbDb.child('events').set(appData.events),
-    fbDb.child('currentEventId').set(currentEventId),
     fbDb.child('config').set(config),
     fbDb.child('state').set(state),
   ]).finally(() => { setTimeout(() => { _fbPushing = false; }, 0); });
@@ -2397,16 +2396,6 @@ function initFirebase(url) {
             });
             appData.events = events;
             if (!appData.events[currentEventId]) currentEventId = Object.keys(appData.events)[0];
-            syncActiveEvent();
-            saveAppData();
-            renderAll();
-          }
-        });
-        fbDb.child('currentEventId').on('value', s => {
-          if (_fbPushing) return;
-          const v = s.val();
-          if (v && appData.events[v]) {
-            currentEventId = v;
             syncActiveEvent();
             saveAppData();
             renderAll();
