@@ -2010,11 +2010,18 @@ let _fbPushing = false;
 function pushEventData() {
   if (!fbDb) return;
   _fbPushing = true;
+  // Use update() for events so each device merges rather than overwrites
+  const eventUpdates = {};
+  Object.entries(appData.events).forEach(([id, ev]) => { eventUpdates[id] = ev; });
   Promise.all([
-    fbDb.child('events').set(appData.events),
+    fbDb.child('events').update(eventUpdates),
     fbDb.child('config').set(config),
     fbDb.child('state').set(state),
   ]).finally(() => { setTimeout(() => { _fbPushing = false; }, 0); });
+}
+function pushDeleteEvent(eventId) {
+  if (!fbDb) return;
+  fbDb.child('events').child(eventId).remove();
 }
 function saveConfig(push=true) { saveAppData(); if (push) pushEventData(); }
 function saveState(push=true)  { saveAppData(); if (push) pushEventData(); }
@@ -2146,6 +2153,7 @@ function deleteEvent(eventId) {
     () => {
       const nextId = eventId === currentEventId ? (getNextLiveEventId(eventId) || Object.keys(appData.events).find(id => id !== eventId)) : currentEventId;
       delete appData.events[eventId];
+      pushDeleteEvent(eventId);
       currentEventId = nextId;
       syncActiveEvent();
       saveAppData();
