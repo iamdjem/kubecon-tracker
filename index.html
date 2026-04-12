@@ -733,39 +733,29 @@ body { padding-bottom: 58px; }
 .room-tab.on { background: var(--accent); color: #000; border-color: var(--accent); }
 .room-tab:active { opacity: 0.8; }
 
-.event-toolbar { display:flex; align-items:stretch; justify-content:space-between; gap:12px; margin-bottom:10px; flex-wrap:wrap; }
-.event-toolbar-copy { min-width:0; flex:1 1 260px; }
-.event-current-card { min-width:0; padding:12px 14px; border:1px solid rgba(212,168,67,0.32); border-radius:12px; background:linear-gradient(180deg, rgba(212,168,67,0.12), rgba(212,168,67,0.05)); }
-.event-current-eyebrow { font-size:11px; font-weight:700; color:var(--t3); text-transform:uppercase; letter-spacing:0.6px; }
-.event-current-title { font-size:15px; font-weight:800; color:var(--t1); margin-top:4px; line-height:1.25; }
-.event-current-meta { font-size:11px; color:var(--t3); margin-top:3px; line-height:1.4; }
-.event-switcher-label { display:flex; align-items:center; justify-content:space-between; gap:8px; margin:2px 0 8px; }
-.event-switcher-label strong { font-size:11px; color:var(--t2); text-transform:uppercase; letter-spacing:0.55px; }
-.event-switcher { display:flex; gap:10px; overflow-x:auto; scrollbar-width:none; -webkit-overflow-scrolling:touch; padding-bottom:2px; }
-.event-switcher::-webkit-scrollbar { display:none; }
+.event-bar { display:flex; align-items:center; gap:8px; overflow-x:auto; scrollbar-width:none; -webkit-overflow-scrolling:touch; }
+.event-bar::-webkit-scrollbar { display:none; }
 .event-chip {
-  min-width: 0;
-  flex: 0 0 196px;
-  min-height: 84px;
-  padding: 12px;
+  flex: 0 0 auto;
+  padding: 6px 12px;
   border: 1px solid var(--line2);
-  border-radius: 12px;
+  border-radius: 20px;
   background: var(--s2);
   color: var(--t2);
   cursor: pointer;
-  display:flex; flex-direction:column; gap:2px;
-  justify-content:space-between;
-  font:inherit;
-  text-align:left;
+  display:flex; align-items:center; gap:6px;
+  font:inherit; font-size:12px; font-weight:600;
+  white-space:nowrap;
   appearance:none; -webkit-appearance:none;
+  transition: all 0.12s;
 }
-.event-chip.on { border-color: var(--accent); background: rgba(212,168,67,0.12); color: var(--t1); }
-.event-chip.archived { opacity: 0.72; }
-.event-chip-title { font-size: 13px; font-weight: 800; line-height:1.3; overflow:hidden; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; }
-.event-chip-meta { font-size: 11px; color: var(--t3); line-height:1.4; overflow:hidden; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; }
-.event-chip-status { font-size: 10px; font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase; color: var(--accent); }
-.event-add-btn { flex:0 0 auto; min-height:48px; padding: 12px 14px; border:1px dashed var(--line2); border-radius:12px; background:transparent; color:var(--t2); font:inherit; font-size:13px; font-weight:700; cursor:pointer; }
-.event-switcher-empty { padding:14px; border:1px dashed var(--line2); border-radius:12px; color:var(--t3); font-size:12px; text-align:center; }
+.event-chip:active { transform:scale(0.95); }
+.event-chip.on { border-color: var(--accent); background: rgba(212,168,67,0.14); color: var(--t1); }
+.event-chip-dot { width:6px; height:6px; border-radius:50%; background:var(--t3); flex-shrink:0; }
+.event-chip.on .event-chip-dot { background:var(--accent); }
+.event-add-chip { flex:0 0 auto; padding:6px 10px; border:1px dashed var(--line2); border-radius:20px; background:transparent; color:var(--t3); font:inherit; font-size:12px; font-weight:700; cursor:pointer; white-space:nowrap; transition: all 0.12s; }
+.event-add-chip:active { transform:scale(0.95); color:var(--t2); }
+.event-bar-label { font-size:10px; font-weight:600; color:var(--t3); text-transform:uppercase; letter-spacing:0.5px; white-space:nowrap; }
 .event-admin-section { margin-bottom:16px; }
 .event-admin-heading { display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:8px; }
 .event-admin-heading-title { font-size:12px; font-weight:800; color:var(--t1); }
@@ -792,11 +782,6 @@ body { padding-bottom: 58px; }
 .report-preview { margin-top:10px; padding:10px 12px; border:1px solid var(--line2); border-radius:10px; background:rgba(255,255,255,0.02); color:var(--t2); font-size:11px; line-height:1.5; white-space:pre-wrap; max-height:200px; overflow:auto; }
 
 @media (max-width: 479px) {
-  .event-toolbar { gap:10px; }
-  .event-toolbar-copy { flex-basis:100%; }
-  .event-switcher { overflow: visible; flex-wrap: wrap; gap:8px; }
-  .event-chip { flex: 1 1 100%; min-height: 78px; }
-  .event-add-btn { width:100%; }
   .event-admin-grid { grid-template-columns: 1fr; }
 }
 </style>
@@ -822,7 +807,7 @@ body { padding-bottom: 58px; }
       </div>
     </div>
   </div>
-  <div id="eventSwitcherWrap" style="padding:10px 12px 0;"></div>
+  <div id="eventSwitcherWrap"></div>
   <div class="day-tabs" id="setupDayTabs" style="padding: 0 12px;"></div>
   <div class="filter-bar">
     <div class="filter-row">
@@ -935,27 +920,6 @@ body { padding-bottom: 58px; }
     <div style="display:flex;gap:10px;">
       <button onclick="confirmCancel()" style="flex:1;background:var(--s3,#2a2a2a);border:1px solid var(--line2,#333);color:var(--t2,#aaa);border-radius:10px;padding:11px;font-size:14px;font-weight:600;cursor:pointer;">Cancel</button>
       <button id="confirm-ok" onclick="confirmOk()" style="flex:1;border:none;border-radius:10px;padding:11px;font-size:14px;font-weight:700;cursor:pointer;color:#fff;"></button>
-    </div>
-  </div>
-</div>
-
-<div id="event-modal" class="modal-shell" aria-hidden="true">
-  <div class="modal-backdrop" data-event-modal-close="true"></div>
-  <div class="modal-card">
-    <div id="event-modal-title" class="modal-title">New event</div>
-    <div id="event-modal-copy" class="modal-copy">Create a new event without leaving the app.</div>
-    <input id="event-modal-name" class="si" placeholder="Event name">
-    <div class="event-admin-grid" style="margin-top:0;">
-      <input id="event-modal-location" class="si" placeholder="Venue / city">
-      <input id="event-modal-date" class="si" placeholder="Dates">
-    </div>
-    <label id="event-modal-copy-state-wrap" class="modal-check" style="display:none;">
-      <input id="event-modal-copy-state" type="checkbox">
-      <span style="font-size:12px;color:var(--t2);line-height:1.45;"><strong style="color:var(--t1);display:block;margin-bottom:2px;">Copy checklist progress</strong>Duplicate the current room/day progress too, not just the event structure.</span>
-    </label>
-    <div class="modal-actions">
-      <button class="rst-btn" type="button" data-event-modal-close="true">Cancel</button>
-      <button id="event-modal-submit" class="save-btn" type="button" data-event-modal-submit="true" style="margin-top:0;">Create</button>
     </div>
   </div>
 </div>
@@ -2042,16 +2006,21 @@ function saveAppData() {
   localStorage.setItem(LEGACY_CONFIG_KEY, JSON.stringify(config));
   localStorage.setItem(LEGACY_STATE_KEY, JSON.stringify(state));
 }
+let _fbPushing = false;
 function pushEventData() {
   if (!fbDb) return;
-  fbDb.child('events').set(appData.events);
-  fbDb.child('currentEventId').set(currentEventId);
-  fbDb.child('config').set(config);
-  fbDb.child('state').set(state);
+  _fbPushing = true;
+  Promise.all([
+    fbDb.child('events').set(appData.events),
+    fbDb.child('currentEventId').set(currentEventId),
+    fbDb.child('config').set(config),
+    fbDb.child('state').set(state),
+  ]).finally(() => { setTimeout(() => { _fbPushing = false; }, 0); });
 }
 function saveConfig(push=true) { saveAppData(); if (push) pushEventData(); }
 function saveState(push=true)  { saveAppData(); if (push) pushEventData(); }
-function renderAll() { render(); renderOverview(); if (currentPage === 'today') renderToday(); if (currentPage === 'record') renderRecord(); }
+function isSettingsOpen() { return document.getElementById('sheet')?.classList.contains('open'); }
+function renderAll() { render(); renderOverview(); if (currentPage === 'today') renderToday(); if (currentPage === 'record') renderRecord(); if (isSettingsOpen()) renderSettings(); }
 let eventModalState = null;
 function switchEvent(eventId, opts = {}) {
   if (!appData.events[eventId]) return;
@@ -2063,7 +2032,6 @@ function switchEvent(eventId, opts = {}) {
   if (!config.days.find(d => d.key === currentDay)) currentDay = config.days[0].key;
   saveConfig();
   renderAll();
-  if (currentPage === 'settings') renderSettings();
   if (opts.toast !== false && fromEventId !== eventId) showToast(`Switched to ${currentEvent()?.name || 'event'}`);
 }
 function upsertEventAndRefresh(ev, toastLabel = 'Event saved') {
@@ -2075,7 +2043,6 @@ function upsertEventAndRefresh(ev, toastLabel = 'Event saved') {
   saveAppData();
   pushEventData();
   renderAll();
-  if (currentPage === 'settings') renderSettings();
   showToast(toastLabel);
 }
 function ensureEventModal() {
@@ -2185,8 +2152,7 @@ function deleteEvent(eventId) {
       saveAppData();
       pushEventData();
       renderAll();
-      if (currentPage === 'settings') renderSettings();
-      showToast('Event deleted');
+          showToast('Event deleted');
     }
   );
 }
@@ -2202,7 +2168,6 @@ function updateEventField(eventId, field, value) {
   saveAppData();
   pushEventData();
   renderAll();
-  if (currentPage === 'settings') renderSettings();
 }
 function updateEventName(eventId, value) { updateEventField(eventId, 'name', value); }
 function toggleEventArchive(eventId) {
@@ -2226,7 +2191,6 @@ function toggleEventArchive(eventId) {
   saveAppData();
   pushEventData();
   renderAll();
-  if (currentPage === 'settings') renderSettings();
   showToast(ev.archived ? 'Event archived' : 'Event restored');
 }
 function eventReportBaseName(ev = currentEvent()) {
@@ -2419,10 +2383,18 @@ function initFirebase(url) {
           pushEventData();
         }).catch(() => {});
         fbDb.child('events').on('value', s => {
+          if (_fbPushing) return;
           const v = s.val();
           if (v && typeof v === 'object') {
             const events = {};
-            Object.entries(v).forEach(([id, ev]) => { events[id] = makeEvent({ ...ev, id }); });
+            Object.entries(v).forEach(([id, ev]) => {
+              const local = appData.events[id];
+              if (!local || (ev.updatedAt || 0) >= (local.updatedAt || 0)) {
+                events[id] = makeEvent({ ...ev, id });
+              } else {
+                events[id] = local;
+              }
+            });
             appData.events = events;
             if (!appData.events[currentEventId]) currentEventId = Object.keys(appData.events)[0];
             syncActiveEvent();
@@ -2431,6 +2403,7 @@ function initFirebase(url) {
           }
         });
         fbDb.child('currentEventId').on('value', s => {
+          if (_fbPushing) return;
           const v = s.val();
           if (v && appData.events[v]) {
             currentEventId = v;
@@ -2439,8 +2412,6 @@ function initFirebase(url) {
             renderAll();
           }
         });
-        fbDb.child('state').on('value', s => { const v=s.val(); if(v && !Object.keys(appData.events || {}).length){ state=v; saveState(false); renderAll(); } });
-        fbDb.child('config').on('value', s => { const v=s.val(); if(v&&v.steps&&v.crew && !Object.keys(appData.events || {}).length){ config=normalizeConfig(v); saveConfig(false); renderAll(); } });
         fbDb.child('vmix_ips').on('value', s => { const v=s.val(); if(v){ VMIX_ROOMS.forEach(r => { if(v[r.key]) r.ip=v[r.key]; }); vmixSaveIps(); if(currentPage==='rooms') renderVmixCards(); } });
         setFbStatus(true);
       } catch(e) {
@@ -2465,34 +2436,16 @@ function renderEventSwitcher() {
   const wrap = document.getElementById('eventSwitcherWrap');
   if (!wrap) return;
   const liveEvents = getOrderedEvents(false);
-  const archivedEvents = getOrderedEvents(true).filter(ev => ev.archived);
-  const current = currentEvent();
+  if (liveEvents.length <= 1) {
+    wrap.innerHTML = '';
+    return;
+  }
   wrap.innerHTML = `
-    <div style="padding:10px 18px 10px;border-bottom:1px solid var(--line);">
-      <div class="event-toolbar">
-        <div class="event-toolbar-copy">
-          <div class="event-current-card">
-            <div class="event-current-eyebrow">Current event</div>
-            <div class="event-current-title">${escapeHtml(current?.name || 'Untitled Event')}</div>
-            <div class="event-current-meta">${escapeHtml(eventMetaLine(current) || (current?.archived ? 'Archived event' : 'Live event'))}</div>
-          </div>
-        </div>
-        <button class="event-add-btn" type="button" data-create-event="true">+ New Event</button>
+    <div style="padding:8px 18px;border-bottom:1px solid var(--line);">
+      <div class="event-bar">
+        ${liveEvents.map(ev => `<button class="event-chip${ev.id===currentEventId?' on':''}" type="button" data-switch-event="${escapeHtml(ev.id)}"><span class="event-chip-dot"></span>${escapeHtml(ev.name || 'Untitled')}</button>`).join('')}
+        <button class="event-add-chip" type="button" data-create-event="true">+</button>
       </div>
-      <div class="event-switcher-label">
-        <strong>Switch live event</strong>
-        <span class="event-chip-status">${liveEvents.length} active</span>
-      </div>
-      <div class="event-switcher">${liveEvents.map(ev => `
-        <button class="event-chip${ev.id===currentEventId?' on':''}" type="button" data-switch-event="${escapeHtml(ev.id)}">
-          <span>
-            <span class="event-chip-title">${escapeHtml(ev.name || ev.config?.title || 'Untitled Event')}</span>
-            <span class="event-chip-meta">${escapeHtml(eventMetaLine(ev) || 'Live event')}</span>
-          </span>
-          ${ev.id===currentEventId ? '<span class="event-chip-status">Current</span>' : '<span class="event-chip-status">Tap to switch</span>'}
-        </button>`).join('') || '<div class="event-switcher-empty">No live events yet</div>'}
-      </div>
-      <div class="event-summary">${archivedEvents.length ? `${archivedEvents.length} archived event${archivedEvents.length===1?'':'s'} are tucked into Settings so switching stays simple on mobile.` : 'Archived events stay hidden here so live switching is simpler on mobile.'}</div>
     </div>`;
 }
 
@@ -2934,7 +2887,7 @@ function saveSettings() {
   config.subtitle = document.getElementById('s_sub').value.trim()||config.subtitle;
   const subtitleParts = config.subtitle.split('·').map(v => v.trim()).filter(Boolean);
   currentEvent().location = subtitleParts[0] || currentEvent().location || '';
-  currentEvent().dateLabel = subtitleParts.length > 1 ? subtitleParts.slice(1).join(' · ') : (subtitleParts[0] || currentEvent().dateLabel || '');
+  currentEvent().dateLabel = subtitleParts.length > 1 ? subtitleParts.slice(1).join(' · ') : (currentEvent().dateLabel || '');
   const fbUrl     = document.getElementById('s_fb').value.trim();
   if (fbUrl && fbUrl!==config.firebaseUrl) { config.firebaseUrl=fbUrl; initFirebase(fbUrl); }
   config.firebaseUrl = fbUrl;
@@ -2976,7 +2929,6 @@ document.addEventListener('click', e => {
   if (createBtn) {
     e.preventDefault();
     e.stopPropagation();
-    ensureEventModal();
     createEvent();
     return;
   }
@@ -3261,8 +3213,8 @@ function setSchedRoomIframe(roomId, roomName) {
 function updateSchedIframe(roomName) {
   const base = getSchedBase();
   const url = roomName
-    ? 'https://' + base + '.sched.com/venue/' + encodeURIComponent(roomName.replace(/ /g,'+'))
-    : 'https://' + base + '.sched.com/';
+    ? 'https://' + base + '/venue/' + encodeURIComponent(roomName.replace(/ /g,'+'))
+    : 'https://' + base + '/';
   document.getElementById('schedIframe').src = url;
 }
 
