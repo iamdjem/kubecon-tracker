@@ -2164,23 +2164,29 @@ function duplicateEvent(eventId) { openEventModal('duplicate', eventId); }
 function deleteEvent(eventId) {
   const ev = appData.events[eventId];
   if (!ev) return;
-  const total = Object.keys(appData.events).length;
-  if (total <= 1) { showToast('Keep at least one event'); return; }
+  const isLast = Object.keys(appData.events).length <= 1;
   showConfirm(
-    'Delete event?',
-    `${ev.name || 'This event'} will be removed permanently from this tracker. This cannot be undone from inside the app.`,
+    isLast ? 'Delete last event?' : 'Delete event?',
+    isLast ? `${ev.name || 'This event'} is the last event. Deleting it will reset the tracker to a fresh start.` : `${ev.name || 'This event'} will be removed permanently from this tracker. This cannot be undone from inside the app.`,
     'Delete',
     'background:#b3261e;',
     () => {
-      const nextId = eventId === currentEventId ? (getNextLiveEventId(eventId) || Object.keys(appData.events).find(id => id !== eventId)) : currentEventId;
       delete appData.events[eventId];
       pushDeleteEvent(eventId);
-      currentEventId = nextId;
+      if (Object.keys(appData.events).length === 0) {
+        // Create a fresh default event
+        const fresh = makeEvent({ name: 'New Event' });
+        appData.events[fresh.id] = fresh;
+        currentEventId = fresh.id;
+      } else {
+        const nextId = eventId === currentEventId ? (getNextLiveEventId(eventId) || Object.keys(appData.events)[0]) : currentEventId;
+        currentEventId = nextId;
+      }
       syncActiveEvent();
       saveAppData();
       pushEventData();
       renderAll();
-          showToast('Event deleted');
+      showToast('Event deleted');
     }
   );
 }
@@ -2734,7 +2740,7 @@ function renderSettings() {
             ${ev.id === currentEventId ? '<button class="rst-btn" type="button" disabled>Current event</button>' : `<button class="rst-btn" type="button" data-switch-event="${escapeHtml(ev.id)}">Switch to event</button>`}
             <button class="rst-btn" type="button" data-duplicate-event="${escapeHtml(ev.id)}">Duplicate</button>
             <button class="rst-btn" type="button" data-toggle-archive-event="${escapeHtml(ev.id)}">${ev.archived ? 'Unarchive' : 'Archive'}</button>
-            <button class="rst-btn" type="button" data-delete-event="${escapeHtml(ev.id)}" ${Object.keys(appData.events).length <= 1 ? 'disabled' : ''}>Delete</button>
+            <button class="rst-btn" type="button" data-delete-event="${escapeHtml(ev.id)}">Delete</button>
           </div>
         </div>`;
 
