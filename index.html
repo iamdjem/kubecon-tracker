@@ -2492,14 +2492,12 @@ function renderEventSwitcher() {
   const wrap = document.getElementById('eventSwitcherWrap');
   if (!wrap) return;
   const liveEvents = getOrderedEvents(false);
-  const allEvents = Object.values(appData.events);
   wrap.innerHTML = `
     <div style="padding:8px 18px;border-bottom:1px solid var(--line);">
       <div class="event-bar">
         ${liveEvents.map(ev => `<button class="event-chip${ev.id===currentEventId?' on':''}" type="button" data-switch-event="${escapeHtml(ev.id)}"><span class="event-chip-dot"></span>${escapeHtml(eventMetaLine(ev) || ev.name || 'Untitled')}</button>`).join('')}
         <button class="event-add-chip" type="button" data-create-event="true">+</button>
       </div>
-      <div style="font-size:9px;color:#666;margin-top:4px;word-break:break-all;">DEBUG: ${allEvents.length} events | IDs: ${allEvents.map(e=>e.id).join(', ')} | FB: ${fbDb?'connected':'no'}</div>
     </div>`;
 }
 
