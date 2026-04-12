@@ -2910,11 +2910,7 @@ function addSchedStep(){ if(!config.schedSteps)config.schedSteps=[]; config.sche
 
 function saveSettings() {
   config.title    = document.getElementById('s_title').value.trim()||config.title;
-  currentEvent().name = config.title;
   config.subtitle = document.getElementById('s_sub').value.trim()||config.subtitle;
-  const subtitleParts = config.subtitle.split('·').map(v => v.trim()).filter(Boolean);
-  currentEvent().location = subtitleParts[0] || currentEvent().location || '';
-  currentEvent().dateLabel = subtitleParts.length > 1 ? subtitleParts.slice(1).join(' · ') : (currentEvent().dateLabel || '');
   const fbUrl     = document.getElementById('s_fb').value.trim();
   if (fbUrl && fbUrl!==config.firebaseUrl) { config.firebaseUrl=fbUrl; initFirebase(fbUrl); }
   config.firebaseUrl = fbUrl;
