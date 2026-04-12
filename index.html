@@ -1925,10 +1925,10 @@ function normalizeConfig(raw) {
   if (!cfg.title) cfg.title = DEFAULT_CONFIG.title;
   if (!cfg.subtitle) cfg.subtitle = DEFAULT_CONFIG.subtitle;
   if (!cfg.firebaseUrl && DEFAULT_CONFIG.firebaseUrl) cfg.firebaseUrl = DEFAULT_CONFIG.firebaseUrl;
-  if (!Array.isArray(cfg.steps) || !cfg.steps.length) cfg.steps = clone(DEFAULT_CONFIG.steps);
+  if (!Array.isArray(cfg.steps)) cfg.steps = [];
   if (!Array.isArray(cfg.crew)) cfg.crew = [];
-  if (!Array.isArray(cfg.days) || !cfg.days.length) cfg.days = clone(DEFAULT_DAYS);
-  if (!Array.isArray(cfg.schedSteps) || !cfg.schedSteps.find(s => s.key === 'obsbot')) cfg.schedSteps = clone(DEFAULT_CONFIG.schedSteps);
+  if (!Array.isArray(cfg.days)) cfg.days = [];
+  if (!Array.isArray(cfg.schedSteps)) cfg.schedSteps = [];
   return cfg;
 }
 function normalizeState(raw) {
@@ -2003,7 +2003,6 @@ function syncActiveEvent() {
   syncEventConfigMetadata(ev);
   config = ev.config;
   state = ev.state;
-  if (!config.days || !config.days.length) config.days = clone(DEFAULT_DAYS);
 }
 function saveAppData() {
   const ev = currentEvent();
@@ -2067,8 +2066,8 @@ function switchEvent(eventId, opts = {}) {
   currentEventId = eventId;
   syncActiveEvent();
   const todayKey = autoDetectDay();
-  currentDay = todayKey || localStorage.getItem('kc_day') || config.days[0].key;
-  if (!config.days.find(d => d.key === currentDay)) currentDay = config.days[0].key;
+  currentDay = todayKey || localStorage.getItem('kc_day') || config.days[0]?.key || '';
+  if (currentDay && !config.days.find(d => d.key === currentDay)) currentDay = config.days[0]?.key || '';
   saveConfig();
   renderAll();
   if (opts.toast !== false && fromEventId !== eventId) showToast(`Switched to ${currentEvent()?.name || 'event'}`);
@@ -2078,7 +2077,7 @@ function upsertEventAndRefresh(ev, toastLabel = 'Event saved') {
   currentEventId = ev.id;
   syncActiveEvent();
   const todayKey = autoDetectDay();
-  currentDay = todayKey || config.days[0]?.key || DEFAULT_DAYS[0].key;
+  currentDay = todayKey || config.days[0]?.key || '';
   saveAppData();
   pushEventData();
   renderAll();
@@ -2189,7 +2188,7 @@ function deleteEvent(eventId) {
         // Create an empty event (no crews, no rooms) — user configures from scratch
         const fresh = makeEvent({
           name: 'New Event',
-          config: { title: 'New Event', subtitle: '', crew: [], steps: clone(DEFAULT_CONFIG.steps), days: clone(DEFAULT_DAYS), schedSteps: clone(DEFAULT_CONFIG.schedSteps) }
+          config: { title: 'New Event', subtitle: '', crew: [], steps: [], days: [], schedSteps: [] }
         });
         appData.events[fresh.id] = fresh;
         currentEventId = fresh.id;
@@ -2349,13 +2348,13 @@ function autoDetectDay() {
   const mon = months[now.getMonth()];
   const dd  = String(now.getDate()).padStart(2, '0');
   const key = 'd_' + mon + dd;  // e.g. d_mar24
-  return (config.days || DEFAULT_DAYS).find(d => d.key === key) ? key : null;
+  return (config.days || []).find(d => d.key === key) ? key : null;
 }
 
 // Auto-select today's day — override localStorage if today matches a known day key
 const todayKey = autoDetectDay();
-let currentDay = todayKey || localStorage.getItem('kc_day') || config.days[0].key;
-if (!config.days.find(d => d.key === currentDay)) currentDay = config.days[0].key;
+let currentDay = todayKey || localStorage.getItem('kc_day') || config.days[0]?.key || '';
+if (currentDay && !config.days.find(d => d.key === currentDay)) currentDay = config.days[0]?.key || '';
 if (todayKey) localStorage.setItem('kc_day', todayKey);
 
 function dayRid(rid) { return currentDay + '_' + rid; }
@@ -2515,7 +2514,7 @@ function render() {
   // Day tabs
   const dayTabsEl = document.getElementById('setupDayTabs');
   if (dayTabsEl) {
-    dayTabsEl.innerHTML = (config.days || DEFAULT_DAYS).map(d =>
+    dayTabsEl.innerHTML = (config.days || []).map(d =>
       `<div class="day-tab${d.key===currentDay?' on':''}" onclick="switchDay('${d.key}')">${d.label}</div>`
     ).join('');
   }
@@ -2584,7 +2583,7 @@ function render() {
 function toggleFilter(id) { filter=filter===id?null:id; render(); }
 
 function confirmReset() {
-  const dayLabel = (config.days||DEFAULT_DAYS).find(d=>d.key===currentDay)?.label || currentDay;
+  const dayLabel = (config.days||[]).find(d=>d.key===currentDay)?.label || currentDay;
   showConfirm('Reset ' + dayLabel, 'This will clear ALL progress for ' + dayLabel + '. Every checkbox will be set to 0.', 'Reset', 'background:#7a2d2d;color:#ff6b6b;', () => {
   // Zero out all rooms for current day (override PREFILL too)
   config.crew.forEach(c => c.rooms.forEach(r => {
@@ -2607,8 +2606,8 @@ function copyFromPrevDay() {
   // Copy structure only (all zeros) — useful to set up a fresh day matching previous day's rooms
   const prevKey = getPrevDayKey();
   if (!prevKey) { showToast('No previous day'); return; }
-  const prevLabel = (config.days||DEFAULT_DAYS).find(d=>d.key===prevKey)?.label || prevKey;
-  const curLabel  = (config.days||DEFAULT_DAYS).find(d=>d.key===currentDay)?.label || currentDay;
+  const prevLabel = (config.days||[]).find(d=>d.key===prevKey)?.label || prevKey;
+  const curLabel  = (config.days||[]).find(d=>d.key===currentDay)?.label || currentDay;
   showConfirm('Copy from ' + prevLabel, 'This will reset ' + curLabel + ' to a blank slate (matching ' + prevLabel + '\'s structure). Current progress will be lost.', 'Copy', 'background:#2d4a7a;color:#6bb3ff;', () => {
   config.crew.forEach(c => c.rooms.forEach(r => {
     const dr = currentDay + '_' + r.id;
@@ -2624,8 +2623,8 @@ function fillFromPrevDay() {
   // Copy actual checked status from previous day into current day
   const prevKey = getPrevDayKey();
   if (!prevKey) { showToast('No previous day'); return; }
-  const prevLabel = (config.days||DEFAULT_DAYS).find(d=>d.key===prevKey)?.label || prevKey;
-  const curLabel  = (config.days||DEFAULT_DAYS).find(d=>d.key===currentDay)?.label || currentDay;
+  const prevLabel = (config.days||[]).find(d=>d.key===prevKey)?.label || prevKey;
+  const curLabel  = (config.days||[]).find(d=>d.key===currentDay)?.label || currentDay;
   showConfirm('Fill from ' + prevLabel, 'Copy all checked/unchecked status from ' + prevLabel + ' into ' + curLabel + '. This will overwrite any progress already made today.', 'Fill', 'background:#2d4a7a;color:#6bb3ff;', () => {
   config.crew.forEach(c => c.rooms.forEach(r => {
     const prevDr = prevKey + '_' + r.id;
@@ -2836,7 +2835,7 @@ function renderSettings() {
          Keep the underlying schedule-step code intact so it can be re-enabled later if needed. -->
     <div class="sg">
       <div class="sg-lbl">Conference Days</div>
-      <div id="daysList">${(config.days||DEFAULT_DAYS).map((d,di)=>`
+      <div id="daysList">${(config.days||[]).map((d,di)=>`
         <div class="si" style="display:flex;align-items:center;gap:8px;">
           <input class="si-label" value="${d.label}" onchange="updateDay(${di},this.value)"
             style="flex:1;background:var(--s3,#1a1a1a);border:1px solid var(--line2);color:var(--t1);border-radius:6px;padding:6px 10px;font-size:13px;" />
@@ -2916,7 +2915,7 @@ function addStep(){ config.steps.push({key:'s_'+Date.now(),icon:'⭐',label:'New
 
 function updateDay(di, val) { if(config.days[di]) config.days[di].label = val.trim() || config.days[di].label; }
 function deleteDay(di) {
-  if ((config.days||DEFAULT_DAYS).length <= 1) { showToast('Need at least one day'); return; }
+  if ((config.days||[]).length <= 1) { showToast('Need at least one day'); return; }
   const dlabel = config.days[di].label;
   showConfirm('Remove ' + dlabel, 'Remove this day from the tabs? Checklist data is kept and can be recovered by adding the day back.', 'Remove', 'background:#7a2d2d;color:#ff6b6b;', () => {
     config.days.splice(di, 1);
@@ -3057,7 +3056,7 @@ function switchPage(page) {
 function renderOverview() {
   const ovTabs = document.getElementById('ovDayTabs');
   if (ovTabs) {
-    ovTabs.innerHTML = (config.days||DEFAULT_DAYS).map(d =>
+    ovTabs.innerHTML = (config.days||[]).map(d =>
       `<div class="day-tab${d.key===currentDay?' on':''}" onclick="switchDay('${d.key}');renderOverview();">${d.label}</div>`
     ).join('');
   }
