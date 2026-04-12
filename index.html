@@ -2372,21 +2372,24 @@ function initFirebase(url) {
           fbDb.child('state').once('value'),
         ]).then(([eventsSnap, currentSnap, configSnap, stateSnap]) => {
           const remoteEvents = eventsSnap.val();
-          if (remoteEvents && typeof remoteEvents === 'object') return;
-          const remoteConfig = configSnap.val();
-          const remoteState = stateSnap.val();
-          if (remoteConfig && remoteConfig.steps && remoteConfig.crew) {
-            const seededEvent = makeEvent({
-              id: currentSnap.val() || currentEventId || 'ev_default',
-              name: remoteConfig.title || 'Setup Tracker',
-              config: remoteConfig,
-              state: remoteState || {},
-            });
-            appData = { currentEventId: seededEvent.id, events: { [seededEvent.id]: seededEvent } };
-            currentEventId = seededEvent.id;
-            syncActiveEvent();
-            saveAppData();
+          if (!remoteEvents || typeof remoteEvents !== 'object') {
+            // No remote events — try legacy config/state seeding
+            const remoteConfig = configSnap.val();
+            const remoteState = stateSnap.val();
+            if (remoteConfig && remoteConfig.steps && remoteConfig.crew) {
+              const seededEvent = makeEvent({
+                id: currentSnap.val() || currentEventId || 'ev_default',
+                name: remoteConfig.title || 'Setup Tracker',
+                config: remoteConfig,
+                state: remoteState || {},
+              });
+              appData = { currentEventId: seededEvent.id, events: { [seededEvent.id]: seededEvent } };
+              currentEventId = seededEvent.id;
+              syncActiveEvent();
+              saveAppData();
+            }
           }
+          // Always push local events so all devices see each other's events
           pushEventData();
         }).catch(() => {});
         fbDb.child('events').on('value', s => {
