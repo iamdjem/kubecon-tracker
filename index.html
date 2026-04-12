@@ -797,7 +797,7 @@ body { padding-bottom: 58px; }
 <div id="page-setup" class="page active">
   <div class="hd-inline">
     <div class="hd-left">
-      <div class="hd-title" id="confTitle2">Setup Tracker</div>
+      <div class="hd-title">E3 Tracker</div>
       <div class="hd-sub" id="confSub2">—</div>
     </div>
     <div class="hd-right" style="display:flex;align-items:center;gap:10px;">
@@ -2436,7 +2436,7 @@ function renderEventSwitcher() {
   wrap.innerHTML = `
     <div style="padding:8px 18px;border-bottom:1px solid var(--line);">
       <div class="event-bar">
-        ${liveEvents.map(ev => `<button class="event-chip${ev.id===currentEventId?' on':''}" type="button" data-switch-event="${escapeHtml(ev.id)}"><span class="event-chip-dot"></span>${escapeHtml(ev.name || 'Untitled')}</button>`).join('')}
+        ${liveEvents.map(ev => `<button class="event-chip${ev.id===currentEventId?' on':''}" type="button" data-switch-event="${escapeHtml(ev.id)}"><span class="event-chip-dot"></span>${escapeHtml(eventMetaLine(ev) || ev.name || 'Untitled')}</button>`).join('')}
         <button class="event-add-chip" type="button" data-create-event="true">+</button>
       </div>
     </div>`;
@@ -2445,9 +2445,6 @@ function renderEventSwitcher() {
 function render() {
   ensureActiveEventForState();
   renderEventSwitcher();
-  document.getElementById('confTitle').textContent = config.title;
-  document.getElementById('confSub').textContent   = config.subtitle;
-  document.getElementById('confTitle2').textContent = config.title;
   document.getElementById('confSub2').textContent   = config.subtitle;
 
   // Day tabs
