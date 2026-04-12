@@ -1976,6 +1976,17 @@ function loadAppData() {
   return { currentEventId: initialEvent.id, events: { [initialEvent.id]: initialEvent } };
 }
 let appData = loadAppData();
+// Ensure every event has a unique ID — replace 'ev_default' so different
+// devices don't collide on the same key in Firebase
+if (appData.events['ev_default']) {
+  const ev = appData.events['ev_default'];
+  const uniqueId = 'ev_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6);
+  delete appData.events['ev_default'];
+  ev.id = uniqueId;
+  appData.events[uniqueId] = ev;
+  if (appData.currentEventId === 'ev_default') appData.currentEventId = uniqueId;
+  localStorage.setItem('kc_app', JSON.stringify(appData));
+}
 let currentEventId = appData.currentEventId;
 let config = null;
 let state = null;
@@ -2396,27 +2407,6 @@ function initFirebase(url) {
               syncActiveEvent();
               saveAppData();
             }
-          } else {
-            // Resolve ID collisions: if local and remote share an ID but have
-            // different configs (different devices), give the local event a new ID
-            Object.entries(appData.events).forEach(([id, localEv]) => {
-              const remoteEv = remoteEvents[id];
-              if (remoteEv && remoteEv.config?.crew) {
-                const localCrewNames = (localEv.config?.crew || []).map(c => c.name).sort().join(',');
-                const remoteCrewNames = (remoteEv.config?.crew || []).map(c => c.name).sort().join(',');
-                if (localCrewNames !== remoteCrewNames) {
-                  // Different configs under same ID — re-ID the local event
-                  const newId = newEventId();
-                  delete appData.events[id];
-                  localEv.id = newId;
-                  appData.events[newId] = localEv;
-                  if (currentEventId === id) currentEventId = newId;
-                  appData.currentEventId = currentEventId;
-                  syncActiveEvent();
-                  saveAppData();
-                }
-              }
-            });
           }
           // Always push local events so all devices see each other's events
           pushEventData();
