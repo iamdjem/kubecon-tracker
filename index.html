@@ -1926,7 +1926,7 @@ function normalizeConfig(raw) {
   if (!cfg.subtitle) cfg.subtitle = DEFAULT_CONFIG.subtitle;
   if (!cfg.firebaseUrl && DEFAULT_CONFIG.firebaseUrl) cfg.firebaseUrl = DEFAULT_CONFIG.firebaseUrl;
   if (!Array.isArray(cfg.steps) || !cfg.steps.length) cfg.steps = clone(DEFAULT_CONFIG.steps);
-  if (!Array.isArray(cfg.crew) || !cfg.crew.length) cfg.crew = clone(DEFAULT_CONFIG.crew);
+  if (!Array.isArray(cfg.crew)) cfg.crew = [];
   if (!Array.isArray(cfg.days) || !cfg.days.length) cfg.days = clone(DEFAULT_DAYS);
   if (!Array.isArray(cfg.schedSteps) || !cfg.schedSteps.find(s => s.key === 'obsbot')) cfg.schedSteps = clone(DEFAULT_CONFIG.schedSteps);
   return cfg;
@@ -2186,8 +2186,11 @@ function deleteEvent(eventId) {
       delete appData.events[eventId];
       pushDeleteEvent(eventId);
       if (Object.keys(appData.events).length === 0) {
-        // Create a fresh default event
-        const fresh = makeEvent({ name: 'New Event' });
+        // Create an empty event (no crews, no rooms) — user configures from scratch
+        const fresh = makeEvent({
+          name: 'New Event',
+          config: { title: 'New Event', subtitle: '', crew: [], steps: clone(DEFAULT_CONFIG.steps), days: clone(DEFAULT_DAYS), schedSteps: clone(DEFAULT_CONFIG.schedSteps) }
+        });
         appData.events[fresh.id] = fresh;
         currentEventId = fresh.id;
       } else {
@@ -2360,7 +2363,7 @@ function dayRid(rid) { return currentDay + '_' + rid; }
 function getVal(rid, sk) {
   const dr = dayRid(rid);
   if (state[dr]?.[sk] !== undefined) return state[dr][sk];
-  return PREFILL[rid]?.[sk] || 0;
+  return 0;
 }
 function isDone(rid)   { return config.steps.every(s => getVal(rid, s.key)); }
 function countDone(rid){ return config.steps.filter(s => getVal(rid, s.key)).length; }
