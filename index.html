@@ -2372,6 +2372,7 @@ function initFirebase(url) {
           fbDb.child('state').once('value'),
         ]).then(([eventsSnap, currentSnap, configSnap, stateSnap]) => {
           const remoteEvents = eventsSnap.val();
+          console.log('[E3] init: local events:', Object.keys(appData.events), 'remote events:', remoteEvents ? Object.keys(remoteEvents) : 'none');
           if (!remoteEvents || typeof remoteEvents !== 'object') {
             // No remote events — try legacy config/state seeding
             const remoteConfig = configSnap.val();
@@ -2390,10 +2391,12 @@ function initFirebase(url) {
             }
           }
           // Always push local events so all devices see each other's events
+          console.log('[E3] pushing local events to Firebase:', Object.keys(appData.events));
           pushEventData();
         }).catch(() => {});
         fbDb.child('events').on('value', s => {
           const v = s.val();
+          console.log('[E3] events listener fired. remote:', v ? Object.keys(v) : 'none', 'local:', Object.keys(appData.events));
           if (v && typeof v === 'object') {
             const merged = {};
             // Keep local events that aren't in remote (not yet pushed)
@@ -2406,6 +2409,7 @@ function initFirebase(url) {
               }
             });
             appData.events = merged;
+            console.log('[E3] after merge:', Object.keys(merged));
             if (!appData.events[currentEventId]) currentEventId = Object.keys(appData.events)[0];
             syncActiveEvent();
             saveAppData();
