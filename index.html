@@ -1910,8 +1910,6 @@ function syncEventConfigMetadata(ev) {
   if (!ev) return;
   ev.name = ev.name || ev.config?.title || 'Untitled Event';
   ev.config = normalizeConfig(ev.config);
-  ev.config.title = ev.name;
-  ev.config.subtitle = eventMetaLine(ev) || ev.config.subtitle || DEFAULT_CONFIG.subtitle;
 }
 function getOrderedEvents(includeArchived = true) {
   return Object.values(appData.events)
@@ -2475,7 +2473,7 @@ function renderEventSwitcher() {
   wrap.innerHTML = `
     <div style="padding:8px 18px;border-bottom:1px solid var(--line);">
       <div class="event-bar">
-        ${liveEvents.map(ev => `<button class="event-chip${ev.id===currentEventId?' on':''}" type="button" data-switch-event="${escapeHtml(ev.id)}"><span class="event-chip-dot"></span>${escapeHtml(eventMetaLine(ev) || ev.name || 'Untitled')}</button>`).join('')}
+        ${liveEvents.map(ev => `<button class="event-chip${ev.id===currentEventId?' on':''}" type="button" data-switch-event="${escapeHtml(ev.id)}"><span class="event-chip-dot"></span>${escapeHtml(ev.name || 'Untitled')}</button>`).join('')}
         <button class="event-add-chip" type="button" data-create-event="true">+</button>
       </div>
     </div>`;
@@ -2484,7 +2482,7 @@ function renderEventSwitcher() {
 function render() {
   ensureActiveEventForState();
   renderEventSwitcher();
-  document.getElementById('confSub2').textContent   = config.subtitle;
+  document.getElementById('confSub2').textContent   = currentEvent()?.name || config.subtitle;
 
   // Day tabs
   const dayTabsEl = document.getElementById('setupDayTabs');
