@@ -1909,7 +1909,6 @@ function touchEvent(ev) { if (ev) ev.updatedAt = Date.now(); }
 function syncEventConfigMetadata(ev) {
   if (!ev) return;
   ev.name = ev.name || ev.config?.title || 'Untitled Event';
-  ev.config = normalizeConfig(ev.config);
 }
 function getOrderedEvents(includeArchived = true) {
   return Object.values(appData.events)
@@ -2571,6 +2570,7 @@ function render() {
 
   config.crew.forEach((c,ci) => {
     if (filter && filter!==c.id) return;
+    if (!Array.isArray(c.rooms)) c.rooms = [];
     const cd = c.rooms.filter(r=>isDone(r.id)).length;
     total += c.rooms.length; done += cd;
 
