@@ -2134,8 +2134,9 @@ function submitEventModal() {
   const cleanName = (document.getElementById('event-modal-name').value || '').trim() || 'New Event';
   const location = (document.getElementById('event-modal-location').value || '').trim();
   const dateLabel = (document.getElementById('event-modal-date').value || '').trim();
-  const baseConfig = clone(source?.config || DEFAULT_CONFIG);
-  const includeState = mode === 'duplicate' && document.getElementById('event-modal-copy-state').checked;
+  const isDuplicate = mode === 'duplicate';
+  const baseConfig = isDuplicate ? clone(source?.config || DEFAULT_CONFIG) : clone(DEFAULT_CONFIG);
+  const includeState = isDuplicate && document.getElementById('event-modal-copy-state').checked;
   const subtitle = [location, dateLabel].filter(Boolean).join(' · ');
   const ev = makeEvent({
     name: cleanName,
@@ -2154,9 +2155,8 @@ function createEvent() {
     console.error('createEvent failed', e);
     const fallbackName = prompt('New event name', 'New Event');
     if (fallbackName === null) return;
-    const source = currentEvent();
     const cleanName = (fallbackName || '').trim() || 'New Event';
-    const baseConfig = clone(source?.config || DEFAULT_CONFIG);
+    const baseConfig = clone(DEFAULT_CONFIG);
     baseConfig.title = cleanName;
     const ev = makeEvent({ name: cleanName, config: baseConfig, state: {} });
     upsertEventAndRefresh(ev, 'Event created');
