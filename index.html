@@ -2840,11 +2840,6 @@ function renderSettings() {
       <div class="event-summary">Readable handoff summary for printing or copy/paste, plus the raw JSON backup/export.</div>
     </div>
     <div class="sg">
-      <div class="sg-lbl">Conference</div>
-      <input class="si" id="s_title" value="${config.title}" placeholder="Name">
-      <input class="si" id="s_sub" value="${config.subtitle}" placeholder="Location / date">
-    </div>
-    <div class="sg">
       <div class="sg-lbl">Live Sync</div>
       <input class="si" id="s_fb" value="${config.firebaseUrl||''}" placeholder="Firebase Realtime DB URL" style="margin-bottom:0">
       <div class="fb-row"><div class="fb-dot${fbDb?' ok':''}" id="fbDot"></div><span class="fb-txt" id="fbTxt">${fbDb?'Connected — live sync active':'Not connected — local only'}</span></div>
@@ -2967,8 +2962,6 @@ function deleteSchedStep(si){ if(!config.schedSteps)return; config.schedSteps.sp
 function addSchedStep(){ if(!config.schedSteps)config.schedSteps=[]; config.schedSteps.push({key:'ss_'+Date.now(),icon:'📤',label:'New Step'}); renderSettings(); }
 
 function saveSettings() {
-  config.title    = document.getElementById('s_title').value.trim()||config.title;
-  config.subtitle = document.getElementById('s_sub').value.trim()||config.subtitle;
   const fbUrl     = document.getElementById('s_fb').value.trim();
   if (fbUrl && fbUrl!==config.firebaseUrl) { config.firebaseUrl=fbUrl; initFirebase(fbUrl); }
   config.firebaseUrl = fbUrl;
