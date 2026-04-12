@@ -2035,6 +2035,18 @@ function pushDeleteEvent(eventId) {
   if (!fbDb) return;
   fbDb.child('events').child(eventId).remove();
 }
+// Clean Firebase: remove any remote events not in local, and push local events
+function fbCleanSync() {
+  if (!fbDb) { showToast('Firebase not connected'); return; }
+  fbDb.child('events').once('value').then(s => {
+    const remote = s.val() || {};
+    Object.keys(remote).forEach(id => {
+      if (!appData.events[id]) fbDb.child('events').child(id).remove();
+    });
+    pushEventData();
+    showToast('Firebase synced & cleaned');
+  });
+}
 function saveConfig(push=true) { saveAppData(); if (push) pushEventData(); }
 function saveState(push=true)  { saveAppData(); if (push) pushEventData(); }
 function isSettingsOpen() { return document.getElementById('sheet')?.classList.contains('open'); }
@@ -2409,12 +2421,10 @@ function initFirebase(url) {
               saveAppData();
             }
           }
-          // Always push local events so all devices see each other's events
+          // Push local events and clean up stale remote events
           pushEventData();
-          // Clean up ev_default from Firebase if this device migrated away from it
-          if (localStorage.getItem('kc_evid_migrated')) {
-            fbDb.child('events').child('ev_default').remove();
-          }
+          // Remove ev_default from Firebase (all devices now have unique IDs)
+          fbDb.child('events').child('ev_default').remove();
         }).catch(() => {});
         fbDb.child('events').on('value', s => {
           const v = s.val();
