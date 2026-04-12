@@ -1987,25 +1987,6 @@ if (appData.events['ev_default'] && !localStorage.getItem('kc_evid_migrated')) {
   localStorage.setItem('kc_app', JSON.stringify(appData));
   localStorage.setItem('kc_evid_migrated', uniqueId);
 }
-// Deduplicate events with identical crew configs — keep only the newest per config
-function deduplicateEvents() {
-  const seen = {};
-  const toDelete = [];
-  Object.values(appData.events).sort((a,b) => (b.updatedAt||0) - (a.updatedAt||0)).forEach(ev => {
-    const key = (ev.config?.crew || []).map(c => c.name).sort().join(',');
-    if (seen[key]) { toDelete.push(ev.id); } else { seen[key] = ev.id; }
-  });
-  toDelete.forEach(id => {
-    delete appData.events[id];
-    if (fbDb) fbDb.child('events').child(id).remove();
-  });
-  if (toDelete.length) {
-    if (!appData.events[appData.currentEventId]) appData.currentEventId = Object.keys(appData.events)[0];
-    localStorage.setItem('kc_app', JSON.stringify(appData));
-  }
-  return toDelete.length;
-}
-deduplicateEvents();
 let currentEventId = appData.currentEventId;
 let config = null;
 let state = null;
@@ -2461,7 +2442,6 @@ function initFirebase(url) {
               }
             });
             appData.events = merged;
-            deduplicateEvents();
             if (!appData.events[currentEventId]) currentEventId = Object.keys(appData.events)[0];
             syncActiveEvent();
             saveAppData();
