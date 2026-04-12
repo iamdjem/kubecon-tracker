@@ -2359,7 +2359,15 @@ function initFirebase(url) {
     .then(() => load('https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js'))
     .then(async () => {
       try {
-        const app = firebase.apps?.find(a => a.name === 'tr') || firebase.initializeApp({ databaseURL: url }, 'tr');
+        const app = firebase.apps?.find(a => a.name === 'tr') || firebase.initializeApp({
+          apiKey: 'AIzaSyAo1IeN6TnsKC48_ZJG6BWxke_T1l8Ke2g',
+          authDomain: 'kubecon-tracker.firebaseapp.com',
+          databaseURL: url,
+          projectId: 'kubecon-tracker',
+          storageBucket: 'kubecon-tracker.firebasestorage.app',
+          messagingSenderId: '843747163914',
+          appId: '1:843747163914:web:2486f6353937a8c25ac4f3',
+        }, 'tr');
         fbAuth = firebase.auth(app);
         if (!fbAuth.currentUser) {
           await fbAuth.signInAnonymously();
