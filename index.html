@@ -2436,10 +2436,6 @@ function renderEventSwitcher() {
   const wrap = document.getElementById('eventSwitcherWrap');
   if (!wrap) return;
   const liveEvents = getOrderedEvents(false);
-  if (liveEvents.length <= 1) {
-    wrap.innerHTML = '';
-    return;
-  }
   wrap.innerHTML = `
     <div style="padding:8px 18px;border-bottom:1px solid var(--line);">
       <div class="event-bar">
