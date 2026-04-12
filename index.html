@@ -2028,7 +2028,10 @@ function pushEventData() {
     fbDb.child('state').set(state),
   ]).finally(() => { setTimeout(() => { _fbPushing = false; }, 0); });
 }
+const _recentlyDeleted = new Set();
 function pushDeleteEvent(eventId) {
+  _recentlyDeleted.add(eventId);
+  setTimeout(() => _recentlyDeleted.delete(eventId), 10000);
   if (!fbDb) return;
   fbDb.child('events').child(eventId).remove();
 }
@@ -2440,6 +2443,8 @@ function initFirebase(url) {
             Object.entries(v).forEach(([id, ev]) => {
               // Skip ev_default from remote if this device already migrated away from it
               if (id === 'ev_default' && myMigratedId) return;
+              // Skip events that were just deleted locally (prevents Firebase race from resurrecting them)
+              if (_recentlyDeleted.has(id)) return;
               const local = merged[id];
               if (!local || (ev.updatedAt || 0) >= (local.updatedAt || 0)) {
                 merged[id] = makeEvent({ ...ev, id });
