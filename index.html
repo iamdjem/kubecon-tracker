@@ -1976,9 +1976,9 @@ function loadAppData() {
   return { currentEventId: initialEvent.id, events: { [initialEvent.id]: initialEvent } };
 }
 let appData = loadAppData();
-// Ensure every event has a unique ID — replace 'ev_default' so different
+// Ensure every event has a unique ID — replace 'ev_default' once so different
 // devices don't collide on the same key in Firebase
-if (appData.events['ev_default']) {
+if (appData.events['ev_default'] && !localStorage.getItem('kc_evid_migrated')) {
   const ev = appData.events['ev_default'];
   const uniqueId = 'ev_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6);
   delete appData.events['ev_default'];
@@ -1986,6 +1986,7 @@ if (appData.events['ev_default']) {
   appData.events[uniqueId] = ev;
   if (appData.currentEventId === 'ev_default') appData.currentEventId = uniqueId;
   localStorage.setItem('kc_app', JSON.stringify(appData));
+  localStorage.setItem('kc_evid_migrated', uniqueId);
 }
 let currentEventId = appData.currentEventId;
 let config = null;
@@ -2410,6 +2411,10 @@ function initFirebase(url) {
           }
           // Always push local events so all devices see each other's events
           pushEventData();
+          // Clean up ev_default from Firebase if this device migrated away from it
+          if (localStorage.getItem('kc_evid_migrated')) {
+            fbDb.child('events').child('ev_default').remove();
+          }
         }).catch(() => {});
         fbDb.child('events').on('value', s => {
           const v = s.val();
@@ -2418,7 +2423,10 @@ function initFirebase(url) {
             // Keep local events that aren't in remote (not yet pushed)
             Object.entries(appData.events).forEach(([id, ev]) => { merged[id] = ev; });
             // Merge remote events, preferring newer updatedAt
+            const myMigratedId = localStorage.getItem('kc_evid_migrated');
             Object.entries(v).forEach(([id, ev]) => {
+              // Skip ev_default from remote if this device already migrated away from it
+              if (id === 'ev_default' && myMigratedId) return;
               const local = merged[id];
               if (!local || (ev.updatedAt || 0) >= (local.updatedAt || 0)) {
                 merged[id] = makeEvent({ ...ev, id });
