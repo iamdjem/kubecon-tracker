@@ -2390,19 +2390,19 @@ function initFirebase(url) {
           pushEventData();
         }).catch(() => {});
         fbDb.child('events').on('value', s => {
-          if (_fbPushing) return;
           const v = s.val();
           if (v && typeof v === 'object') {
-            const events = {};
+            const merged = {};
+            // Keep local events that aren't in remote (not yet pushed)
+            Object.entries(appData.events).forEach(([id, ev]) => { merged[id] = ev; });
+            // Merge remote events, preferring newer updatedAt
             Object.entries(v).forEach(([id, ev]) => {
-              const local = appData.events[id];
+              const local = merged[id];
               if (!local || (ev.updatedAt || 0) >= (local.updatedAt || 0)) {
-                events[id] = makeEvent({ ...ev, id });
-              } else {
-                events[id] = local;
+                merged[id] = makeEvent({ ...ev, id });
               }
             });
-            appData.events = events;
+            appData.events = merged;
             if (!appData.events[currentEventId]) currentEventId = Object.keys(appData.events)[0];
             syncActiveEvent();
             saveAppData();
