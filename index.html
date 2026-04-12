@@ -2372,7 +2372,6 @@ function initFirebase(url) {
           fbDb.child('state').once('value'),
         ]).then(([eventsSnap, currentSnap, configSnap, stateSnap]) => {
           const remoteEvents = eventsSnap.val();
-          console.log('[E3] init: local events:', Object.keys(appData.events), 'remote events:', remoteEvents ? Object.keys(remoteEvents) : 'none');
           if (!remoteEvents || typeof remoteEvents !== 'object') {
             // No remote events — try legacy config/state seeding
             const remoteConfig = configSnap.val();
@@ -2389,14 +2388,33 @@ function initFirebase(url) {
               syncActiveEvent();
               saveAppData();
             }
+          } else {
+            // Resolve ID collisions: if local and remote share an ID but have
+            // different configs (different devices), give the local event a new ID
+            Object.entries(appData.events).forEach(([id, localEv]) => {
+              const remoteEv = remoteEvents[id];
+              if (remoteEv && remoteEv.config?.crew) {
+                const localCrewNames = (localEv.config?.crew || []).map(c => c.name).sort().join(',');
+                const remoteCrewNames = (remoteEv.config?.crew || []).map(c => c.name).sort().join(',');
+                if (localCrewNames !== remoteCrewNames) {
+                  // Different configs under same ID — re-ID the local event
+                  const newId = newEventId();
+                  delete appData.events[id];
+                  localEv.id = newId;
+                  appData.events[newId] = localEv;
+                  if (currentEventId === id) currentEventId = newId;
+                  appData.currentEventId = currentEventId;
+                  syncActiveEvent();
+                  saveAppData();
+                }
+              }
+            });
           }
           // Always push local events so all devices see each other's events
-          console.log('[E3] pushing local events to Firebase:', Object.keys(appData.events));
           pushEventData();
         }).catch(() => {});
         fbDb.child('events').on('value', s => {
           const v = s.val();
-          console.log('[E3] events listener fired. remote:', v ? Object.keys(v) : 'none', 'local:', Object.keys(appData.events));
           if (v && typeof v === 'object') {
             const merged = {};
             // Keep local events that aren't in remote (not yet pushed)
@@ -2409,7 +2427,6 @@ function initFirebase(url) {
               }
             });
             appData.events = merged;
-            console.log('[E3] after merge:', Object.keys(merged));
             if (!appData.events[currentEventId]) currentEventId = Object.keys(appData.events)[0];
             syncActiveEvent();
             saveAppData();
