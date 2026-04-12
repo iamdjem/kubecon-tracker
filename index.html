@@ -931,9 +931,6 @@ body { padding-bottom: 58px; }
     <button class="sh-close" onclick="closeSettings()">✕</button>
   </div>
   <div class="sh-body" id="shBody"></div>
-  <div style="position:sticky;bottom:0;padding:12px 18px 16px;background:var(--bg);border-top:1px solid var(--line);">
-    <button class="save-btn" onclick="saveSettings()" style="margin-top:0;width:100%;">Save & Apply</button>
-  </div>
 </div>
 
 <script>
@@ -2061,7 +2058,8 @@ function fbCleanSync() {
 function saveConfig(push=true) { saveAppData(); if (push) pushEventData(); }
 function saveState(push=true)  { saveAppData(); if (push) pushEventData(); }
 function isSettingsOpen() { return document.getElementById('sheet')?.classList.contains('open'); }
-function renderAll() { render(); renderOverview(); if (currentPage === 'today') renderToday(); if (currentPage === 'record') renderRecord(); if (isSettingsOpen()) renderSettings(); }
+function renderAll() { render(); renderOverview(); if (currentPage === 'today') renderToday(); if (currentPage === 'record') renderRecord(); }
+function renderAllIncludingSettings() { renderAll(); if (isSettingsOpen()) renderSettings(); }
 let eventModalState = null;
 function switchEvent(eventId, opts = {}) {
   if (!appData.events[eventId]) return;
@@ -2072,7 +2070,7 @@ function switchEvent(eventId, opts = {}) {
   currentDay = todayKey || localStorage.getItem('kc_day') || config.days[0]?.key || '';
   if (currentDay && !config.days.find(d => d.key === currentDay)) currentDay = config.days[0]?.key || '';
   saveConfig();
-  renderAll();
+  renderAllIncludingSettings();
   if (opts.toast !== false && fromEventId !== eventId) showToast(`Switched to ${currentEvent()?.name || 'event'}`);
 }
 function upsertEventAndRefresh(ev, toastLabel = 'Event saved') {
@@ -2083,7 +2081,7 @@ function upsertEventAndRefresh(ev, toastLabel = 'Event saved') {
   currentDay = todayKey || config.days[0]?.key || '';
   saveAppData();
   pushEventData();
-  renderAll();
+  renderAllIncludingSettings();
   showToast(toastLabel);
 }
 function ensureEventModal() {
@@ -2202,7 +2200,7 @@ function deleteEvent(eventId) {
       syncActiveEvent();
       saveAppData();
       pushEventData();
-      renderAll();
+      renderAllIncludingSettings();
       showToast('Event deleted');
     }
   );
@@ -2219,6 +2217,7 @@ function updateEventField(eventId, field, value) {
   saveAppData();
   pushEventData();
   renderAll();
+  // Deliberately NOT renderSettings — avoids blurring the input user is typing in
 }
 function updateEventName(eventId, value) { updateEventField(eventId, 'name', value); }
 function toggleEventArchive(eventId) {
@@ -2241,7 +2240,7 @@ function toggleEventArchive(eventId) {
   syncActiveEvent();
   saveAppData();
   pushEventData();
-  renderAll();
+  renderAllIncludingSettings();
   showToast(ev.archived ? 'Event archived' : 'Event restored');
 }
 function eventReportBaseName(ev = currentEvent()) {
@@ -2841,12 +2840,12 @@ function renderSettings() {
     </div>
     <div class="sg">
       <div class="sg-lbl">Live Sync</div>
-      <input class="si" id="s_fb" value="${config.firebaseUrl||''}" placeholder="Firebase Realtime DB URL" style="margin-bottom:0">
+      <input class="si" id="s_fb" value="${config.firebaseUrl||''}" placeholder="Firebase Realtime DB URL" style="margin-bottom:0" onchange="updateFirebaseUrl(this.value)">
       <div class="fb-row"><div class="fb-dot${fbDb?' ok':''}" id="fbDot"></div><span class="fb-txt" id="fbTxt">${fbDb?'Connected — live sync active':'Not connected — local only'}</span></div>
     </div>
     <div class="sg">
       <div class="sg-lbl">Schedule Embed</div>
-      <input class="si" id="s_sched_embed" value="${config.scheduleEmbedUrl||''}" placeholder="https://...">
+      <input class="si" id="s_sched_embed" value="${config.scheduleEmbedUrl||''}" placeholder="https://..." onchange="updateScheduleEmbed(this.value)">
       <div style="font-size:11px;color:var(--t3);margin-top:-4px;">Paste the live schedule URL to show in the Schedule tab</div>
     </div>
     <div class="sg">
@@ -2895,20 +2894,20 @@ function initSortable() {
   if (sl) new Sortable(sl, {
     handle: '.drag-handle', animation: 150,
     ghostClass: 'sortable-ghost', dragClass: 'sortable-drag',
-    onEnd: e => { const s=config.steps.splice(e.oldIndex,1)[0]; config.steps.splice(e.newIndex,0,s); }
+    onEnd: e => { const s=config.steps.splice(e.oldIndex,1)[0]; config.steps.splice(e.newIndex,0,s); saveConfig(); render(); }
   });
   const ssl = document.getElementById('schedStepsList');
   if (ssl) new Sortable(ssl, {
     handle: '.drag-handle', animation: 150,
     ghostClass: 'sortable-ghost', dragClass: 'sortable-drag',
-    onEnd: e => { if(!config.schedSteps)return; const s=config.schedSteps.splice(e.oldIndex,1)[0]; config.schedSteps.splice(e.newIndex,0,s); }
+    onEnd: e => { if(!config.schedSteps)return; const s=config.schedSteps.splice(e.oldIndex,1)[0]; config.schedSteps.splice(e.newIndex,0,s); saveConfig(); }
   });
   // Crew
   const cl = document.getElementById('crewList');
   if (cl) new Sortable(cl, {
     handle: '.ci-hd > .drag-handle', animation: 150,
     ghostClass: 'sortable-ghost', dragClass: 'sortable-drag',
-    onEnd: e => { const c=config.crew.splice(e.oldIndex,1)[0]; config.crew.splice(e.newIndex,0,c); }
+    onEnd: e => { const c=config.crew.splice(e.oldIndex,1)[0]; config.crew.splice(e.newIndex,0,c); saveConfig(); render(); }
   });
   // Rooms per crew
   config.crew.forEach((_,ci) => {
@@ -2916,7 +2915,7 @@ function initSortable() {
     if (rl) new Sortable(rl, {
       handle: '.drag-handle', animation: 150,
       ghostClass: 'sortable-ghost', dragClass: 'sortable-drag',
-      onEnd: e => { const r=config.crew[ci].rooms.splice(e.oldIndex,1)[0]; config.crew[ci].rooms.splice(e.newIndex,0,r); }
+      onEnd: e => { const r=config.crew[ci].rooms.splice(e.oldIndex,1)[0]; config.crew[ci].rooms.splice(e.newIndex,0,r); saveConfig(); render(); }
     });
   });
 }
@@ -2929,51 +2928,52 @@ function toggleExp(ci) {
     if (btn) btn.style.transform = el.classList.contains('exp') ? 'rotate(90deg)' : '';
   }
 }
-function renameCrew(ci,v){ config.crew[ci].name=v.trim()||config.crew[ci].name; }
-function renameRoom(ci,ri,v){ config.crew[ci].rooms[ri].name=v.trim()||config.crew[ci].rooms[ri].name; }
-function delCrew(ci){ if(!confirm(`Remove ${config.crew[ci].name}?`))return; config.crew.splice(ci,1); renderSettings(); }
-function delRoom(ci,ri){ config.crew[ci].rooms.splice(ri,1); renderSettings(); }
-function addRoom(ci){ config.crew[ci].rooms.push({id:'r_'+Date.now(),name:'New Room'}); renderSettings(); setTimeout(()=>document.getElementById('ci_'+ci)?.classList.add('exp'),10); }
-function addCrew(){ config.crew.push({id:'c_'+Date.now(),name:'New Person',rooms:[]}); renderSettings(); }
-function updateStep(si,f,v){ config.steps[si][f]=v.trim()||config.steps[si][f]; }
-function deleteStep(si){ if(config.steps.length<=1){showToast('Need at least one step');return;} config.steps.splice(si,1); renderSettings(); }
-function addStep(){ config.steps.push({key:'s_'+Date.now(),icon:'⭐',label:'New Step'}); renderSettings(); }
+function renameCrew(ci,v){ config.crew[ci].name=v.trim()||config.crew[ci].name; saveConfig(); render(); }
+function renameRoom(ci,ri,v){ config.crew[ci].rooms[ri].name=v.trim()||config.crew[ci].rooms[ri].name; saveConfig(); render(); }
+function delCrew(ci){ if(!confirm(`Remove ${config.crew[ci].name}?`))return; config.crew.splice(ci,1); saveConfig(); renderAllIncludingSettings(); }
+function delRoom(ci,ri){ config.crew[ci].rooms.splice(ri,1); saveConfig(); renderAllIncludingSettings(); }
+function addRoom(ci){ config.crew[ci].rooms.push({id:'r_'+Date.now(),name:'New Room'}); saveConfig(); renderAllIncludingSettings(); setTimeout(()=>document.getElementById('ci_'+ci)?.classList.add('exp'),10); }
+function addCrew(){ config.crew.push({id:'c_'+Date.now(),name:'New Person',rooms:[]}); saveConfig(); renderAllIncludingSettings(); }
+function updateStep(si,f,v){ config.steps[si][f]=v.trim()||config.steps[si][f]; saveConfig(); render(); }
+function deleteStep(si){ if(config.steps.length<=1){showToast('Need at least one step');return;} config.steps.splice(si,1); saveConfig(); renderAllIncludingSettings(); }
+function addStep(){ config.steps.push({key:'s_'+Date.now(),icon:'⭐',label:'New Step'}); saveConfig(); renderAllIncludingSettings(); }
 
-function updateDay(di, val) { if(config.days[di]) config.days[di].label = val.trim() || config.days[di].label; }
+function updateDay(di, val) { if(config.days[di]) { config.days[di].label = val.trim() || config.days[di].label; saveConfig(); render(); } }
 function deleteDay(di) {
   if ((config.days||[]).length <= 1) { showToast('Need at least one day'); return; }
   const dlabel = config.days[di].label;
   showConfirm('Remove ' + dlabel, 'Remove this day from the tabs? Checklist data is kept and can be recovered by adding the day back.', 'Remove', 'background:#7a2d2d;color:#ff6b6b;', () => {
     config.days.splice(di, 1);
-  if (!config.days.find(d => d.key === currentDay)) { currentDay = config.days[0].key; localStorage.setItem('kc_day', currentDay); }
-  renderSettings();
+    if (!config.days.find(d => d.key === currentDay)) { currentDay = config.days[0]?.key || ''; localStorage.setItem('kc_day', currentDay); }
+    saveConfig();
+    renderAllIncludingSettings();
   });
 }
 function addDay() {
   const key = 'd_' + Date.now();
   config.days = config.days || [];
   config.days.push({ key, label: 'New Day' });
-  renderSettings();
+  saveConfig();
+  renderAllIncludingSettings();
   setTimeout(() => { const inputs = document.querySelectorAll('#daysList .si-label'); if(inputs.length) inputs[inputs.length-1].focus(); }, 50);
 }
 
-function updateSchedStep(si,field,val){ if(!config.schedSteps)config.schedSteps=[]; config.schedSteps[si][field]=val; }
-function deleteSchedStep(si){ if(!config.schedSteps)return; config.schedSteps.splice(si,1); renderSettings(); }
-function addSchedStep(){ if(!config.schedSteps)config.schedSteps=[]; config.schedSteps.push({key:'ss_'+Date.now(),icon:'📤',label:'New Step'}); renderSettings(); }
+function updateSchedStep(si,field,val){ if(!config.schedSteps)config.schedSteps=[]; config.schedSteps[si][field]=val; saveConfig(); }
+function deleteSchedStep(si){ if(!config.schedSteps)return; config.schedSteps.splice(si,1); saveConfig(); if(isSettingsOpen()) renderSettings(); }
+function addSchedStep(){ if(!config.schedSteps)config.schedSteps=[]; config.schedSteps.push({key:'ss_'+Date.now(),icon:'📤',label:'New Step'}); saveConfig(); if(isSettingsOpen()) renderSettings(); }
 
-function saveSettings() {
-  const fbUrl     = document.getElementById('s_fb').value.trim();
-  if (fbUrl && fbUrl!==config.firebaseUrl) { config.firebaseUrl=fbUrl; initFirebase(fbUrl); }
+function updateFirebaseUrl(val) {
+  const fbUrl = (val || '').trim();
+  if (fbUrl && fbUrl !== config.firebaseUrl) { config.firebaseUrl = fbUrl; initFirebase(fbUrl); }
   config.firebaseUrl = fbUrl;
-  config.scheduleEmbedUrl = document.getElementById('s_sched_embed').value.trim();
-  config.steps = config.steps.map(s=>({...s, key:s.key||'s_'+Date.now()}));
-  if (config.schedSteps) config.schedSteps = config.schedSteps.map(s=>({...s, key:s.key||'ss_'+Date.now()}));
-  // Flush day label inputs (in case user didn't blur)
-  document.querySelectorAll('#daysList .si-label').forEach((inp, i) => {
-    if (config.days[i]) config.days[i].label = inp.value.trim() || config.days[i].label;
-  });
   saveConfig();
-  renderAll(); closeSettings(); showToast('Saved');
+  showToast('Firebase URL saved');
+}
+function updateScheduleEmbed(val) {
+  config.scheduleEmbedUrl = (val || '').trim();
+  saveConfig();
+  if (currentPage === 'today') renderToday();
+  showToast('Schedule URL saved');
 }
 
 function showToast(msg) {
