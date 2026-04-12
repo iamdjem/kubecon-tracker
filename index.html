@@ -2028,10 +2028,19 @@ function pushEventData() {
     fbDb.child('state').set(state),
   ]).finally(() => { setTimeout(() => { _fbPushing = false; }, 0); });
 }
-const _recentlyDeleted = new Set();
+// Persistent deleted event tracking — events stay deleted across reloads
+const DELETED_EVENTS_KEY = 'kc_deleted_events';
+function getDeletedIds() {
+  try { return new Set(JSON.parse(localStorage.getItem(DELETED_EVENTS_KEY) || '[]')); }
+  catch { return new Set(); }
+}
+function addDeletedId(id) {
+  const set = getDeletedIds();
+  set.add(id);
+  localStorage.setItem(DELETED_EVENTS_KEY, JSON.stringify([...set]));
+}
 function pushDeleteEvent(eventId) {
-  _recentlyDeleted.add(eventId);
-  setTimeout(() => _recentlyDeleted.delete(eventId), 10000);
+  addDeletedId(eventId);
   if (!fbDb) return;
   fbDb.child('events').child(eventId).remove();
 }
@@ -2440,11 +2449,16 @@ function initFirebase(url) {
             Object.entries(appData.events).forEach(([id, ev]) => { merged[id] = ev; });
             // Merge remote events, preferring newer updatedAt
             const myMigratedId = localStorage.getItem('kc_evid_migrated');
+            const deletedIds = getDeletedIds();
             Object.entries(v).forEach(([id, ev]) => {
               // Skip ev_default from remote if this device already migrated away from it
               if (id === 'ev_default' && myMigratedId) return;
-              // Skip events that were just deleted locally (prevents Firebase race from resurrecting them)
-              if (_recentlyDeleted.has(id)) return;
+              // Skip events that were deleted on this device
+              if (deletedIds.has(id)) {
+                // Also clean them up from Firebase
+                if (fbDb) fbDb.child('events').child(id).remove();
+                return;
+              }
               const local = merged[id];
               if (!local || (ev.updatedAt || 0) >= (local.updatedAt || 0)) {
                 merged[id] = makeEvent({ ...ev, id });
