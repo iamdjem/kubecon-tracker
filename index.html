@@ -1936,6 +1936,14 @@ function makeEvent(base = {}) {
   syncEventConfigMetadata(ev);
   return ev;
 }
+// Allow ?reset=1 URL parameter to wipe local data — handy on mobile where
+// there's no dev console available.
+if (new URLSearchParams(location.search).get('reset') === '1') {
+  ['kc_app', 'kc_deleted_events', 'kc_evid_migrated', 'kc_config', 'kc_state', 'kc_day', 'kc_page', 'kc_sched_day', 'kc_sched_crew'].forEach(k => localStorage.removeItem(k));
+  // Strip the query param and reload
+  location.replace(location.pathname);
+}
+
 function loadAppData() {
   const stored = JSON.parse(localStorage.getItem(APP_STORE_KEY) || 'null');
   if (stored && stored.events && typeof stored.events === 'object' && Object.keys(stored.events).length) {
