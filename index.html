@@ -2683,46 +2683,48 @@ function onAuthenticated() {
 async function signInWithPassword(password) {
   if (!fbAuth) { throw new Error('Firebase not ready. Refresh and try again.'); }
   if (!password) { throw new Error('Enter a password'); }
+  // Try the last-used role first (saves failed attempts on the wrong account)
+  const lastRole = localStorage.getItem('kc_last_role');
+  const order = lastRole === 'user'
+    ? [[AUTH_USER_EMAIL, 'user'], [AUTH_ADMIN_EMAIL, 'admin']]
+    : [[AUTH_ADMIN_EMAIL, 'admin'], [AUTH_USER_EMAIL, 'user']];
   const errors = [];
-  // Try admin first
-  try {
-    await fbAuth.signInWithEmailAndPassword(AUTH_ADMIN_EMAIL, password);
-    return 'admin';
-  } catch (e) {
-    errors.push({ email: AUTH_ADMIN_EMAIL, code: e.code, message: e.message });
-    console.warn('[auth] admin sign-in failed:', e.code, e.message);
+  for (const [email, role] of order) {
+    try {
+      await fbAuth.signInWithEmailAndPassword(email, password);
+      localStorage.setItem('kc_last_role', role);
+      return role;
+    } catch (e) {
+      errors.push({ email, code: e.code, message: e.message });
+      console.warn('[auth] ' + email + ' failed:', e.code, e.message);
+      // Stop trying other accounts if we're rate-limited — retrying the other
+      // account will likely fail too and waste another attempt
+      if (e.code === 'auth/too-many-requests') break;
+    }
   }
-  // Then user
-  try {
-    await fbAuth.signInWithEmailAndPassword(AUTH_USER_EMAIL, password);
-    return 'user';
-  } catch (e) {
-    errors.push({ email: AUTH_USER_EMAIL, code: e.code, message: e.message });
-    console.warn('[auth] user sign-in failed:', e.code, e.message);
+  // Collect all unique error codes we saw
+  const codes = errors.map(e => e.code);
+  const has = (c) => codes.includes(c);
+  const allAre = (set) => errors.length > 0 && errors.every(e => set.includes(e.code));
+  const wrongPwdCodes = ['auth/wrong-password', 'auth/invalid-credential', 'auth/invalid-login-credentials'];
+
+  if (has('auth/too-many-requests')) {
+    throw new Error('Too many failed attempts. Wait ~1 minute and try again.');
   }
-  // Surface the actual error reason rather than always "Invalid password"
-  // This helps distinguish wrong-password from missing-account / network / rate-limit
-  const adminErr = errors[0]?.code || '';
-  const userErr  = errors[1]?.code || '';
-  // If BOTH accounts returned wrong-password, it's actually a wrong password
-  if ((adminErr === 'auth/wrong-password' || adminErr === 'auth/invalid-credential' || adminErr === 'auth/invalid-login-credentials')
-      && (userErr === 'auth/wrong-password' || userErr === 'auth/invalid-credential' || userErr === 'auth/invalid-login-credentials')) {
-    throw new Error('Invalid password');
-  }
-  // Account missing on Firebase side
-  if (adminErr === 'auth/user-not-found' && userErr === 'auth/user-not-found') {
-    throw new Error('Accounts not found in Firebase. Check that admin@e3tracker.local and user@e3tracker.local exist.');
-  }
-  // Rate-limited
-  if (adminErr === 'auth/too-many-requests' || userErr === 'auth/too-many-requests') {
-    throw new Error('Too many attempts. Wait a minute and try again.');
-  }
-  // Network / offline
-  if (adminErr === 'auth/network-request-failed' || userErr === 'auth/network-request-failed') {
+  if (has('auth/network-request-failed')) {
     throw new Error('Network error. Check your connection.');
   }
-  // Fallback — surface the first error we saw
-  throw new Error('Sign-in failed: ' + (adminErr || userErr || 'unknown'));
+  if (allAre(['auth/user-not-found'])) {
+    throw new Error('Accounts not set up in Firebase. Contact your admin.');
+  }
+  if (allAre(wrongPwdCodes)) {
+    throw new Error('Invalid password');
+  }
+  // Mixed: one account found, wrong password; the other might not exist — still invalid
+  if (codes.some(c => wrongPwdCodes.includes(c))) {
+    throw new Error('Invalid password');
+  }
+  throw new Error('Sign-in failed: ' + (codes[0] || 'unknown'));
 }
 
 async function signOut() {
