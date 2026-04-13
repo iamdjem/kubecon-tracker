@@ -2546,8 +2546,14 @@ function initFirebase(url) {
           appId: '1:843747163914:web:2486f6353937a8c25ac4f3',
         }, 'tr');
         fbAuth = firebase.auth(app);
-        // Use LOCAL persistence so sessions survive reloads indefinitely
-        try { await fbAuth.setPersistence(firebase.auth.Auth.Persistence.LOCAL); } catch {}
+        // Use LOCAL persistence so sessions survive reloads indefinitely.
+        // This stores auth state in IndexedDB and keeps the refresh token
+        // alive forever. The SDK auto-refreshes the ID token hourly in
+        // the background. Users only sign out by explicitly clicking
+        // Sign Out, clearing site data, or using ?reset=1.
+        try { await fbAuth.setPersistence(firebase.auth.Auth.Persistence.LOCAL); } catch (e) {
+          console.warn('[auth] could not set LOCAL persistence', e);
+        }
         // Clean up any legacy anonymous sessions from the old auth model
         if (fbAuth.currentUser && fbAuth.currentUser.isAnonymous) {
           await fbAuth.signOut();
