@@ -2550,7 +2550,7 @@ function renderEventSwitcher() {
   wrap.innerHTML = `
     <div style="padding:8px 18px;border-bottom:1px solid var(--line);">
       <div class="event-bar">
-        ${liveEvents.map(ev => `<button class="event-chip${ev.id===currentEventId?' on':''}" type="button" data-switch-event="${escapeHtml(ev.id)}"><span class="event-chip-dot"></span>${escapeHtml(ev.name || 'Untitled')}</button>`).join('')}
+        ${liveEvents.map((ev, i) => `<button class="event-chip${ev.id===currentEventId?' on':''}" type="button" data-switch-event="${escapeHtml(ev.id)}"><span class="event-chip-dot"></span>${escapeHtml(ev.name || ('Event ' + (i+1)))}</button>`).join('')}
         <button class="event-add-chip" type="button" data-create-event="true">+</button>
       </div>
     </div>`;
@@ -2585,17 +2585,18 @@ function render() {
   // Day tabs
   const dayTabsEl = document.getElementById('setupDayTabs');
   if (dayTabsEl) {
-    dayTabsEl.innerHTML = (config.days || []).map(d =>
-      `<div class="day-tab${d.key===currentDay?' on':''}" onclick="switchDay('${d.key}')">${d.label}</div>`
+    dayTabsEl.innerHTML = (config.days || []).map((d, i) =>
+      `<div class="day-tab${d.key===currentDay?' on':''}" onclick="switchDay('${d.key}')">${escapeHtml(d.label || ('Day ' + (i+1)))}</div>`
     ).join('');
   }
 
   // Chips
-  document.getElementById('filterRow').innerHTML = config.crew.map(c =>
-    `<div class="fc${filter===c.id?' on':''}" onclick="toggleFilter('${c.id}')" style="gap:6px;display:flex;align-items:center;">
-      ${avatarHtml(c.name, 18)}${c.name}
-    </div>`
-  ).join('');
+  document.getElementById('filterRow').innerHTML = config.crew.map((c, i) => {
+    const name = c.name || ('Crew ' + (i+1));
+    return `<div class="fc${filter===c.id?' on':''}" onclick="toggleFilter('${c.id}')" style="gap:6px;display:flex;align-items:center;">
+      ${avatarHtml(name, 18)}${escapeHtml(name)}
+    </div>`;
+  }).join('');
 
   const el = document.getElementById('tracker');
   el.innerHTML = '';
@@ -2612,33 +2613,36 @@ function render() {
   config.crew.forEach((c,ci) => {
     if (filter && filter!==c.id) return;
     if (!Array.isArray(c.rooms)) c.rooms = [];
+    const crewName = c.name || ('Crew ' + (ci+1));
     const cd = c.rooms.filter(r=>isDone(r.id)).length;
     total += c.rooms.length; done += cd;
 
     const sec = document.createElement('div'); sec.className='section';
     sec.innerHTML=`<div class="sec-hd" onclick="openSchedule('${c.id}')" style="cursor:pointer;">
       <div class="sec-hd-left">
-        ${avatarHtml(c.name, 28)}
-        <span class="sec-name">${c.name}</span>
+        ${avatarHtml(crewName, 28)}
+        <span class="sec-name">${escapeHtml(crewName)}</span>
         <span style="font-size:10px;font-weight:600;color:var(--accent);letter-spacing:0.3px;margin-left:6px;opacity:0.85;">See schedule</span>
       </div>
       <span class="sec-count">${cd}/${c.rooms.length}</span>
     </div>`;
 
-    c.rooms.forEach(room => {
+    c.rooms.forEach((room, ri) => {
       const d=isDone(room.id), n=countDone(room.id);
       const tag = d?'done':n>0?'wip':'empty';
       const tagTxt = d?'Done':n>0?`${n}/${config.steps.length}`:'—';
+      const roomName = room.name || ('Room ' + (ri+1));
       const row = document.createElement('div'); row.className=`room${d?' done':''}`; row.id=`room_${room.id}`;
       row.innerHTML=`
-        <div class="room-name">${room.name}</div>
+        <div class="room-name">${escapeHtml(roomName)}</div>
         <div class="steps-wrap">
-          ${config.steps.map(s=>{
+          ${config.steps.map((s, si)=>{
             const checked=getVal(room.id,s.key), id=`${room.id}_${s.key}`;
+            const stepLabel = s.label || ('Step ' + (si+1));
             return `<div class="step">
               <input type="checkbox" id="${id}" ${checked?'checked':''} onchange="toggle('${room.id}','${s.key}')">
-              <label class="step-box" for="${id}"><span class="step-icon">${s.icon}</span></label>
-              <span class="step-txt">${s.label}</span>
+              <label class="step-box" for="${id}"><span class="step-icon">${s.icon||'⭐'}</span></label>
+              <span class="step-txt">${escapeHtml(stepLabel)}</span>
             </div>`;
           }).join('')}
         </div>
