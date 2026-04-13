@@ -2681,19 +2681,48 @@ function onAuthenticated() {
 }
 
 async function signInWithPassword(password) {
-  if (!fbAuth) { throw new Error('Firebase not ready'); }
+  if (!fbAuth) { throw new Error('Firebase not ready. Refresh and try again.'); }
+  if (!password) { throw new Error('Enter a password'); }
   const errors = [];
   // Try admin first
   try {
     await fbAuth.signInWithEmailAndPassword(AUTH_ADMIN_EMAIL, password);
     return 'admin';
-  } catch (e) { errors.push(e.code); }
+  } catch (e) {
+    errors.push({ email: AUTH_ADMIN_EMAIL, code: e.code, message: e.message });
+    console.warn('[auth] admin sign-in failed:', e.code, e.message);
+  }
   // Then user
   try {
     await fbAuth.signInWithEmailAndPassword(AUTH_USER_EMAIL, password);
     return 'user';
-  } catch (e) { errors.push(e.code); }
-  throw new Error('Invalid password');
+  } catch (e) {
+    errors.push({ email: AUTH_USER_EMAIL, code: e.code, message: e.message });
+    console.warn('[auth] user sign-in failed:', e.code, e.message);
+  }
+  // Surface the actual error reason rather than always "Invalid password"
+  // This helps distinguish wrong-password from missing-account / network / rate-limit
+  const adminErr = errors[0]?.code || '';
+  const userErr  = errors[1]?.code || '';
+  // If BOTH accounts returned wrong-password, it's actually a wrong password
+  if ((adminErr === 'auth/wrong-password' || adminErr === 'auth/invalid-credential' || adminErr === 'auth/invalid-login-credentials')
+      && (userErr === 'auth/wrong-password' || userErr === 'auth/invalid-credential' || userErr === 'auth/invalid-login-credentials')) {
+    throw new Error('Invalid password');
+  }
+  // Account missing on Firebase side
+  if (adminErr === 'auth/user-not-found' && userErr === 'auth/user-not-found') {
+    throw new Error('Accounts not found in Firebase. Check that admin@e3tracker.local and user@e3tracker.local exist.');
+  }
+  // Rate-limited
+  if (adminErr === 'auth/too-many-requests' || userErr === 'auth/too-many-requests') {
+    throw new Error('Too many attempts. Wait a minute and try again.');
+  }
+  // Network / offline
+  if (adminErr === 'auth/network-request-failed' || userErr === 'auth/network-request-failed') {
+    throw new Error('Network error. Check your connection.');
+  }
+  // Fallback — surface the first error we saw
+  throw new Error('Sign-in failed: ' + (adminErr || userErr || 'unknown'));
 }
 
 async function signOut() {
@@ -2725,7 +2754,7 @@ function showSignInScreen() {
       try {
         await signInWithPassword(pwd.value);
       } catch (e) {
-        err.textContent = 'Invalid password';
+        err.textContent = e.message || 'Sign-in failed';
         btn.disabled = false;
         btn.textContent = 'Sign in';
         pwd.select();
