@@ -3306,7 +3306,11 @@ function openRoomDetail(roomId) {
   }, 50);
 }
 
-if (config.firebaseUrl) initFirebase(config.firebaseUrl);
+// Always try to connect to Firebase using the current event's config URL
+// or fall back to DEFAULT_CONFIG.firebaseUrl. This ensures the app connects
+// even when in the empty-state (no events yet) so newly created events
+// sync to Firebase immediately.
+initFirebase(config.firebaseUrl || DEFAULT_CONFIG.firebaseUrl);
 render();
 // Restore last visited page
 if (currentPage !== 'setup') switchPage(currentPage);
