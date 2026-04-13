@@ -1942,15 +1942,11 @@ function loadAppData() {
     const events = {};
     Object.entries(stored.events).forEach(([id, ev]) => { events[id] = makeEvent({ ...ev, id }); });
     const currentEventId = stored.currentEventId && events[stored.currentEventId] ? stored.currentEventId : Object.keys(events)[0];
-    return { currentEventId, events };
+    return { currentEventId, events, fresh: false };
   }
-  // Fresh install: create one empty event so the app has something to render
-  const initialEvent = makeEvent({
-    name: 'New Event',
-    config: { title: 'New Event', subtitle: '', crew: [], steps: [], days: [], schedSteps: [] },
-    state: {}
-  });
-  return { currentEventId: initialEvent.id, events: { [initialEvent.id]: initialEvent } };
+  // Fresh install: don't create an event yet. Firebase init will either
+  // load events from remote or create a single empty one if remote is also empty.
+  return { currentEventId: null, events: {}, fresh: true };
 }
 let appData = loadAppData();
 // Ensure every event has a unique ID — replace 'ev_default' once
@@ -1973,7 +1969,16 @@ let fbAuth = null;
 let fbInitStarted = false;
 
 function currentEvent() { return appData.events[currentEventId]; }
+function hasAnyEvent() { return Object.keys(appData.events).length > 0; }
 function syncActiveEvent() {
+  if (!hasAnyEvent()) {
+    // No events at all — set empty config/state so render doesn't crash
+    currentEventId = null;
+    appData.currentEventId = null;
+    config = { title:'', subtitle:'', crew:[], steps:[], days:[], schedSteps:[] };
+    state = {};
+    return;
+  }
   if (!appData.events[currentEventId]) currentEventId = Object.keys(appData.events)[0];
   appData.currentEventId = currentEventId;
   const ev = currentEvent();
@@ -2004,11 +2009,14 @@ function pushEventData() {
   Object.entries(appData.events).forEach(([id, ev]) => {
     if (!deletedSet.has(id)) eventUpdates[id] = ev;
   });
-  Promise.all([
-    fbDb.child('events').update(eventUpdates),
-    fbDb.child('config').set(config),
-    fbDb.child('state').set(state),
-  ]).finally(() => { setTimeout(() => { _fbPushing = false; }, 0); });
+  const writes = [];
+  if (Object.keys(eventUpdates).length) writes.push(fbDb.child('events').update(eventUpdates));
+  // Only push current config/state if we actually have a current event
+  if (currentEventId && appData.events[currentEventId]) {
+    writes.push(fbDb.child('config').set(config));
+    writes.push(fbDb.child('state').set(state));
+  }
+  Promise.all(writes).finally(() => { setTimeout(() => { _fbPushing = false; }, 0); });
 }
 // Persistent deleted event tracking — synced across all devices via Firebase
 const DELETED_EVENTS_KEY = 'kc_deleted_events';
@@ -2405,43 +2413,43 @@ function initFirebase(url) {
         fbDb = firebase.database(app).ref('e3-kc26-x7k9m');
         Promise.all([
           fbDb.child('events').once('value'),
-          fbDb.child('currentEventId').once('value'),
-          fbDb.child('config').once('value'),
-          fbDb.child('state').once('value'),
           fbDb.child('deletedEvents').once('value'),
-        ]).then(([eventsSnap, currentSnap, configSnap, stateSnap, deletedSnap]) => {
-          // First, merge remote deleted events into local set and purge them from local events
+        ]).then(([eventsSnap, deletedSnap]) => {
+          // Merge remote deleted events into local set
           const remoteDeleted = deletedSnap.val() || {};
           const localDeleted = getDeletedIds();
           let deletedChanged = false;
           Object.keys(remoteDeleted).forEach(id => { if (!localDeleted.has(id)) { localDeleted.add(id); deletedChanged = true; } });
           if (deletedChanged) setDeletedIds(localDeleted);
-          // Remove any local events that are in the deleted set
-          localDeleted.forEach(id => { if (appData.events[id]) { delete appData.events[id]; } });
-          if (!appData.events[currentEventId]) currentEventId = Object.keys(appData.events)[0] || currentEventId;
+          // Purge any local events that were deleted remotely
+          localDeleted.forEach(id => { if (appData.events[id]) delete appData.events[id]; });
+
+          // If Firebase has events, import them (respecting deletedIds)
           const remoteEvents = eventsSnap.val();
-          if (!remoteEvents || typeof remoteEvents !== 'object') {
-            // No remote events — try legacy config/state seeding
-            const remoteConfig = configSnap.val();
-            const remoteState = stateSnap.val();
-            if (remoteConfig && remoteConfig.steps && remoteConfig.crew) {
-              const seededEvent = makeEvent({
-                id: currentSnap.val() || currentEventId || 'ev_default',
-                name: remoteConfig.title || 'Setup Tracker',
-                config: remoteConfig,
-                state: remoteState || {},
-              });
-              appData = { currentEventId: seededEvent.id, events: { [seededEvent.id]: seededEvent } };
-              currentEventId = seededEvent.id;
-              syncActiveEvent();
-              saveAppData();
-            }
+          if (remoteEvents && typeof remoteEvents === 'object') {
+            Object.entries(remoteEvents).forEach(([id, ev]) => {
+              if (localDeleted.has(id)) {
+                // Remove stale remote entry
+                fbDb.child('events').child(id).remove();
+                return;
+              }
+              const local = appData.events[id];
+              if (!local || (ev.updatedAt || 0) >= (local.updatedAt || 0)) {
+                appData.events[id] = makeEvent({ ...ev, id });
+              }
+            });
           }
-          // Push local events and clean up stale remote events
+
+          // Don't auto-create events. User will see an empty-state prompt.
+          if (!appData.events[currentEventId]) currentEventId = Object.keys(appData.events)[0] || null;
+          syncActiveEvent();
+          saveAppData();
+          renderAllIncludingSettings();
+
+          // Push whatever we have (filtered by pushEventData to skip deleted ids)
           pushEventData();
-          // Remove ev_default from Firebase (all devices now have unique IDs)
           fbDb.child('events').child('ev_default').remove();
-        }).catch(() => {});
+        }).catch((e) => { console.error('Firebase init read failed', e); });
         fbDb.child('events').on('value', s => {
           const v = s.val();
           if (v && typeof v === 'object') {
@@ -2523,6 +2531,10 @@ function renderEventSwitcher() {
   const wrap = document.getElementById('eventSwitcherWrap');
   if (!wrap) return;
   const liveEvents = getOrderedEvents(false);
+  if (!liveEvents.length) {
+    wrap.innerHTML = '';
+    return;
+  }
   wrap.innerHTML = `
     <div style="padding:8px 18px;border-bottom:1px solid var(--line);">
       <div class="event-bar">
@@ -2535,7 +2547,28 @@ function renderEventSwitcher() {
 function render() {
   ensureActiveEventForState();
   renderEventSwitcher();
-  document.getElementById('confSub2').textContent   = currentEvent()?.name || config.subtitle;
+  const hasEvents = hasAnyEvent();
+  document.getElementById('confSub2').textContent = hasEvents ? (currentEvent()?.name || '') : 'No event selected';
+
+  const tracker = document.getElementById('tracker');
+  if (!hasEvents) {
+    // Empty state — prompt user to create their first event
+    tracker.innerHTML = `
+      <div style="padding:60px 24px;text-align:center;color:var(--t2);">
+        <div style="font-size:18px;font-weight:700;color:var(--t1);margin-bottom:10px;">No events yet</div>
+        <div style="font-size:13px;line-height:1.5;margin-bottom:24px;max-width:340px;margin-left:auto;margin-right:auto;">Create your first event to start tracking setup progress. You can configure crews, rooms, days and checklist steps in Settings.</div>
+        <button class="save-btn" style="display:inline-block;padding:12px 24px;width:auto;font-size:14px;" data-create-event="true">+ Create your first event</button>
+      </div>`;
+    // Clear chip rows / day tabs
+    const dayTabsEl = document.getElementById('setupDayTabs');
+    if (dayTabsEl) dayTabsEl.innerHTML = '';
+    const filterRow = document.getElementById('filterRow');
+    if (filterRow) filterRow.innerHTML = '';
+    document.getElementById('statNum2').textContent = '0/0';
+    const statNum = document.getElementById('statNum');
+    if (statNum) statNum.textContent = '0/0';
+    return;
+  }
 
   // Day tabs
   const dayTabsEl = document.getElementById('setupDayTabs');
