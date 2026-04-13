@@ -316,11 +316,35 @@ body {
 .sortable-drag   { opacity: 0.95; box-shadow: 0 8px 32px rgba(0,0,0,0.5); }
 
 /* Steps list */
+.step-row-s-wrap { border-top: 1px solid var(--line); padding: 8px 0; }
+.step-row-s-wrap:first-child { border-top: none; }
 .step-row-s {
   display: flex; align-items: center; gap: 8px;
-  padding: 8px 0; border-top: 1px solid var(--line);
 }
-.step-row-s:first-child { border-top: none; }
+.step-days {
+  display: flex; flex-wrap: wrap; gap: 6px;
+  margin-top: 8px; padding-left: 28px;
+  align-items: center;
+}
+.step-days-label {
+  font-size: 10px; font-weight: 600; color: var(--t3);
+  text-transform: uppercase; letter-spacing: 0.5px;
+  margin-right: 2px;
+}
+.day-chip {
+  background: var(--s2); border: 1px solid var(--line2);
+  color: var(--t3); font-family: inherit;
+  font-size: 11px; font-weight: 600;
+  padding: 5px 10px; border-radius: 14px;
+  cursor: pointer; transition: all 0.12s;
+  min-height: 28px;
+}
+.day-chip:active { transform: scale(0.95); }
+.day-chip.on {
+  background: rgba(212,168,67,0.15);
+  border-color: var(--accent);
+  color: var(--t1);
+}
 .si-icon {
   width: 48px; background: var(--s2); border: 1px solid var(--line2);
   border-radius: 6px; color: var(--t1);
@@ -2385,8 +2409,15 @@ function getVal(rid, sk) {
   if (state[dr]?.[sk] !== undefined) return state[dr][sk];
   return 0;
 }
-function isDone(rid)   { return config.steps.every(s => getVal(rid, s.key)); }
-function countDone(rid){ return config.steps.filter(s => getVal(rid, s.key)).length; }
+// Filter steps to only those that apply to a given day.
+// A step with no `days` array (or empty) applies to ALL days (default).
+// A step with a non-empty `days` array only applies when currentDay is in the list.
+function stepsForDay(day) {
+  return (config.steps || []).filter(s => !Array.isArray(s.days) || s.days.length === 0 || s.days.includes(day));
+}
+function activeSteps() { return stepsForDay(currentDay); }
+function isDone(rid)   { const st = activeSteps(); return st.length > 0 && st.every(s => getVal(rid, s.key)); }
+function countDone(rid){ return activeSteps().filter(s => getVal(rid, s.key)).length; }
 
 function toggle(rid, sk) {
   const dr = dayRid(rid);
@@ -2643,18 +2674,19 @@ function render() {
       <span class="sec-count">${cd}/${c.rooms.length}</span>
     </div>`;
 
+    const stepsForToday = activeSteps();
     c.rooms.forEach((room, ri) => {
       const d=isDone(room.id), n=countDone(room.id);
       const tag = d?'done':n>0?'wip':'empty';
-      const tagTxt = d?'Done':n>0?`${n}/${config.steps.length}`:'—';
+      const tagTxt = d?'Done':n>0?`${n}/${stepsForToday.length}`:(stepsForToday.length ? '—' : 'N/A');
       const roomName = room.name || ('Room ' + (ri+1));
       const row = document.createElement('div'); row.className=`room${d?' done':''}`; row.id=`room_${room.id}`;
       row.innerHTML=`
         <div class="room-name">${escapeHtml(roomName)}</div>
         <div class="steps-wrap">
-          ${config.steps.map((s, si)=>{
+          ${stepsForToday.map((s, si)=>{
             const checked=getVal(room.id,s.key), id=`${room.id}_${s.key}`;
-            const stepLabel = s.label || ('Step ' + (si+1));
+            const stepLabel = s.label || ('Step ' + (config.steps.indexOf(s)+1));
             return `<div class="step">
               <input type="checkbox" id="${id}" ${checked?'checked':''} onchange="toggle('${room.id}','${s.key}')">
               <label class="step-box" for="${id}"><span class="step-icon">${s.icon||'⭐'}</span></label>
@@ -2780,12 +2812,30 @@ const X_ICON    = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" st
 
 function renderSettings() {
   const body=document.getElementById('shBody');
+  const allDays = config.days || [];
+  const renderStepDayPicker = (s, si) => {
+    if (!allDays.length) return '';
+    const stepDays = Array.isArray(s.days) ? s.days : [];
+    const isAllDays = stepDays.length === 0;
+    return `<div class="step-days">
+      <div class="step-days-label">Show on:</div>
+      <button class="day-chip${isAllDays?' on':''}" onclick="toggleStepAllDays(${si})" title="Show on every day">All days</button>
+      ${allDays.map((d, di) => {
+        const on = !isAllDays && stepDays.includes(d.key);
+        const label = d.label || ('Day ' + (di+1));
+        return `<button class="day-chip${on?' on':''}" onclick="toggleStepDay(${si},'${d.key}')">${escapeHtml(label)}</button>`;
+      }).join('')}
+    </div>`;
+  };
   const stepsHtml = `<div id="stepsList">${config.steps.map((s,si)=>`
-    <div class="step-row-s" data-si="${si}">
-      <div class="drag-handle">${DRAG_ICON}</div>
-      <input class="si-icon" value="${s.icon}" onchange="updateStep(${si},'icon',this.value)" maxlength="2">
-      <input class="si-name" value="${escapeHtml(s.label||'')}" onchange="updateStep(${si},'label',this.value)" placeholder="Step name">
-      <button class="del-btn" onclick="deleteStep(${si})" title="Remove">${DEL_ICON}</button>
+    <div class="step-row-s-wrap" data-si="${si}">
+      <div class="step-row-s">
+        <div class="drag-handle">${DRAG_ICON}</div>
+        <input class="si-icon" value="${s.icon}" onchange="updateStep(${si},'icon',this.value)" maxlength="2">
+        <input class="si-name" value="${escapeHtml(s.label||'')}" onchange="updateStep(${si},'label',this.value)" placeholder="Step name">
+        <button class="del-btn" onclick="deleteStep(${si})" title="Remove">${DEL_ICON}</button>
+      </div>
+      ${renderStepDayPicker(s, si)}
     </div>`).join('')}</div>`;
 
   const schedSteps = config.schedSteps || [];
@@ -2992,14 +3042,37 @@ function addCrew(){
 }
 function updateStep(si,f,v){ config.steps[si][f]=v.trim(); saveConfig(); render(); }
 function deleteStep(si){ if(config.steps.length<=1){showToast('Need at least one step');return;} config.steps.splice(si,1); saveConfig(); renderAllIncludingSettings(); }
-function addStep(){ config.steps.push({key:'s_'+Date.now(),icon:'⭐',label:''}); saveConfig(); renderAllIncludingSettings(); setTimeout(()=>{const inputs=document.querySelectorAll('#stepsList .si-name'); if(inputs.length) inputs[inputs.length-1].focus();},10); }
+function addStep(){ config.steps.push({key:'s_'+Date.now(),icon:'⭐',label:'',days:[]}); saveConfig(); renderAllIncludingSettings(); setTimeout(()=>{const inputs=document.querySelectorAll('#stepsList .si-name'); if(inputs.length) inputs[inputs.length-1].focus();},10); }
+function toggleStepDay(si, dayKey) {
+  const step = config.steps[si];
+  if (!step) return;
+  if (!Array.isArray(step.days)) step.days = [];
+  const idx = step.days.indexOf(dayKey);
+  if (idx >= 0) step.days.splice(idx, 1);
+  else step.days.push(dayKey);
+  saveConfig();
+  renderAllIncludingSettings();
+}
+function toggleStepAllDays(si) {
+  const step = config.steps[si];
+  if (!step) return;
+  // Clear the days array — empty means "show on all days"
+  step.days = [];
+  saveConfig();
+  renderAllIncludingSettings();
+}
 
 function updateDay(di, val) { if(config.days[di]) { config.days[di].label = val.trim(); saveConfig(); render(); } }
 function deleteDay(di) {
   if ((config.days||[]).length <= 1) { showToast('Need at least one day'); return; }
   const dlabel = config.days[di].label;
+  const removedKey = config.days[di].key;
   showConfirm('Remove ' + dlabel, 'Remove this day from the tabs? Checklist data is kept and can be recovered by adding the day back.', 'Remove', 'background:#7a2d2d;color:#ff6b6b;', () => {
     config.days.splice(di, 1);
+    // Remove this day from any step.days filter arrays
+    (config.steps || []).forEach(s => {
+      if (Array.isArray(s.days)) s.days = s.days.filter(k => k !== removedKey);
+    });
     if (!config.days.find(d => d.key === currentDay)) { currentDay = config.days[0]?.key || ''; localStorage.setItem('kc_day', currentDay); }
     saveConfig();
     renderAllIncludingSettings();
