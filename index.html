@@ -869,6 +869,58 @@ body.role-admin .admin-only.admin-only-block { display: block !important; }
 /* Disabled state for inputs that users can't edit */
 body.role-user .admin-only-input { pointer-events: none; opacity: 0.55; }
 
+/* Archived events compact list */
+.archived-details { }
+.archived-details > summary {
+  list-style: none;
+  cursor: pointer;
+  display: flex; align-items: center; gap: 8px;
+  padding: 10px 12px;
+  background: var(--s2);
+  border: 1px solid var(--line2);
+  border-radius: 8px;
+  color: var(--t2);
+  font-size: 12px; font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  min-height: 44px;
+  user-select: none;
+}
+.archived-details > summary::-webkit-details-marker { display: none; }
+.archived-details > summary::before {
+  content: '▶';
+  font-size: 9px;
+  color: var(--t3);
+  transition: transform 0.15s;
+}
+.archived-details[open] > summary::before { transform: rotate(90deg); }
+.archived-summary-lbl { flex: 1; }
+.archived-count {
+  background: var(--s3);
+  color: var(--t3);
+  font-size: 11px; font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 10px;
+  min-width: 22px; text-align: center;
+}
+.archived-list { margin-top: 8px; }
+.archived-row {
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px 12px;
+  background: var(--s2);
+  border: 1px solid var(--line2);
+  border-radius: 6px;
+  margin-bottom: 6px;
+  min-height: 44px;
+}
+.archived-row:last-child { margin-bottom: 0; }
+.archived-name {
+  flex: 1; min-width: 0;
+  font-size: 13px; font-weight: 600; color: var(--t1);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.archived-row .rst-btn { min-height: 32px; padding: 6px 10px; font-size: 11px; }
+
 /* Signed-in badge in Settings */
 .auth-row {
   display: flex; align-items: center; justify-content: space-between;
@@ -3151,12 +3203,6 @@ function renderSettings() {
         Add crew member
       </button>
     </div>
-    <div class="sg admin-only admin-only-block">
-      <div class="sg-lbl">Archived Events</div>
-      <div class="event-admin-section">
-        ${archivedEvents.map(renderEventCard).join('') || '<div class="event-empty">No archived events yet</div>'}
-      </div>
-    </div>
     <div class="sg">
       <div class="sg-lbl">Export</div>
       <div class="export-row">
@@ -3183,6 +3229,23 @@ function renderSettings() {
       <div class="sg-lbl">Live Sync</div>
       <input class="si" id="s_fb" value="${config.firebaseUrl||''}" placeholder="Firebase Realtime DB URL" style="margin-bottom:0" onchange="updateFirebaseUrl(this.value)">
       <div class="fb-row"><div class="fb-dot${fbDb?' ok':''}" id="fbDot"></div><span class="fb-txt" id="fbTxt">${fbDb?'Connected — live sync active':'Not connected — local only'}</span></div>
+    </div>
+    <div class="sg admin-only admin-only-block">
+      <details class="archived-details">
+        <summary>
+          <span class="archived-summary-lbl">Archived Events</span>
+          <span class="archived-count">${archivedEvents.length}</span>
+        </summary>
+        ${archivedEvents.length ? `<div class="archived-list">
+          ${archivedEvents.map((ev, i) => `
+            <div class="archived-row">
+              <div class="archived-name">${escapeHtml(ev.name || ('Event ' + (i+1)))}</div>
+              <button class="rst-btn" type="button" data-toggle-archive-event="${escapeHtml(ev.id)}">Unarchive</button>
+              <button class="rst-btn" type="button" data-delete-event="${escapeHtml(ev.id)}">Delete</button>
+            </div>
+          `).join('')}
+        </div>` : '<div class="event-empty" style="margin-top:8px;">No archived events yet</div>'}
+      </details>
     </div>
     <div style="height:8px"></div>`;
   // Sticky save button outside scroll area
