@@ -1896,7 +1896,7 @@ function escapeHtml(value) {
   return String(value ?? '').replace(/[&<>"']/g, ch => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[ch]));
 }
 function eventMetaLine(ev) {
-  return [ev?.location, ev?.dateLabel].filter(Boolean).join(' · ') || ev?.config?.subtitle || '';
+  return [ev?.location, ev?.dateLabel].filter(Boolean).join(' · ');
 }
 function touchEvent(ev) { if (ev) ev.updatedAt = Date.now(); }
 function syncEventConfigMetadata(ev) {
@@ -1913,9 +1913,9 @@ function getNextLiveEventId(excludeId = null) {
   return next?.id || null;
 }
 function normalizeConfig(raw) {
-  const cfg = raw && typeof raw === 'object' ? clone(raw) : clone(DEFAULT_CONFIG);
-  if (!cfg.title) cfg.title = DEFAULT_CONFIG.title;
-  if (!cfg.subtitle) cfg.subtitle = DEFAULT_CONFIG.subtitle;
+  const cfg = raw && typeof raw === 'object' ? clone(raw) : {};
+  if (typeof cfg.title !== 'string') cfg.title = '';
+  if (typeof cfg.subtitle !== 'string') cfg.subtitle = '';
   if (!cfg.firebaseUrl && DEFAULT_CONFIG.firebaseUrl) cfg.firebaseUrl = DEFAULT_CONFIG.firebaseUrl;
   if (!Array.isArray(cfg.steps)) cfg.steps = [];
   if (!Array.isArray(cfg.crew)) cfg.crew = [];
@@ -2859,52 +2859,14 @@ function renderSettings() {
 
   body.innerHTML=`
     <div class="sg">
-      <div class="sg-lbl">Events</div>
+      <div class="sg-lbl">Live Events</div>
       <div class="event-admin-section">
-        <div class="event-admin-heading">
-          <div>
-            <div class="event-admin-heading-title">Live events</div>
-            <div class="event-admin-heading-copy">These stay available in the main switcher for fast handoffs during the show.</div>
-          </div>
-          <span class="event-pill live">${liveEvents.length}</span>
-        </div>
         ${liveEvents.map(renderEventCard).join('') || '<div class="event-empty">No live events yet</div>'}
-      </div>
-      <div class="event-admin-section">
-        <div class="event-admin-heading">
-          <div>
-            <div class="event-admin-heading-title">Archived events</div>
-            <div class="event-admin-heading-copy">Past events stay out of the main switcher, but you can restore, duplicate, export, or delete them here.</div>
-          </div>
-          <span class="event-pill archived">${archivedEvents.length}</span>
-        </div>
-        ${archivedEvents.map(renderEventCard).join('') || '<div class="event-empty">No archived events yet</div>'}
       </div>
       <button class="add-btn" type="button" data-create-event="true">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
         Add event
       </button>
-      <div class="event-summary">Create a fresh event, duplicate a proven setup, archive events once the show is over, and restore anything you need later.</div>
-    </div>
-    <div class="sg">
-      <div class="sg-lbl">Export</div>
-      <div class="export-row">
-        <button class="rst-btn" type="button" onclick="exportEventReport('summary-download')">Download summary</button>
-        <button class="rst-btn" type="button" onclick="exportEventReport('summary-copy')">Copy summary</button>
-        <button class="rst-btn" type="button" onclick="exportEventReport('summary-print')">Print</button>
-        <button class="rst-btn" type="button" onclick="exportEventReport('json')">Download JSON</button>
-        <button class="rst-btn" type="button" onclick="exportEventReport('copy')">Copy JSON</button>
-      </div>
-    </div>
-    <div class="sg">
-      <div class="sg-lbl">Live Sync</div>
-      <input class="si" id="s_fb" value="${config.firebaseUrl||''}" placeholder="Firebase Realtime DB URL" style="margin-bottom:0" onchange="updateFirebaseUrl(this.value)">
-      <div class="fb-row"><div class="fb-dot${fbDb?' ok':''}" id="fbDot"></div><span class="fb-txt" id="fbTxt">${fbDb?'Connected — live sync active':'Not connected — local only'}</span></div>
-    </div>
-    <div class="sg">
-      <div class="sg-lbl">Schedule Embed</div>
-      <input class="si" id="s_sched_embed" value="${config.scheduleEmbedUrl||''}" placeholder="https://..." onchange="updateScheduleEmbed(this.value)">
-      <div style="font-size:11px;color:var(--t3);margin-top:-4px;">Paste the live schedule URL to show in the Schedule tab</div>
     </div>
     <div class="sg">
       <div class="sg-lbl">Setup Steps</div>
@@ -2914,8 +2876,6 @@ function renderSettings() {
         Add step
       </button>
     </div>
-    <!-- Session Post-Production Steps settings are temporarily disabled because this workflow is not used currently.
-         Keep the underlying schedule-step code intact so it can be re-enabled later if needed. -->
     <div class="sg">
       <div class="sg-lbl">Conference Days</div>
       <div id="daysList">${(config.days||[]).map((d,di)=>`
@@ -2937,6 +2897,32 @@ function renderSettings() {
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
         Add crew member
       </button>
+    </div>
+    <div class="sg">
+      <div class="sg-lbl">Archived Events</div>
+      <div class="event-admin-section">
+        ${archivedEvents.map(renderEventCard).join('') || '<div class="event-empty">No archived events yet</div>'}
+      </div>
+    </div>
+    <div class="sg">
+      <div class="sg-lbl">Export</div>
+      <div class="export-row">
+        <button class="rst-btn" type="button" onclick="exportEventReport('summary-download')">Download summary</button>
+        <button class="rst-btn" type="button" onclick="exportEventReport('summary-copy')">Copy summary</button>
+        <button class="rst-btn" type="button" onclick="exportEventReport('summary-print')">Print</button>
+        <button class="rst-btn" type="button" onclick="exportEventReport('json')">Download JSON</button>
+        <button class="rst-btn" type="button" onclick="exportEventReport('copy')">Copy JSON</button>
+      </div>
+    </div>
+    <div class="sg">
+      <div class="sg-lbl">Schedule Embed</div>
+      <input class="si" id="s_sched_embed" value="${config.scheduleEmbedUrl||''}" placeholder="https://..." onchange="updateScheduleEmbed(this.value)">
+      <div style="font-size:11px;color:var(--t3);margin-top:-4px;">Paste the live schedule URL to show in the Schedule tab</div>
+    </div>
+    <div class="sg">
+      <div class="sg-lbl">Live Sync</div>
+      <input class="si" id="s_fb" value="${config.firebaseUrl||''}" placeholder="Firebase Realtime DB URL" style="margin-bottom:0" onchange="updateFirebaseUrl(this.value)">
+      <div class="fb-row"><div class="fb-dot${fbDb?' ok':''}" id="fbDot"></div><span class="fb-txt" id="fbTxt">${fbDb?'Connected — live sync active':'Not connected — local only'}</span></div>
     </div>
     <div style="height:8px"></div>`;
   // Sticky save button outside scroll area
