@@ -2023,8 +2023,12 @@ function pushEventData() {
   if (!fbDb) return;
   _fbPushing = true;
   // Use update() for events so each device merges rather than overwrites
+  // Skip events that are in the deleted set (from any device)
+  const deletedSet = getDeletedIds();
   const eventUpdates = {};
-  Object.entries(appData.events).forEach(([id, ev]) => { eventUpdates[id] = ev; });
+  Object.entries(appData.events).forEach(([id, ev]) => {
+    if (!deletedSet.has(id)) eventUpdates[id] = ev;
+  });
   Promise.all([
     fbDb.child('events').update(eventUpdates),
     fbDb.child('config').set(config),
@@ -2429,7 +2433,17 @@ function initFirebase(url) {
           fbDb.child('currentEventId').once('value'),
           fbDb.child('config').once('value'),
           fbDb.child('state').once('value'),
-        ]).then(([eventsSnap, currentSnap, configSnap, stateSnap]) => {
+          fbDb.child('deletedEvents').once('value'),
+        ]).then(([eventsSnap, currentSnap, configSnap, stateSnap, deletedSnap]) => {
+          // First, merge remote deleted events into local set and purge them from local events
+          const remoteDeleted = deletedSnap.val() || {};
+          const localDeleted = getDeletedIds();
+          let deletedChanged = false;
+          Object.keys(remoteDeleted).forEach(id => { if (!localDeleted.has(id)) { localDeleted.add(id); deletedChanged = true; } });
+          if (deletedChanged) setDeletedIds(localDeleted);
+          // Remove any local events that are in the deleted set
+          localDeleted.forEach(id => { if (appData.events[id]) { delete appData.events[id]; } });
+          if (!appData.events[currentEventId]) currentEventId = Object.keys(appData.events)[0] || currentEventId;
           const remoteEvents = eventsSnap.val();
           if (!remoteEvents || typeof remoteEvents !== 'object') {
             // No remote events — try legacy config/state seeding
