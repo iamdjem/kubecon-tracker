@@ -793,7 +793,6 @@ body { padding-bottom: 58px; }
 .modal-actions button { flex:1; }
 .modal-check { display:flex; align-items:flex-start; gap:10px; padding:10px 12px; border:1px solid var(--line2); border-radius:10px; background:rgba(255,255,255,0.02); margin-top:10px; }
 .modal-check input { margin-top:2px; }
-.report-preview { margin-top:10px; padding:10px 12px; border:1px solid var(--line2); border-radius:10px; background:rgba(255,255,255,0.02); color:var(--t2); font-size:11px; line-height:1.5; white-space:pre-wrap; max-height:200px; overflow:auto; }
 
 @media (max-width: 479px) {
   .event-admin-grid { grid-template-columns: 1fr; }
@@ -2896,7 +2895,6 @@ function renderSettings() {
         <button class="rst-btn" type="button" onclick="exportEventReport('json')">Download JSON</button>
         <button class="rst-btn" type="button" onclick="exportEventReport('copy')">Copy JSON</button>
       </div>
-      <div class="report-preview">${escapeHtml(buildEventSummaryText())}</div>
     </div>
     <div class="sg">
       <div class="sg-lbl">Live Sync</div>
