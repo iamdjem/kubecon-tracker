@@ -2381,6 +2381,15 @@ function switchDay(key) {
 // Firebase
 function initFirebase(url) {
   if (!url || fbInitStarted) return;
+  // Guard: on localhost/file://, block auto-init so test runs don't
+  // pollute the production Firebase DB. Manual initFirebase(url) still works.
+  const host = location.hostname;
+  const isLocal = host === 'localhost' || host === '127.0.0.1' || host === '' || location.protocol === 'file:';
+  if (isLocal && !window._fbAllowLocal) {
+    console.warn('[E3] Firebase disabled on localhost. Call window._fbAllowLocal=true then initFirebase(url) to override.');
+    setFbStatus(false);
+    return;
+  }
   fbInitStarted = true;
   const load = (src) => new Promise((resolve, reject) => {
     if ([...document.scripts].some(s => s.src === src)) return resolve();
