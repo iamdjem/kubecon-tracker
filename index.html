@@ -117,12 +117,18 @@ body {
   padding: 8px 18px 4px;
 }
 .rst-btn {
-  font-family: inherit; font-size: 11px; font-weight: 500;
-  color: var(--t3); background: none;
-  border: 1px solid var(--line2); border-radius: 3px;
-  padding: 4px 10px; cursor: pointer; transition: all 0.12s;
+  font-family: inherit; font-size: 12px; font-weight: 500;
+  color: var(--t2); background: var(--s2);
+  border: 1px solid var(--line2); border-radius: 6px;
+  padding: 8px 14px; cursor: pointer; transition: all 0.12s;
+  min-height: 36px;
 }
 .rst-btn:active { color: var(--red); border-color: var(--red); }
+.rst-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* Export button row — wraps on narrow screens, all buttons same size */
+.export-row { display: flex; flex-wrap: wrap; gap: 8px; }
+.export-row .rst-btn { flex: 1 1 auto; min-width: 130px; }
 
 /* ── AVATAR ── */
 .avatar {
@@ -278,19 +284,20 @@ body {
 
 .sh-body { overflow-y: auto; -webkit-overflow-scrolling: touch; flex: 1; padding: 16px 18px 120px; }
 
-.sg { margin-bottom: 20px; }
+.sg { margin-bottom: 24px; }
 .sg-lbl {
-  font-size: 10px; font-weight: 600; color: var(--t3);
+  font-size: 11px; font-weight: 700; color: var(--t3);
   text-transform: uppercase; letter-spacing: 0.8px;
-  margin-bottom: 8px; padding-left: 2px;
+  margin-bottom: 10px; padding-left: 2px;
 }
 
 .si {
   width: 100%; background: var(--s2); border: 1px solid var(--line2);
-  border-radius: 4px; color: var(--t1);
-  font-family: inherit; font-size: 14px; font-weight: 500;
-  padding: 10px 12px; outline: none; transition: border-color 0.12s;
-  margin-bottom: 6px;
+  border-radius: 6px; color: var(--t1);
+  font-family: inherit; font-size: 15px; font-weight: 500;
+  padding: 13px 14px; outline: none; transition: border-color 0.12s;
+  margin-bottom: 8px;
+  min-height: 44px;
 }
 .si:focus { border-color: var(--accent); }
 .si::placeholder { color: var(--t3); }
@@ -310,22 +317,24 @@ body {
 
 /* Steps list */
 .step-row-s {
-  display: flex; align-items: center; gap: 6px;
-  padding: 6px 0; border-top: 1px solid var(--line);
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px 0; border-top: 1px solid var(--line);
 }
 .step-row-s:first-child { border-top: none; }
 .si-icon {
-  width: 40px; background: var(--s2); border: 1px solid var(--line2);
-  border-radius: 4px; color: var(--t1);
-  font-family: inherit; font-size: 16px;
-  padding: 7px 5px; outline: none; text-align: center; flex-shrink: 0;
+  width: 48px; background: var(--s2); border: 1px solid var(--line2);
+  border-radius: 6px; color: var(--t1);
+  font-family: inherit; font-size: 18px;
+  padding: 10px 6px; outline: none; text-align: center; flex-shrink: 0;
+  min-height: 44px;
 }
 .si-icon:focus { border-color: var(--accent); }
 .si-name {
   flex: 1; background: var(--s2); border: 1px solid var(--line2);
-  border-radius: 4px; color: var(--t1);
-  font-family: inherit; font-size: 13px; font-weight: 500;
-  padding: 7px 10px; outline: none; transition: border-color 0.12s;
+  border-radius: 6px; color: var(--t1);
+  font-family: inherit; font-size: 15px; font-weight: 500;
+  padding: 10px 12px; outline: none; transition: border-color 0.12s;
+  min-height: 44px;
 }
 .si-name:focus { border-color: var(--accent); color: var(--t1); }
 
@@ -335,54 +344,59 @@ body {
   border-radius: 4px; margin-bottom: 6px; overflow: hidden;
 }
 .ci-hd {
-  display: flex; align-items: center; gap: 6px;
-  padding: 8px 10px;
+  display: flex; align-items: center; gap: 8px;
+  padding: 10px 12px;
+  min-height: 48px;
 }
 .ci-expand-btn {
   background: none; border: none; color: var(--t3);
-  font-size: 9px; cursor: pointer; padding: 4px; flex-shrink: 0;
+  font-size: 11px; cursor: pointer; padding: 6px; flex-shrink: 0;
   transition: transform 0.18s; line-height: 1;
 }
 .crew-item.exp .ci-expand-btn { transform: rotate(90deg); }
 .ci-name {
   flex: 1; background: transparent; border: none;
-  color: var(--t1); font-family: inherit; font-size: 13px; font-weight: 600;
-  outline: none; padding: 4px 6px; border-radius: 3px;
+  color: var(--t1); font-family: inherit; font-size: 15px; font-weight: 600;
+  outline: none; padding: 8px 8px; border-radius: 4px;
   transition: background 0.12s;
+  min-height: 36px;
 }
 .ci-name:focus { background: var(--s3); }
 
 .del-btn {
-  width: 28px; height: 28px; background: none; border: none;
+  width: 36px; height: 36px; background: none; border: none;
   color: var(--t3); cursor: pointer;
   display: flex; align-items: center; justify-content: center;
-  border-radius: 4px; transition: all 0.12s; flex-shrink: 0;
+  border-radius: 6px; transition: all 0.12s; flex-shrink: 0;
 }
 .del-btn:active { color: var(--red); background: rgba(192,57,43,0.1); }
-.del-btn svg { width: 14px; height: 14px; pointer-events: none; }
+.del-btn svg { width: 16px; height: 16px; pointer-events: none; }
 
-.crew-rooms { padding: 0 10px 8px; display: none; border-top: 1px solid var(--line); }
+.crew-rooms { padding: 0 12px 10px; display: none; border-top: 1px solid var(--line); }
 .crew-item.exp .crew-rooms { display: block; }
 
 .room-row {
-  display: flex; align-items: center; gap: 6px;
-  padding: 5px 0; border-bottom: 1px solid var(--line);
+  display: flex; align-items: center; gap: 8px;
+  padding: 6px 0; border-bottom: 1px solid var(--line);
+  min-height: 44px;
 }
 .room-row:last-child { border-bottom: none; }
 .rn-input {
   flex: 1; background: transparent; border: none;
-  color: var(--t2); font-family: inherit; font-size: 12px;
-  outline: none; padding: 4px 6px; border-radius: 3px;
+  color: var(--t2); font-family: inherit; font-size: 14px;
+  outline: none; padding: 8px 8px; border-radius: 4px;
   transition: background 0.12s;
+  min-height: 36px;
 }
 .rn-input:focus { color: var(--t1); background: var(--s3); }
 
 .add-btn {
-  display: flex; align-items: center; gap: 6px;
+  display: flex; align-items: center; justify-content: center; gap: 8px;
   background: none; border: 1px dashed var(--line2);
-  border-radius: 4px; color: var(--t3);
-  font-family: inherit; font-size: 11px; font-weight: 500;
-  padding: 7px 10px; cursor: pointer; width: 100%; margin-top: 8px;
+  border-radius: 6px; color: var(--t2);
+  font-family: inherit; font-size: 13px; font-weight: 600;
+  padding: 12px 14px; cursor: pointer; width: 100%; margin-top: 10px;
+  min-height: 44px;
   transition: all 0.12s;
 }
 .add-btn:active { border-color: var(--t2); color: var(--t2); }
@@ -2875,17 +2889,14 @@ function renderSettings() {
     </div>
     <div class="sg">
       <div class="sg-lbl">Export</div>
-      <div class="event-admin-row event-admin-actions">
-        <button class="rst-btn" type="button" onclick="exportEventReport('summary-download')">Download status summary</button>
-        <button class="rst-btn" type="button" onclick="exportEventReport('summary-copy')">Copy status summary</button>
-        <button class="rst-btn" type="button" onclick="exportEventReport('summary-print')">Print summary</button>
-      </div>
-      <div class="event-admin-row event-admin-actions">
-        <button class="rst-btn" type="button" onclick="exportEventReport('json')">Download current event JSON</button>
-        <button class="rst-btn" type="button" onclick="exportEventReport('copy')">Copy current event JSON</button>
+      <div class="export-row">
+        <button class="rst-btn" type="button" onclick="exportEventReport('summary-download')">Download summary</button>
+        <button class="rst-btn" type="button" onclick="exportEventReport('summary-copy')">Copy summary</button>
+        <button class="rst-btn" type="button" onclick="exportEventReport('summary-print')">Print</button>
+        <button class="rst-btn" type="button" onclick="exportEventReport('json')">Download JSON</button>
+        <button class="rst-btn" type="button" onclick="exportEventReport('copy')">Copy JSON</button>
       </div>
       <div class="report-preview">${escapeHtml(buildEventSummaryText())}</div>
-      <div class="event-summary">Readable handoff summary for printing or copy/paste, plus the raw JSON backup/export.</div>
     </div>
     <div class="sg">
       <div class="sg-lbl">Live Sync</div>
