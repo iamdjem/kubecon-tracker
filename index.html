@@ -996,35 +996,7 @@ const DEFAULT_CONFIG = {
   ]
 };
 
-const PREFILL = {
-  // Alexi
-  r1:{setup:1,ptz:1,stream:1,parsec:1,tested:1}, // E103-105 ✅
-  r2:{setup:1,ptz:1,stream:1,parsec:1,tested:1}, // E106-108 ✅
-  r3:{setup:1,ptz:1,stream:0,parsec:0,tested:0}, // Auditorium 🛠️🤖
-  // Clayton
-  r4:{setup:1,ptz:0,stream:0,parsec:0,tested:0}, // Hall 7A 🛠️
-  r5:{setup:1,ptz:0,stream:0,parsec:0,tested:0}, // Hall 7B 🛠️
-  r6:{setup:1,ptz:0,stream:0,parsec:0,tested:0}, // Hall 7C 🛠️
-  // Will
-  r7:{setup:1,ptz:0,stream:0,parsec:0,tested:0}, // Hall 8D 🛠️
-  r8:{setup:1,ptz:1,stream:0,parsec:0,tested:0}, // Hall 8E 🛠️🤖
-  r9:{setup:1,ptz:0,stream:0,parsec:0,tested:0}, // Hall 8F 🛠️
-  // Costmo
-  r10:{setup:1,ptz:0,stream:0,parsec:1,tested:0}, // Hall 8G 🛠️⚡
-  r11:{setup:0,ptz:0,stream:0,parsec:0,tested:0}, // Hall 12 —
-  r12:{setup:1,ptz:1,stream:1,parsec:1,tested:1}, // Forum ✅
-  // Johnick
-  r14:{setup:1,ptz:0,stream:0,parsec:0,tested:0}, // Emerald Room 🛠️
-  r15:{setup:1,ptz:1,stream:0,parsec:0,tested:0}, // G102-103 🛠️🤖
-  r21:{setup:1,ptz:1,stream:0,parsec:0,tested:0}, // G104-105 🛠️🤖
-  // Brent
-  r16:{setup:1,ptz:0,stream:0,parsec:0,tested:0}, // F002-005 🛠️
-  r17:{setup:1,ptz:0,stream:0,parsec:0,tested:0}, // Amtrium 1+2 🛠️
-  r18:{setup:0,ptz:0,stream:0,parsec:0,tested:0}, // CN Theater —
-  // Lynda
-  r19:{setup:1,ptz:0,stream:0,parsec:0,tested:0}, // Elicium 1 🛠️
-  r20:{setup:1,ptz:0,stream:0,parsec:0,tested:0}, // Elicium 2 🛠️
-};
+const PREFILL = {};
 
 // ═══════════════════════════════
 // SCHEDULE DATA
@@ -1965,8 +1937,6 @@ function makeEvent(base = {}) {
   return ev;
 }
 function loadAppData() {
-  const legacyConfig = JSON.parse(localStorage.getItem(LEGACY_CONFIG_KEY) || 'null') || clone(DEFAULT_CONFIG);
-  const legacyState = JSON.parse(localStorage.getItem(LEGACY_STATE_KEY) || '{}');
   const stored = JSON.parse(localStorage.getItem(APP_STORE_KEY) || 'null');
   if (stored && stored.events && typeof stored.events === 'object' && Object.keys(stored.events).length) {
     const events = {};
@@ -1974,7 +1944,12 @@ function loadAppData() {
     const currentEventId = stored.currentEventId && events[stored.currentEventId] ? stored.currentEventId : Object.keys(events)[0];
     return { currentEventId, events };
   }
-  const initialEvent = makeEvent({ id: 'ev_default', name: legacyConfig.title || 'Setup Tracker', config: legacyConfig, state: legacyState });
+  // Fresh install: create one empty event so the app has something to render
+  const initialEvent = makeEvent({
+    name: 'New Event',
+    config: { title: 'New Event', subtitle: '', crew: [], steps: [], days: [], schedSteps: [] },
+    state: {}
+  });
   return { currentEventId: initialEvent.id, events: { [initialEvent.id]: initialEvent } };
 }
 let appData = loadAppData();
@@ -2955,7 +2930,19 @@ function renameRoom(ci,ri,v){ config.crew[ci].rooms[ri].name=v.trim(); saveConfi
 function delCrew(ci){ if(!confirm(`Remove ${config.crew[ci].name}?`))return; config.crew.splice(ci,1); saveConfig(); renderAllIncludingSettings(); }
 function delRoom(ci,ri){ config.crew[ci].rooms.splice(ri,1); saveConfig(); renderAllIncludingSettings(); }
 function addRoom(ci){ config.crew[ci].rooms.push({id:'r_'+Date.now(),name:''}); saveConfig(); renderAllIncludingSettings(); setTimeout(()=>{document.getElementById('ci_'+ci)?.classList.add('exp'); const inputs=document.querySelectorAll('#roomList_'+ci+' .rn-input'); if(inputs.length) inputs[inputs.length-1].focus();},10); }
-function addCrew(){ config.crew.push({id:'c_'+Date.now(),name:'',rooms:[]}); saveConfig(); renderAllIncludingSettings(); setTimeout(()=>{const inputs=document.querySelectorAll('#crewList .ci-name'); if(inputs.length) inputs[inputs.length-1].focus();},10); }
+function addCrew(){
+  const crewId = 'c_'+Date.now();
+  // Auto-add one empty room so the crew is immediately functional
+  config.crew.push({id:crewId, name:'', rooms:[{id:'r_'+Date.now(),name:''}]});
+  saveConfig();
+  renderAllIncludingSettings();
+  setTimeout(()=>{
+    const ci = config.crew.length - 1;
+    document.getElementById('ci_'+ci)?.classList.add('exp');
+    const inputs = document.querySelectorAll('#crewList .ci-name');
+    if(inputs.length) inputs[inputs.length-1].focus();
+  },10);
+}
 function updateStep(si,f,v){ config.steps[si][f]=v.trim(); saveConfig(); render(); }
 function deleteStep(si){ if(config.steps.length<=1){showToast('Need at least one step');return;} config.steps.splice(si,1); saveConfig(); renderAllIncludingSettings(); }
 function addStep(){ config.steps.push({key:'s_'+Date.now(),icon:'⭐',label:''}); saveConfig(); renderAllIncludingSettings(); setTimeout(()=>{const inputs=document.querySelectorAll('#stepsList .si-name'); if(inputs.length) inputs[inputs.length-1].focus();},10); }
