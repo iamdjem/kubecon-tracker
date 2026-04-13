@@ -2744,7 +2744,7 @@ function renderSettings() {
     <div class="step-row-s" data-si="${si}">
       <div class="drag-handle">${DRAG_ICON}</div>
       <input class="si-icon" value="${s.icon}" onchange="updateStep(${si},'icon',this.value)" maxlength="2">
-      <input class="si-name" value="${s.label}" onchange="updateStep(${si},'label',this.value)" placeholder="Step name">
+      <input class="si-name" value="${escapeHtml(s.label||'')}" onchange="updateStep(${si},'label',this.value)" placeholder="Step name">
       <button class="del-btn" onclick="deleteStep(${si})" title="Remove">${DEL_ICON}</button>
     </div>`).join('')}</div>`;
 
@@ -2776,14 +2776,14 @@ function renderSettings() {
       <div class="ci-hd">
         <div class="drag-handle">${DRAG_ICON}</div>
         <button class="ci-expand-btn" onclick="toggleExp(${ci})">▶</button>
-        <input class="ci-name" value="${c.name}" onchange="renameCrew(${ci},this.value)">
+        <input class="ci-name" value="${escapeHtml(c.name||'')}" placeholder="Crew member name" onchange="renameCrew(${ci},this.value)">
         <button class="del-btn" onclick="delCrew(${ci})" title="Remove">${DEL_ICON}</button>
       </div>
       <div class="crew-rooms">
         <div id="roomList_${ci}">${c.rooms.map((r,ri)=>`
           <div class="room-row" data-ri="${ri}">
             <div class="drag-handle">${DRAG_ICON}</div>
-            <input class="rn-input" value="${r.name}" onchange="renameRoom(${ci},${ri},this.value)">
+            <input class="rn-input" value="${escapeHtml(r.name||'')}" placeholder="Room name" onchange="renameRoom(${ci},${ri},this.value)">
             <button class="del-btn" onclick="delRoom(${ci},${ri})">${X_ICON}</button>
           </div>`).join('')}</div>
         <button class="add-btn" onclick="addRoom(${ci})">
@@ -2884,7 +2884,7 @@ function renderSettings() {
       <div class="sg-lbl">Conference Days</div>
       <div id="daysList">${(config.days||[]).map((d,di)=>`
         <div class="si" style="display:flex;align-items:center;gap:8px;">
-          <input class="si-label" value="${d.label}" onchange="updateDay(${di},this.value)"
+          <input class="si-label" value="${escapeHtml(d.label||'')}" placeholder="e.g. Mon 23" onchange="updateDay(${di},this.value)"
             style="flex:1;background:var(--s3,#1a1a1a);border:1px solid var(--line2);color:var(--t1);border-radius:6px;padding:6px 10px;font-size:13px;" />
           <button onclick="deleteDay(${di})" style="background:none;border:none;color:var(--t3);cursor:pointer;font-size:16px;padding:4px;">✕</button>
         </div>`).join('')}
@@ -2950,17 +2950,17 @@ function toggleExp(ci) {
     if (btn) btn.style.transform = el.classList.contains('exp') ? 'rotate(90deg)' : '';
   }
 }
-function renameCrew(ci,v){ config.crew[ci].name=v.trim()||config.crew[ci].name; saveConfig(); render(); }
-function renameRoom(ci,ri,v){ config.crew[ci].rooms[ri].name=v.trim()||config.crew[ci].rooms[ri].name; saveConfig(); render(); }
+function renameCrew(ci,v){ config.crew[ci].name=v.trim(); saveConfig(); render(); }
+function renameRoom(ci,ri,v){ config.crew[ci].rooms[ri].name=v.trim(); saveConfig(); render(); }
 function delCrew(ci){ if(!confirm(`Remove ${config.crew[ci].name}?`))return; config.crew.splice(ci,1); saveConfig(); renderAllIncludingSettings(); }
 function delRoom(ci,ri){ config.crew[ci].rooms.splice(ri,1); saveConfig(); renderAllIncludingSettings(); }
-function addRoom(ci){ config.crew[ci].rooms.push({id:'r_'+Date.now(),name:'New Room'}); saveConfig(); renderAllIncludingSettings(); setTimeout(()=>document.getElementById('ci_'+ci)?.classList.add('exp'),10); }
-function addCrew(){ config.crew.push({id:'c_'+Date.now(),name:'New Person',rooms:[]}); saveConfig(); renderAllIncludingSettings(); }
-function updateStep(si,f,v){ config.steps[si][f]=v.trim()||config.steps[si][f]; saveConfig(); render(); }
+function addRoom(ci){ config.crew[ci].rooms.push({id:'r_'+Date.now(),name:''}); saveConfig(); renderAllIncludingSettings(); setTimeout(()=>{document.getElementById('ci_'+ci)?.classList.add('exp'); const inputs=document.querySelectorAll('#roomList_'+ci+' .rn-input'); if(inputs.length) inputs[inputs.length-1].focus();},10); }
+function addCrew(){ config.crew.push({id:'c_'+Date.now(),name:'',rooms:[]}); saveConfig(); renderAllIncludingSettings(); setTimeout(()=>{const inputs=document.querySelectorAll('#crewList .ci-name'); if(inputs.length) inputs[inputs.length-1].focus();},10); }
+function updateStep(si,f,v){ config.steps[si][f]=v.trim(); saveConfig(); render(); }
 function deleteStep(si){ if(config.steps.length<=1){showToast('Need at least one step');return;} config.steps.splice(si,1); saveConfig(); renderAllIncludingSettings(); }
-function addStep(){ config.steps.push({key:'s_'+Date.now(),icon:'⭐',label:'New Step'}); saveConfig(); renderAllIncludingSettings(); }
+function addStep(){ config.steps.push({key:'s_'+Date.now(),icon:'⭐',label:''}); saveConfig(); renderAllIncludingSettings(); setTimeout(()=>{const inputs=document.querySelectorAll('#stepsList .si-name'); if(inputs.length) inputs[inputs.length-1].focus();},10); }
 
-function updateDay(di, val) { if(config.days[di]) { config.days[di].label = val.trim() || config.days[di].label; saveConfig(); render(); } }
+function updateDay(di, val) { if(config.days[di]) { config.days[di].label = val.trim(); saveConfig(); render(); } }
 function deleteDay(di) {
   if ((config.days||[]).length <= 1) { showToast('Need at least one day'); return; }
   const dlabel = config.days[di].label;
@@ -2974,7 +2974,7 @@ function deleteDay(di) {
 function addDay() {
   const key = 'd_' + Date.now();
   config.days = config.days || [];
-  config.days.push({ key, label: 'New Day' });
+  config.days.push({ key, label: '' });
   // If this is the first day, make it current so checkboxes save under it
   if (!currentDay || !config.days.find(d => d.key === currentDay)) {
     currentDay = key;
