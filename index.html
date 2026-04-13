@@ -2148,7 +2148,10 @@ function submitEventModal() {
   const location = (document.getElementById('event-modal-location').value || '').trim();
   const dateLabel = (document.getElementById('event-modal-date').value || '').trim();
   const isDuplicate = mode === 'duplicate';
-  const baseConfig = isDuplicate ? clone(source?.config || DEFAULT_CONFIG) : clone(DEFAULT_CONFIG);
+  // Create → fully empty config. Duplicate → clone the source event.
+  const baseConfig = isDuplicate
+    ? clone(source?.config || {})
+    : { title: cleanName, subtitle: '', crew: [], steps: [], days: [], schedSteps: [] };
   const includeState = isDuplicate && document.getElementById('event-modal-copy-state').checked;
   const subtitle = [location, dateLabel].filter(Boolean).join(' · ');
   const ev = makeEvent({
@@ -2169,9 +2172,11 @@ function createEvent() {
     const fallbackName = prompt('New event name', 'New Event');
     if (fallbackName === null) return;
     const cleanName = (fallbackName || '').trim() || 'New Event';
-    const baseConfig = clone(DEFAULT_CONFIG);
-    baseConfig.title = cleanName;
-    const ev = makeEvent({ name: cleanName, config: baseConfig, state: {} });
+    const ev = makeEvent({
+      name: cleanName,
+      config: { title: cleanName, subtitle: '', crew: [], steps: [], days: [], schedSteps: [] },
+      state: {}
+    });
     upsertEventAndRefresh(ev, 'Event created');
   }
 }
@@ -2189,13 +2194,8 @@ function deleteEvent(eventId) {
       delete appData.events[eventId];
       pushDeleteEvent(eventId);
       if (Object.keys(appData.events).length === 0) {
-        // Create an empty event (no crews, no rooms) — user configures from scratch
-        const fresh = makeEvent({
-          name: 'New Event',
-          config: { title: 'New Event', subtitle: '', crew: [], steps: [], days: [], schedSteps: [] }
-        });
-        appData.events[fresh.id] = fresh;
-        currentEventId = fresh.id;
+        // No events left — show the empty-state prompt instead of auto-creating
+        currentEventId = null;
       } else {
         const nextId = eventId === currentEventId ? (getNextLiveEventId(eventId) || Object.keys(appData.events)[0]) : currentEventId;
         currentEventId = nextId;
@@ -2511,16 +2511,11 @@ function initFirebase(url) {
             });
             if (localChanged) {
               if (!appData.events[currentEventId]) {
-                const firstId = Object.keys(appData.events)[0];
-                if (firstId) { currentEventId = firstId; } else {
-                  const fresh = makeEvent({ name: 'New Event', config: { title: 'New Event', subtitle: '', crew: [], steps: [], days: [], schedSteps: [] } });
-                  appData.events[fresh.id] = fresh;
-                  currentEventId = fresh.id;
-                }
+                currentEventId = Object.keys(appData.events)[0] || null;
               }
               syncActiveEvent();
               saveAppData();
-              renderAll();
+              renderAllIncludingSettings();
             }
           }
         });
