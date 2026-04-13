@@ -862,8 +862,11 @@ body { padding-bottom: 58px; }
   </div>
   <div id="scheduleEmbedBlocked" style="display:none;padding:24px 20px;color:var(--t2);font-size:13px;line-height:1.5;text-align:center;">
     <div style="font-size:14px;font-weight:700;color:var(--t1);margin-bottom:8px;">This site blocks embedding</div>
-    <div style="margin-bottom:16px;">The schedule provider doesn't allow this page to be shown in an iframe. Use the button above to open it in a new tab.</div>
-    <a id="scheduleBlockedLink" href="#" target="_blank" rel="noopener noreferrer" style="display:inline-block;padding:10px 16px;background:var(--accent);color:#000;font-weight:700;font-size:13px;border-radius:6px;text-decoration:none;">Open schedule in new tab ↗</a>
+    <div style="margin-bottom:12px;max-width:360px;margin-left:auto;margin-right:auto;">The schedule provider sent <code style="color:var(--accent);font-size:11px;">X-Frame-Options: DENY</code> so it can't be shown inside the app. Linux Foundation events usually point to a <strong>sched.com</strong> page — use that URL instead.</div>
+    <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:12px;">
+      <a id="scheduleBlockedLink" href="#" target="_blank" rel="noopener noreferrer" style="display:inline-block;padding:10px 16px;background:var(--accent);color:#000;font-weight:700;font-size:13px;border-radius:6px;text-decoration:none;">Open source page ↗</a>
+      <button type="button" onclick="retryResolveSchedule()" style="padding:10px 16px;background:var(--s3);color:var(--t1);font-weight:700;font-size:13px;border-radius:6px;border:1px solid var(--line2);cursor:pointer;">Try auto-resolve</button>
+    </div>
   </div>
   <iframe id="mainSchedIframe" style="flex:1;width:100%;height:100%;border:none;display:none;" src="" loading="lazy"></iframe>
 </div>
@@ -3032,11 +3035,70 @@ function updateFirebaseUrl(val) {
   saveConfig();
   showToast('Firebase URL saved');
 }
+// CORS proxy pool — fall back through these when trying to resolve a URL
+// that can't be embedded directly (e.g. Linux Foundation event pages).
+const CORS_PROXIES = [
+  'https://api.allorigins.win/raw?url=',
+  'https://api.codetabs.com/v1/proxy?quest=',
+];
+
+async function fetchViaProxy(url) {
+  for (const proxy of CORS_PROXIES) {
+    try {
+      const res = await fetch(proxy + encodeURIComponent(url), { cache: 'no-store' });
+      if (res.ok) {
+        const text = await res.text();
+        if (text && text.length > 100) return text;
+      }
+    } catch {}
+  }
+  return null;
+}
+
+// Try to find a sched.com URL inside a blocked schedule page
+async function resolveScheduleUrl(url) {
+  if (!isLikelyBlocked(url)) return url;
+  const html = await fetchViaProxy(url);
+  if (!html) return null;
+  // Look for any <subdomain>.sched.com reference
+  const match = html.match(/https?:\/\/([a-z0-9-]+)\.sched\.com\/?/i);
+  if (match) return 'https://' + match[1] + '.sched.com/';
+  return null;
+}
+
+function tryAutoResolve(url) {
+  showToast('Resolving schedule URL...');
+  return resolveScheduleUrl(url).then(resolved => {
+    if (resolved && resolved !== url) {
+      config.scheduleEmbedUrl = resolved;
+      saveConfig();
+      const el = document.getElementById('s_sched_embed');
+      if (el) el.value = resolved;
+      if (currentPage === 'today') renderToday();
+      showToast('Resolved to ' + new URL(resolved).hostname);
+      return resolved;
+    }
+    showToast('Could not auto-resolve — use sched.com URL directly');
+    return null;
+  }).catch(() => { showToast('Resolver failed — use sched.com URL directly'); return null; });
+}
+
+function retryResolveSchedule() {
+  const url = (config.scheduleEmbedUrl || '').trim();
+  if (!url) { showToast('No URL set'); return; }
+  tryAutoResolve(url);
+}
+
 function updateScheduleEmbed(val) {
-  config.scheduleEmbedUrl = (val || '').trim();
+  const input = (val || '').trim();
+  config.scheduleEmbedUrl = input;
   saveConfig();
   if (currentPage === 'today') renderToday();
-  showToast('Schedule URL saved');
+  if (input && isLikelyBlocked(input)) {
+    tryAutoResolve(input);
+  } else {
+    showToast('Schedule URL saved');
+  }
 }
 
 function showToast(msg) {
@@ -3316,6 +3378,11 @@ function openRoomDetail(roomId) {
 // sync to Firebase immediately.
 initFirebase(config.firebaseUrl || DEFAULT_CONFIG.firebaseUrl);
 render();
+// If the stored schedule URL is a known-blocked domain, try to auto-resolve
+// it to the underlying sched.com URL in the background.
+if (config.scheduleEmbedUrl && isLikelyBlocked(config.scheduleEmbedUrl)) {
+  setTimeout(() => tryAutoResolve(config.scheduleEmbedUrl), 1000);
+}
 // Restore last visited page
 if (currentPage !== 'setup') switchPage(currentPage);
 
