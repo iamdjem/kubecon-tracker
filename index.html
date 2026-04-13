@@ -821,6 +821,70 @@ body { padding-bottom: 58px; }
 @media (max-width: 479px) {
   .event-admin-grid { grid-template-columns: 1fr; }
 }
+
+/* ── Sign-in screen ── */
+#signin-screen {
+  display: none;
+  position: fixed; inset: 0; z-index: 20000;
+  background: var(--bg);
+  align-items: center; justify-content: center;
+  padding: 20px;
+}
+.signin-card {
+  width: min(100%, 340px);
+  background: var(--s2); border: 1px solid var(--line2);
+  border-radius: 16px; padding: 28px 24px;
+}
+.signin-title { font-size: 22px; font-weight: 800; color: var(--t1); letter-spacing: -0.3px; }
+.signin-sub { font-size: 13px; color: var(--t3); margin-top: 4px; margin-bottom: 20px; }
+.signin-card input[type="password"] {
+  width: 100%; background: var(--s3); border: 1px solid var(--line2);
+  border-radius: 8px; color: var(--t1);
+  font-family: inherit; font-size: 16px; font-weight: 500;
+  padding: 14px 16px; outline: none;
+  margin-bottom: 12px; min-height: 48px;
+  -webkit-appearance: none;
+}
+.signin-card input[type="password"]:focus { border-color: var(--accent); }
+.signin-card button {
+  width: 100%; background: var(--accent); color: #000;
+  font-family: inherit; font-size: 15px; font-weight: 700;
+  border: none; border-radius: 8px; padding: 14px;
+  cursor: pointer; min-height: 48px;
+  transition: opacity 0.15s;
+}
+.signin-card button:disabled { opacity: 0.6; cursor: not-allowed; }
+.signin-card button:active:not(:disabled) { opacity: 0.85; }
+.signin-error {
+  margin-top: 12px; font-size: 12px; color: var(--red);
+  min-height: 16px; text-align: center;
+}
+
+/* ── Role-based visibility ── */
+/* admin-only elements are hidden by default (not signed in) and shown when body has .role-admin */
+.admin-only { display: none !important; }
+body.role-admin .admin-only { display: initial !important; }
+body.role-admin .admin-only.admin-only-flex { display: flex !important; }
+body.role-admin .admin-only.admin-only-block { display: block !important; }
+/* Disabled state for inputs that users can't edit */
+body.role-user .admin-only-input { pointer-events: none; opacity: 0.55; }
+
+/* Signed-in badge in Settings */
+.auth-row {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 10px; padding: 10px 12px;
+  background: var(--s2); border: 1px solid var(--line2); border-radius: 8px;
+  margin-top: 6px;
+}
+.auth-row-info { font-size: 12px; color: var(--t2); }
+.auth-row-role { font-size: 11px; font-weight: 700; color: var(--accent); text-transform: uppercase; letter-spacing: 0.5px; }
+.auth-signout {
+  background: var(--s3); border: 1px solid var(--line2); color: var(--t1);
+  font-family: inherit; font-size: 12px; font-weight: 600;
+  padding: 8px 14px; border-radius: 6px; cursor: pointer;
+  min-height: 36px;
+}
+.auth-signout:active { background: var(--red); border-color: var(--red); color: #fff; }
 </style>
 </head>
 <body>
@@ -2014,6 +2078,17 @@ let state = null;
 let filter = null;
 let fbDb   = null;
 let fbAuth = null;
+// ─── Auth config ───
+// Client-side hardcoded credentials for a small team tool.
+// These are visible in the source (defense-in-depth: DB rules + non-public URL).
+// Don't reuse these passwords anywhere else.
+const AUTH_ADMIN_EMAIL = 'admin@e3tracker.local';
+const AUTH_USER_EMAIL  = 'user@e3tracker.local';
+const AUTH_ADMIN_PASSWORD = 'e3admin';
+const AUTH_USER_PASSWORD  = 'e3crew';
+let currentRole = null; // 'admin' | 'user' | null
+function isAdmin() { return currentRole === 'admin'; }
+function isSignedIn() { return currentRole !== null; }
 let fbInitStarted = false;
 
 function currentEvent() { return appData.events[currentEventId]; }
@@ -2471,49 +2546,32 @@ function initFirebase(url) {
           appId: '1:843747163914:web:2486f6353937a8c25ac4f3',
         }, 'tr');
         fbAuth = firebase.auth(app);
-        if (!fbAuth.currentUser) {
-          await fbAuth.signInAnonymously();
+        // Use LOCAL persistence so sessions survive reloads indefinitely
+        try { await fbAuth.setPersistence(firebase.auth.Auth.Persistence.LOCAL); } catch {}
+        // Clean up any legacy anonymous sessions from the old auth model
+        if (fbAuth.currentUser && fbAuth.currentUser.isAnonymous) {
+          await fbAuth.signOut();
         }
-        fbDb = firebase.database(app).ref('e3-kc26-x7k9m');
-        Promise.all([
-          fbDb.child('events').once('value'),
-          fbDb.child('deletedEvents').once('value'),
-        ]).then(([eventsSnap, deletedSnap]) => {
-          // Merge remote deleted events into local set
-          const remoteDeleted = deletedSnap.val() || {};
-          const localDeleted = getDeletedIds();
-          let deletedChanged = false;
-          Object.keys(remoteDeleted).forEach(id => { if (!localDeleted.has(id)) { localDeleted.add(id); deletedChanged = true; } });
-          if (deletedChanged) setDeletedIds(localDeleted);
-          // Purge any local events that were deleted remotely
-          localDeleted.forEach(id => { if (appData.events[id]) delete appData.events[id]; });
-
-          // If Firebase has events, import them (respecting deletedIds)
-          const remoteEvents = eventsSnap.val();
-          if (remoteEvents && typeof remoteEvents === 'object') {
-            Object.entries(remoteEvents).forEach(([id, ev]) => {
-              if (localDeleted.has(id)) {
-                // Remove stale remote entry
-                fbDb.child('events').child(id).remove();
-                return;
-              }
-              const local = appData.events[id];
-              if (!local || (ev.updatedAt || 0) >= (local.updatedAt || 0)) {
-                appData.events[id] = makeEvent({ ...ev, id });
-              }
-            });
+        // Watch for auth state changes — this is the single source of truth
+        fbAuth.onAuthStateChanged(user => {
+          if (user && !user.isAnonymous) {
+            currentRole = (user.email === AUTH_ADMIN_EMAIL) ? 'admin' : 'user';
+            document.body.classList.toggle('role-admin', isAdmin());
+            document.body.classList.toggle('role-user', !isAdmin());
+            hideSignInScreen();
+            onAuthenticated();
+          } else {
+            currentRole = null;
+            document.body.classList.remove('role-admin', 'role-user');
+            showSignInScreen();
           }
-
-          // Don't auto-create events. User will see an empty-state prompt.
-          if (!appData.events[currentEventId]) currentEventId = Object.keys(appData.events)[0] || null;
-          syncActiveEvent();
-          saveAppData();
-          renderAllIncludingSettings();
-
-          // Push whatever we have (filtered by pushEventData to skip deleted ids)
-          pushEventData();
-          fbDb.child('events').child('ev_default').remove();
-        }).catch((e) => { console.error('Firebase init read failed', e); });
+        });
+        fbDb = firebase.database(app).ref('e3-kc26-x7k9m');
+        const fbErrorHandler = (label) => (err) => {
+          if (err?.code === 'PERMISSION_DENIED') return; // silent — expected when not authed
+          console.error('[fb ' + label + ']', err);
+        };
+        // Data sync listeners — only fire once authenticated (handled by DB rules + our UI)
         fbDb.child('events').on('value', s => {
           const v = s.val();
           if (v && typeof v === 'object') {
@@ -2543,7 +2601,7 @@ function initFirebase(url) {
             saveAppData();
             renderAll();
           }
-        });
+        }, fbErrorHandler('events'));
         fbDb.child('deletedEvents').on('value', s => {
           const v = s.val() || {};
           const set = getDeletedIds();
@@ -2565,9 +2623,8 @@ function initFirebase(url) {
               renderAllIncludingSettings();
             }
           }
-        });
-        fbDb.child('vmix_ips').on('value', s => { const v=s.val(); if(v){ VMIX_ROOMS.forEach(r => { if(v[r.key]) r.ip=v[r.key]; }); vmixSaveIps(); if(currentPage==='rooms') renderVmixCards(); } });
-        setFbStatus(true);
+        }, fbErrorHandler('deletedEvents'));
+        fbDb.child('vmix_ips').on('value', s => { const v=s.val(); if(v){ VMIX_ROOMS.forEach(r => { if(v[r.key]) r.ip=v[r.key]; }); vmixSaveIps(); if(currentPage==='rooms') renderVmixCards(); } }, fbErrorHandler('vmix_ips'));
       } catch(e) {
         console.error('Firebase init failed', e);
         setFbStatus(false);
@@ -2585,6 +2642,107 @@ function setFbStatus(ok) {
   t.textContent=ok?'Connected — live sync active':'Not connected — local only';
 }
 
+// ─── Auth flow ───
+function onAuthenticated() {
+  if (!fbDb) return;
+  setFbStatus(true);
+  // Initial sync — read remote state and merge into local
+  Promise.all([
+    fbDb.child('events').once('value'),
+    fbDb.child('deletedEvents').once('value'),
+  ]).then(([eventsSnap, deletedSnap]) => {
+    const remoteDeleted = deletedSnap.val() || {};
+    const localDeleted = getDeletedIds();
+    let deletedChanged = false;
+    Object.keys(remoteDeleted).forEach(id => { if (!localDeleted.has(id)) { localDeleted.add(id); deletedChanged = true; } });
+    if (deletedChanged) setDeletedIds(localDeleted);
+    localDeleted.forEach(id => { if (appData.events[id]) delete appData.events[id]; });
+
+    const remoteEvents = eventsSnap.val();
+    if (remoteEvents && typeof remoteEvents === 'object') {
+      Object.entries(remoteEvents).forEach(([id, ev]) => {
+        if (localDeleted.has(id)) {
+          fbDb.child('events').child(id).remove();
+          return;
+        }
+        const local = appData.events[id];
+        if (!local || (ev.updatedAt || 0) >= (local.updatedAt || 0)) {
+          appData.events[id] = makeEvent({ ...ev, id });
+        }
+      });
+    }
+    if (!appData.events[currentEventId]) currentEventId = Object.keys(appData.events)[0] || null;
+    syncActiveEvent();
+    saveAppData();
+    renderAllIncludingSettings();
+    pushEventData();
+    fbDb.child('events').child('ev_default').remove();
+  }).catch(e => console.error('Firebase init read failed', e));
+}
+
+async function signInWithPassword(password) {
+  if (!fbAuth) { throw new Error('Firebase not ready'); }
+  const errors = [];
+  // Try admin first
+  try {
+    await fbAuth.signInWithEmailAndPassword(AUTH_ADMIN_EMAIL, password);
+    return 'admin';
+  } catch (e) { errors.push(e.code); }
+  // Then user
+  try {
+    await fbAuth.signInWithEmailAndPassword(AUTH_USER_EMAIL, password);
+    return 'user';
+  } catch (e) { errors.push(e.code); }
+  throw new Error('Invalid password');
+}
+
+async function signOut() {
+  if (fbAuth) { await fbAuth.signOut(); }
+  location.reload();
+}
+
+function showSignInScreen() {
+  let el = document.getElementById('signin-screen');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'signin-screen';
+    el.innerHTML = `
+      <div class="signin-card">
+        <div class="signin-title">E3 Tracker</div>
+        <div class="signin-sub">Sign in to continue</div>
+        <input id="signin-password" type="password" placeholder="Password" autocomplete="current-password">
+        <button id="signin-submit" type="button">Sign in</button>
+        <div id="signin-error" class="signin-error"></div>
+      </div>`;
+    document.body.appendChild(el);
+    const pwd = el.querySelector('#signin-password');
+    const btn = el.querySelector('#signin-submit');
+    const err = el.querySelector('#signin-error');
+    const submit = async () => {
+      err.textContent = '';
+      btn.disabled = true;
+      btn.textContent = 'Signing in...';
+      try {
+        await signInWithPassword(pwd.value);
+      } catch (e) {
+        err.textContent = 'Invalid password';
+        btn.disabled = false;
+        btn.textContent = 'Sign in';
+        pwd.select();
+      }
+    };
+    btn.addEventListener('click', submit);
+    pwd.addEventListener('keydown', e => { if (e.key === 'Enter') submit(); });
+    setTimeout(() => pwd.focus(), 50);
+  }
+  el.style.display = 'flex';
+}
+
+function hideSignInScreen() {
+  const el = document.getElementById('signin-screen');
+  if (el) el.style.display = 'none';
+}
+
 // Render
 function renderEventSwitcher() {
   const wrap = document.getElementById('eventSwitcherWrap');
@@ -2598,7 +2756,7 @@ function renderEventSwitcher() {
     <div style="padding:8px 18px;border-bottom:1px solid var(--line);">
       <div class="event-bar">
         ${liveEvents.map((ev, i) => `<button class="event-chip${ev.id===currentEventId?' on':''}" type="button" data-switch-event="${escapeHtml(ev.id)}"><span class="event-chip-dot"></span>${escapeHtml(ev.name || ('Event ' + (i+1)))}</button>`).join('')}
-        <button class="event-add-chip" type="button" data-create-event="true">+</button>
+        <button class="event-add-chip admin-only admin-only-flex" type="button" data-create-event="true">+</button>
       </div>
     </div>`;
 }
@@ -2611,12 +2769,17 @@ function render() {
 
   const tracker = document.getElementById('tracker');
   if (!hasEvents) {
-    // Empty state — prompt user to create their first event
-    tracker.innerHTML = `
-      <div style="padding:60px 24px;text-align:center;color:var(--t2);">
+    // Empty state — prompt admin to create first event, user to wait for admin
+    const adminPrompt = `
         <div style="font-size:18px;font-weight:700;color:var(--t1);margin-bottom:10px;">No events yet</div>
         <div style="font-size:13px;line-height:1.5;margin-bottom:24px;max-width:340px;margin-left:auto;margin-right:auto;">Create your first event to start tracking setup progress. You can configure crews, rooms, days and checklist steps in Settings.</div>
-        <button class="save-btn" style="display:inline-block;padding:12px 24px;width:auto;font-size:14px;" data-create-event="true">+ Create your first event</button>
+        <button class="save-btn" style="display:inline-block;padding:12px 24px;width:auto;font-size:14px;" data-create-event="true">+ Create your first event</button>`;
+    const userPrompt = `
+        <div style="font-size:18px;font-weight:700;color:var(--t1);margin-bottom:10px;">No events yet</div>
+        <div style="font-size:13px;line-height:1.5;max-width:340px;margin-left:auto;margin-right:auto;">Your admin hasn't created any events yet. Check back once they've set one up.</div>`;
+    tracker.innerHTML = `
+      <div style="padding:60px 24px;text-align:center;color:var(--t2);">
+        ${isAdmin() ? adminPrompt : userPrompt}
       </div>`;
     // Clear chip rows / day tabs
     const dayTabsEl = document.getElementById('setupDayTabs');
@@ -2887,12 +3050,14 @@ function renderSettings() {
   const liveEvents = orderedEvents.filter(ev => !ev.archived);
   const archivedEvents = orderedEvents.filter(ev => ev.archived);
 
-  const renderEventCard = ev => `
+  const renderEventCard = ev => {
+    const readonlyAttr = isAdmin() ? '' : 'readonly';
+    return `
         <div class="event-admin-item">
-          <input class="si" value="${escapeHtml(ev.name || ev.config?.title || '')}" onchange="updateEventField('${ev.id}', 'name', this.value)" placeholder="Event name" style="margin-bottom:0;">
+          <input class="si" value="${escapeHtml(ev.name || ev.config?.title || '')}" onchange="updateEventField('${ev.id}', 'name', this.value)" placeholder="Event name" style="margin-bottom:0;" ${readonlyAttr}>
           <div class="event-admin-grid">
-            <input class="si" value="${escapeHtml(ev.location || '')}" onchange="updateEventField('${ev.id}', 'location', this.value)" placeholder="Venue / city">
-            <input class="si" value="${escapeHtml(ev.dateLabel || '')}" onchange="updateEventField('${ev.id}', 'dateLabel', this.value)" placeholder="Dates">
+            <input class="si" value="${escapeHtml(ev.location || '')}" onchange="updateEventField('${ev.id}', 'location', this.value)" placeholder="Venue / city" ${readonlyAttr}>
+            <input class="si" value="${escapeHtml(ev.dateLabel || '')}" onchange="updateEventField('${ev.id}', 'dateLabel', this.value)" placeholder="Dates" ${readonlyAttr}>
           </div>
           <div class="event-admin-row">
             <span class="event-pill ${ev.archived ? 'archived' : 'live'}">${ev.archived ? 'ARCHIVED' : 'LIVE'}</span>
@@ -2901,11 +3066,12 @@ function renderSettings() {
           </div>
           <div class="event-admin-row event-admin-actions">
             ${ev.id === currentEventId ? '<button class="rst-btn" type="button" disabled>Current event</button>' : `<button class="rst-btn" type="button" data-switch-event="${escapeHtml(ev.id)}">Switch to event</button>`}
-            <button class="rst-btn" type="button" data-duplicate-event="${escapeHtml(ev.id)}">Duplicate</button>
-            <button class="rst-btn" type="button" data-toggle-archive-event="${escapeHtml(ev.id)}">${ev.archived ? 'Unarchive' : 'Archive'}</button>
-            <button class="rst-btn" type="button" data-delete-event="${escapeHtml(ev.id)}">Delete</button>
+            <button class="rst-btn admin-only admin-only-flex" type="button" data-duplicate-event="${escapeHtml(ev.id)}">Duplicate</button>
+            <button class="rst-btn admin-only admin-only-flex" type="button" data-toggle-archive-event="${escapeHtml(ev.id)}">${ev.archived ? 'Unarchive' : 'Archive'}</button>
+            <button class="rst-btn admin-only admin-only-flex" type="button" data-delete-event="${escapeHtml(ev.id)}">Delete</button>
           </div>
         </div>`;
+  };
 
   body.innerHTML=`
     <div class="sg">
@@ -2913,12 +3079,12 @@ function renderSettings() {
       <div class="event-admin-section">
         ${liveEvents.map(renderEventCard).join('') || '<div class="event-empty">No live events yet</div>'}
       </div>
-      <button class="add-btn" type="button" data-create-event="true">
+      <button class="add-btn admin-only admin-only-flex" type="button" data-create-event="true">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
         Add event
       </button>
     </div>
-    <div class="sg">
+    <div class="sg admin-only admin-only-block">
       <div class="sg-lbl">Setup Steps</div>
       ${stepsHtml}
       <button class="add-btn" onclick="addStep()">
@@ -2926,7 +3092,7 @@ function renderSettings() {
         Add step
       </button>
     </div>
-    <div class="sg">
+    <div class="sg admin-only admin-only-block">
       <div class="sg-lbl">Conference Days</div>
       <div id="daysList">${(config.days||[]).map((d,di)=>`
         <div class="si" style="display:flex;align-items:center;gap:8px;">
@@ -2940,7 +3106,7 @@ function renderSettings() {
         Add day
       </button>
     </div>
-    <div class="sg">
+    <div class="sg admin-only admin-only-block">
       <div class="sg-lbl">Crew & Rooms</div>
       ${crewHtml}
       <button class="add-crew-btn" onclick="addCrew()">
@@ -2948,7 +3114,7 @@ function renderSettings() {
         Add crew member
       </button>
     </div>
-    <div class="sg">
+    <div class="sg admin-only admin-only-block">
       <div class="sg-lbl">Archived Events</div>
       <div class="event-admin-section">
         ${archivedEvents.map(renderEventCard).join('') || '<div class="event-empty">No archived events yet</div>'}
@@ -2964,12 +3130,19 @@ function renderSettings() {
         <button class="rst-btn" type="button" onclick="exportEventReport('copy')">Copy JSON</button>
       </div>
     </div>
-    <div class="sg">
+    <div class="sg admin-only admin-only-block">
       <div class="sg-lbl">Schedule Embed</div>
       <input class="si" id="s_sched_embed" value="${config.scheduleEmbedUrl||''}" placeholder="https://..." onchange="updateScheduleEmbed(this.value)">
       <div style="font-size:11px;color:var(--t3);margin-top:-4px;">Paste the live schedule URL to show in the Schedule tab</div>
     </div>
     <div class="sg">
+      <div class="sg-lbl">Account</div>
+      <div class="auth-row">
+        <div class="auth-row-info">Signed in as <span class="auth-row-role">${isAdmin() ? 'Admin' : 'User'}</span></div>
+        <button class="auth-signout" type="button" onclick="signOut()">Sign out</button>
+      </div>
+    </div>
+    <div class="sg admin-only admin-only-block">
       <div class="sg-lbl">Live Sync</div>
       <input class="si" id="s_fb" value="${config.firebaseUrl||''}" placeholder="Firebase Realtime DB URL" style="margin-bottom:0" onchange="updateFirebaseUrl(this.value)">
       <div class="fb-row"><div class="fb-dot${fbDb?' ok':''}" id="fbDot"></div><span class="fb-txt" id="fbTxt">${fbDb?'Connected — live sync active':'Not connected — local only'}</span></div>
