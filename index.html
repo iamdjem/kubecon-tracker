@@ -1044,6 +1044,10 @@ body.role-user .admin-only-input { pointer-events: none; opacity: 0.55; }
     <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
     Schedule
   </div>
+  <div class="nav-tab" id="nav-rooms" onclick="switchPage('rooms')">
+    <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+    Recording
+  </div>
   <div class="nav-tab" id="nav-share" onclick="copyAppLink()" style="color:#25D366;">
     <svg viewBox="0 0 32 32" fill="currentColor" style="width:22px;height:22px;">
       <path d="M16 1C7.716 1 1 7.716 1 16c0 2.628.672 5.1 1.852 7.256L1 31l7.94-1.824A14.94 14.94 0 0 0 16 31c8.284 0 15-6.716 15-15S24.284 1 16 1zm0 27.4a12.35 12.35 0 0 1-6.3-1.726l-.452-.268-4.712 1.082 1.122-4.578-.296-.47A12.36 12.36 0 0 1 3.6 16C3.6 9.148 9.148 3.6 16 3.6S28.4 9.148 28.4 16 22.852 28.4 16 28.4zm6.77-9.28c-.37-.186-2.19-1.08-2.53-1.202-.34-.122-.586-.186-.832.186-.246.37-.954 1.202-1.17 1.448-.216.246-.43.278-.8.092-.37-.186-1.562-.576-2.976-1.836-1.1-.982-1.842-2.194-2.058-2.564-.216-.37-.022-.57.162-.754.166-.166.37-.432.556-.648.186-.216.248-.37.37-.616.124-.246.062-.462-.03-.648-.092-.186-.832-2.006-1.14-2.746-.3-.72-.606-.622-.832-.634l-.708-.012c-.246 0-.648.092-.988.462s-1.296 1.266-1.296 3.086 1.326 3.578 1.512 3.824c.186.246 2.61 3.986 6.326 5.59.884.382 1.572.61 2.108.78.886.282 1.692.242 2.33.146.71-.106 2.19-.896 2.5-1.762.308-.866.308-1.608.216-1.762-.092-.154-.338-.246-.708-.432z"/>
@@ -2683,6 +2687,7 @@ function initFirebase(url) {
           }
         }, fbErrorHandler('deletedEvents'));
         fbDb.child('vmix_ips').on('value', s => { const v=s.val(); if(v){ VMIX_ROOMS.forEach(r => { if(v[r.key]) r.ip=v[r.key]; }); vmixSaveIps(); if(currentPage==='rooms') renderVmixCards(); } }, fbErrorHandler('vmix_ips'));
+        vmixListenProxyUrl();
       } catch(e) {
         console.error('Firebase init failed', e);
         setFbStatus(false);
@@ -4064,6 +4069,31 @@ function vmixSaveIps() {
 
 const vmixStatus = {};
 
+// vMix proxy URL — allows HTTPS→HTTP bridging via vMix Commander tunnel
+let vmixProxyUrl = localStorage.getItem('kc_vmix_proxy') || '';
+
+// Read proxy URL from ?proxy= query param (QR code from vMix Commander)
+(function() {
+  const params = new URLSearchParams(window.location.search);
+  const p = params.get('proxy');
+  if (p) {
+    vmixProxyUrl = p;
+    localStorage.setItem('kc_vmix_proxy', p);
+  }
+})();
+
+// Listen for proxy URL updates from Firebase (pushed by vMix Commander)
+function vmixListenProxyUrl() {
+  if (!fbDb) return;
+  fbDb.child('vmix_proxy_url').on('value', s => {
+    const url = s.val();
+    if (url) {
+      vmixProxyUrl = url;
+      localStorage.setItem('kc_vmix_proxy', url);
+    }
+  });
+}
+
 function vmixMakeCard(r) {
   var st  = vmixStatus[r.key] || {};
   var err = st.ok === false;
@@ -4214,21 +4244,36 @@ async function vmixSaveIp(key) {
 async function vmixCall(ip, fn) {
   if (!ip) return { ok: false, error: 'No IP' };
   try {
-    const r = await fetch(`http://${ip}:8088/api/?Function=${fn}`, { mode: 'no-cors' });
-    return { ok: true };
+    if (vmixProxyUrl) {
+      // Route through vMix Commander proxy (works over HTTPS)
+      const r = await fetch(`${vmixProxyUrl}/vmix-proxy?ip=${encodeURIComponent(ip)}&fn=${encodeURIComponent(fn)}`);
+      return { ok: r.ok };
+    } else {
+      // Direct HTTP (only works on same network, not HTTPS)
+      const r = await fetch(`http://${ip}:8088/api/?Function=${fn}`, { mode: 'no-cors' });
+      return { ok: true };
+    }
   } catch(e) { return { ok: false, error: e.message }; }
 }
 
 async function vmixGetStatus(ip) {
   if (!ip) return { ok: false, error: 'No IP', recording: false, streaming: false, multicorder: false };
   try {
-    const r = await fetch(`http://${ip}:8088/api`, { mode: 'cors' });
-    const xml = await r.text();
+    let xml;
+    if (vmixProxyUrl) {
+      // Route through vMix Commander proxy
+      const r = await fetch(`${vmixProxyUrl}/vmix-proxy?ip=${encodeURIComponent(ip)}`);
+      xml = await r.text();
+    } else {
+      // Direct HTTP
+      const r = await fetch(`http://${ip}:8088/api`, { mode: 'cors' });
+      xml = await r.text();
+    }
     return {
       ok: true,
-      recording:   xml.includes('<recording>True</recording>') || xml.includes('<recording>true</recording>'),
-      streaming:   xml.includes('<streaming>True</streaming>') || xml.includes('<streaming>true</streaming>'),
-      multicorder: xml.includes('<multiCorder>True</multiCorder>') || xml.includes('<multicorder>true</multicorder>'),
+      recording:   /<recording[^>]*>True<\/recording>/i.test(xml),
+      streaming:   /<streaming[^>]*>True<\/streaming>/i.test(xml),
+      multicorder: /<multiCorder[^>]*>True<\/multiCorder>/i.test(xml),
     };
   } catch(e) { return { ok: false, error: e.message, recording: false, streaming: false, multicorder: false }; }
 }
