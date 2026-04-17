@@ -1,0 +1,162 @@
+{
+  "rules": {
+    // ──────────────────────────────────────────────────────────────────
+    // vMix Commander + Crew Tracker — shared RTDB security rules
+    // Auth model: single shared account (user@e3tracker.local). Rules
+    // gate on auth presence + data shape only. Client self-declares
+    // role ("commander" | "tracker") honestly in audit/errors payloads.
+    // Credentials are embedded in a public GitHub Pages HTML file, so
+    // unauthenticated access MUST be denied everywhere under the root.
+    // ──────────────────────────────────────────────────────────────────
+
+    "e3-kc26-x7k9m": {
+      // Lock the whole namespace behind auth. No public read/write.
+      ".read": "auth != null",
+      ".write": "auth != null",
+
+      "events": {
+        "$eventId": {
+          // Authenticated users may freely read + write event metadata
+          // (name, location, dateLabel, archived, updatedAt, etc.).
+          ".read": "auth != null",
+          ".write": "auth != null",
+
+          "config": {
+            ".read": "auth != null",
+            ".write": "auth != null",
+
+            "vmixProxyUrl": {
+              // NEW: per-event Cloudflare tunnel URL published by Commander.
+              ".validate": "newData.isString() || !newData.exists()"
+            }
+            // Other config children (vmixRooms, etc.) inherit parent
+            // .write and have no additional validation — kept permissive
+            // so existing flows don't break.
+          },
+
+          "controller": {
+            // NEW: presence/heartbeat from the active Commander instance.
+            ".read": "auth != null",
+            ".write": "auth != null",
+            ".validate": "newData.hasChildren(['commanderId', 'operator', 'lastHeartbeat', 'safetyLocked'])",
+            "commanderId":    { ".validate": "newData.isString()" },
+            "lastHeartbeat":  { ".validate": "newData.isNumber()" },
+            "safetyLocked":   { ".validate": "newData.isBoolean()" },
+            "operator": {
+              ".validate": "newData.hasChildren(['name', 'role'])",
+              "name": { ".validate": "newData.isString()" },
+              "role": { ".validate": "newData.isString()" },
+              "$other": { ".validate": true }
+            },
+            "$other": { ".validate": true }
+          },
+
+          "audit": {
+            // NEW: append-only shared audit log. Indexed by timestamp.
+            ".read": "auth != null",
+            ".indexOn": ["timestamp", "source", "room"],
+            "$pushId": {
+              // Create-only: no updates or deletes by clients.
+              ".write": "auth != null && !data.exists() && newData.exists()",
+              ".validate": "newData.hasChildren(['timestamp', 'source', 'identity', 'action', 'room', 'result'])",
+              "timestamp": { ".validate": "newData.isNumber()" },
+              "source":    { ".validate": "newData.isString() && (newData.val() === 'commander' || newData.val() === 'tracker')" },
+              "identity":  { ".validate": "newData.hasChildren()" },
+              "action":    { ".validate": "newData.isString()" },
+              "room":      { ".validate": "newData.isString()" },
+              "result":    { ".validate": "newData.isString() && (newData.val() === 'ok' || newData.val() === 'fail' || newData.val() === 'denied')" },
+              "$other":    { ".validate": true }
+            }
+          },
+
+          "errors": {
+            // NEW: Commander error telemetry. Create-only, size-capped.
+            ".read": "auth != null",
+            ".indexOn": ["timestamp", "commanderId"],
+            "$pushId": {
+              ".write": "auth != null && !data.exists() && newData.exists()",
+              ".validate": "newData.hasChildren(['timestamp', 'source', 'commanderId', 'identity', 'message'])",
+              "timestamp":    { ".validate": "newData.isNumber()" },
+              "source":       { ".validate": "newData.isString()" },
+              "commanderId":  { ".validate": "newData.isString()" },
+              "identity":     { ".validate": "newData.hasChildren()" },
+              // Cap message + stack payloads at ~8 KB each to prevent abuse.
+              "message":      { ".validate": "newData.isString() && newData.val().length < 8192" },
+              "stack":        { ".validate": "!newData.exists() || (newData.isString() && newData.val().length < 8192)" },
+              "context":      { ".validate": true },
+              "$other":       { ".validate": true }
+            }
+          },
+
+          "runOfShow": {
+            // NEW: ordered list of cues. Stored as array or null.
+            ".read": "auth != null",
+            ".write": "auth != null",
+            ".validate": "!newData.exists() || newData.hasChildren()"
+          },
+
+          "roomLocks": {
+            // NEW: per-room lock flags. Every child must be boolean.
+            ".read": "auth != null",
+            ".write": "auth != null",
+            "$roomKey": {
+              ".validate": "newData.isBoolean()"
+            }
+          },
+
+          "activities": {
+            // Existing Tracker activities log — keep permissive auth check.
+            ".read": "auth != null",
+            ".write": "auth != null",
+            ".indexOn": ["timestamp"]
+          },
+
+          // Catch-all for any other existing event subtrees (people,
+          // rooms, schedule, etc.). Authenticated write preserves
+          // current Tracker + Commander behavior.
+          "$other": {
+            ".read": "auth != null",
+            ".write": "auth != null"
+          }
+        }
+      },
+
+      "vmixStatus": {
+        ".read": "auth != null",
+        "$eventId": {
+          ".write": "auth != null"
+          // Shape is evolving (operator, safetyLocked, rooms, roomLocks,
+          // updatedAt) — intentionally left unvalidated for now.
+        }
+      },
+
+      "vmix_proxy_url": {
+        // Legacy global tunnel URL. Kept writable for back-compat.
+        ".read": "auth != null",
+        ".write": "auth != null",
+        ".validate": "newData.isString() || !newData.exists()"
+      },
+
+      "vmix_ips": {
+        ".read": "auth != null",
+        "$key": {
+          ".write": "auth != null",
+          ".validate": "newData.isString() || !newData.exists()"
+        }
+      },
+
+      "deletedEvents": {
+        ".read": "auth != null",
+        "$eventId": {
+          ".write": "auth != null"
+        }
+      },
+
+      // Catch-all for any other top-level keys under the namespace.
+      "$other": {
+        ".read": "auth != null",
+        ".write": "auth != null"
+      }
+    }
+  }
+}

@@ -1114,14 +1114,31 @@ body.role-user .admin-only-input { pointer-events: none; opacity: 0.55; }
 
 <!-- PAGE: ROOMS -->
 <div id="page-rooms" class="page" style="padding:16px;padding-bottom:80px;overflow-y:auto;">
-  <div style="font-size:16px;font-weight:700;color:var(--t1);margin-bottom:4px;">Room Control</div>
-  <div style="font-size:11px;color:var(--t3);margin-bottom:12px;">vMix · Record + Stream + MultiCorder</div>
+  <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:12px;">
+    <div style="flex:1;min-width:0;">
+      <div style="font-size:16px;font-weight:700;color:var(--t1);margin-bottom:4px;">Room Control</div>
+      <div style="font-size:11px;color:var(--t3);">vMix · Record + Stream + MultiCorder</div>
+    </div>
+    <div id="vmix-identity-chip" style="display:none;flex-shrink:0;font-size:11px;color:var(--t2);background:var(--s2);border:1px solid var(--line2);border-radius:8px;padding:6px 10px;line-height:1.35;cursor:pointer;" onclick="trackerOpenIdentityModal()" title="Change identity"></div>
+  </div>
   <div id="vmix-https-warn" style="display:none;background:#3d2a00;border:1px solid #996600;border-radius:8px;padding:10px 12px;margin-bottom:14px;font-size:11px;color:#ffb74d;line-height:1.5;">
     ⚠️ <strong>HTTPS blocks vMix (HTTP)</strong> — buttons won't work here.<br>
     Open on your laptop instead: <strong>http://localhost:8765</strong> → Rooms tab.<br>
     Or in Chrome: tap the 🔒 lock → <em>Site settings</em> → allow <em>Insecure content</em>.
   </div>
   <div id="vmix-commander-banner" style="display:none;margin-bottom:12px;padding:10px 12px;border-radius:8px;font-size:11px;line-height:1.5;"></div>
+  <div id="vmix-ros-panel" style="display:none;margin-bottom:12px;background:var(--s2);border:1px solid var(--line2);border-radius:10px;overflow:hidden;">
+    <div id="vmix-ros-header" style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;cursor:pointer;user-select:none;" onclick="trackerToggleRunOfShow()">
+      <div style="font-size:12px;font-weight:700;color:var(--t1);text-transform:uppercase;letter-spacing:0.6px;">Upcoming schedule</div>
+      <div id="vmix-ros-chevron" style="font-size:11px;color:var(--t3);">▾</div>
+    </div>
+    <div id="vmix-ros-body" style="padding:0 14px 12px;display:flex;flex-direction:column;gap:6px;"></div>
+  </div>
+  <div id="vmix-operator-empty" style="display:none;background:var(--s2);border:1px solid var(--line2);border-radius:12px;padding:18px 16px;margin-bottom:12px;font-size:13px;color:var(--t2);line-height:1.5;text-align:center;">
+    <div style="font-size:14px;font-weight:700;color:var(--t1);margin-bottom:6px;">No room assigned</div>
+    <div style="margin-bottom:12px;">Ask a Director to update your identity, or change your role below.</div>
+    <button type="button" onclick="trackerOpenIdentityModal()" style="background:var(--accent);border:none;color:#000;border-radius:8px;padding:9px 18px;font-size:12px;font-weight:700;cursor:pointer;">Change identity</button>
+  </div>
   <div id="vmix-cards" style="display:flex;flex-direction:column;gap:12px;"></div>
   <div id="vmix-all-row" style="margin-top:16px;background:var(--s2);border:1px solid var(--line2);border-radius:14px;overflow:hidden;">
     <div style="padding:14px 16px 10px;font-size:15px;font-weight:700;color:var(--t1);">All Rooms</div>
@@ -1230,6 +1247,31 @@ body.role-user .admin-only-input { pointer-events: none; opacity: 0.55; }
     <button class="sh-close" onclick="closeSettings()">✕</button>
   </div>
   <div class="sh-body" id="shBody"></div>
+</div>
+
+<!-- Tracker Identity Modal -->
+<div id="tracker-identity-modal" class="modal-shell" aria-hidden="true">
+  <div class="modal-backdrop" onclick="trackerCancelIdentity()"></div>
+  <div class="modal-card">
+    <div class="modal-title">Who are you?</div>
+    <div class="modal-copy">Your identity is used to log actions in the shared audit trail and to scope what you can control.</div>
+    <label style="display:block;font-size:11px;font-weight:700;color:var(--t2);text-transform:uppercase;letter-spacing:0.6px;margin-bottom:4px;">Name</label>
+    <input id="tracker-id-name" class="si" placeholder="Your name" style="margin-bottom:12px;">
+    <label style="display:block;font-size:11px;font-weight:700;color:var(--t2);text-transform:uppercase;letter-spacing:0.6px;margin-bottom:4px;">Role</label>
+    <select id="tracker-id-role" class="si" onchange="trackerIdentityRoleChanged()" style="margin-bottom:12px;">
+      <option value="Director">Director — full access</option>
+      <option value="Operator">Operator — single room</option>
+      <option value="Observer">Observer — read-only</option>
+    </select>
+    <div id="tracker-id-room-wrap" style="display:none;margin-bottom:4px;">
+      <label style="display:block;font-size:11px;font-weight:700;color:var(--t2);text-transform:uppercase;letter-spacing:0.6px;margin-bottom:4px;">Assigned room</label>
+      <select id="tracker-id-room" class="si"></select>
+    </div>
+    <div class="modal-actions">
+      <button id="tracker-id-cancel-btn" class="rst-btn" type="button" onclick="trackerCancelIdentity()">Cancel</button>
+      <button class="save-btn" type="button" onclick="trackerSaveIdentity()" style="margin-top:0;">Save</button>
+    </div>
+  </div>
 </div>
 
 <script>
@@ -4193,6 +4235,329 @@ const VMIX_LEGACY_ROOMS = [
 let VMIX_ROOMS = [...VMIX_LEGACY_ROOMS];
 const VMIX_STORE_KEY = 'kc_vmix_ips';
 
+// ─── Tracker Identity (Director / Operator / Observer) ─────────────────────
+// Persisted locally; used to scope rendering and to tag audit-log entries.
+const TRACKER_IDENTITY_KEY = 'kc_tracker_identity';
+let trackerIdentity = null;
+let trackerIdentityModalOpen = false;
+let trackerRosCollapsed = false;
+let trackerRunOfShow = [];
+let trackerRunOfShowRef = null;
+let trackerRunOfShowEventId = null;
+let trackerRoomLocks = {};
+let trackerRoomLocksRef = null;
+let trackerRoomLocksEventId = null;
+let trackerController = null;
+let trackerControllerRef = null;
+let trackerControllerEventId = null;
+let trackerPerEventProxyRef = null;
+let trackerPerEventProxyEventId = null;
+let trackerPerEventProxyUrl = null;  // value from events/<id>/config/vmixProxyUrl
+let trackerGlobalProxyUrl = null;    // value from /vmix_proxy_url
+let trackerQrSelfHealNoticed = false; // one-shot toast per page load
+
+function trackerLoadIdentity() {
+  try {
+    const raw = localStorage.getItem(TRACKER_IDENTITY_KEY);
+    if (!raw) { trackerIdentity = null; return; }
+    const v = JSON.parse(raw);
+    if (v && typeof v === 'object' && v.name && v.role) {
+      trackerIdentity = {
+        name: String(v.name),
+        role: String(v.role),
+        assignedRoom: v.assignedRoom || null,
+      };
+    } else {
+      trackerIdentity = null;
+    }
+  } catch (e) { trackerIdentity = null; }
+}
+
+function trackerSaveIdentityToStorage() {
+  try {
+    if (trackerIdentity) localStorage.setItem(TRACKER_IDENTITY_KEY, JSON.stringify(trackerIdentity));
+    else localStorage.removeItem(TRACKER_IDENTITY_KEY);
+  } catch (e) {}
+}
+
+function trackerRoleIsDirector()  { return !!trackerIdentity && trackerIdentity.role === 'Director'; }
+function trackerRoleIsOperator()  { return !!trackerIdentity && trackerIdentity.role === 'Operator'; }
+function trackerRoleIsObserver()  { return !!trackerIdentity && trackerIdentity.role === 'Observer'; }
+
+function trackerOpenIdentityModal() {
+  trackerIdentityModalOpen = true;
+  const modal = document.getElementById('tracker-identity-modal');
+  if (!modal) return;
+  // Populate fields from current identity
+  const nameEl = document.getElementById('tracker-id-name');
+  const roleEl = document.getElementById('tracker-id-role');
+  if (nameEl) nameEl.value = trackerIdentity ? trackerIdentity.name : '';
+  if (roleEl) roleEl.value = trackerIdentity ? trackerIdentity.role : 'Director';
+  trackerPopulateIdentityRooms();
+  trackerIdentityRoleChanged();
+  // Hide the Cancel button on forced first-time identity setup
+  const cancelBtn = document.getElementById('tracker-id-cancel-btn');
+  if (cancelBtn) cancelBtn.style.display = trackerIdentity ? '' : 'none';
+  modal.style.display = 'flex';
+}
+
+function trackerCancelIdentity() {
+  if (!trackerIdentity) return; // require identity on first load
+  const modal = document.getElementById('tracker-identity-modal');
+  if (modal) modal.style.display = 'none';
+  trackerIdentityModalOpen = false;
+}
+
+function trackerPopulateIdentityRooms() {
+  const sel = document.getElementById('tracker-id-room');
+  if (!sel) return;
+  const current = trackerIdentity ? trackerIdentity.assignedRoom : null;
+  sel.innerHTML = '';
+  const blank = document.createElement('option');
+  blank.value = '';
+  blank.textContent = '— select room —';
+  sel.appendChild(blank);
+  (VMIX_ROOMS || []).forEach(function (r) {
+    const opt = document.createElement('option');
+    opt.value = r.key;
+    opt.textContent = r.name;
+    if (current && current === r.key) opt.selected = true;
+    sel.appendChild(opt);
+  });
+}
+
+function trackerIdentityRoleChanged() {
+  const roleEl = document.getElementById('tracker-id-role');
+  const wrap = document.getElementById('tracker-id-room-wrap');
+  if (!roleEl || !wrap) return;
+  wrap.style.display = roleEl.value === 'Operator' ? 'block' : 'none';
+}
+
+function trackerSaveIdentity() {
+  const name = (document.getElementById('tracker-id-name') || {}).value || '';
+  const role = (document.getElementById('tracker-id-role') || {}).value || 'Director';
+  const assignedRoom = (document.getElementById('tracker-id-room') || {}).value || '';
+  const n = name.trim();
+  if (!n) { showToast('Enter your name'); return; }
+  if (role === 'Operator' && !assignedRoom) { showToast('Pick your assigned room'); return; }
+  trackerIdentity = { name: n, role: role, assignedRoom: role === 'Operator' ? assignedRoom : null };
+  trackerSaveIdentityToStorage();
+  const modal = document.getElementById('tracker-identity-modal');
+  if (modal) modal.style.display = 'none';
+  trackerIdentityModalOpen = false;
+  trackerRenderIdentityChip();
+  if (currentPage === 'rooms') {
+    renderVmixCards();
+    renderVmixBanner();
+  }
+}
+
+function trackerRenderIdentityChip() {
+  const chip = document.getElementById('vmix-identity-chip');
+  if (!chip) return;
+  if (!trackerIdentity) { chip.style.display = 'none'; return; }
+  const roleHue = trackerIdentity.role === 'Director' ? 'var(--accent)'
+    : trackerIdentity.role === 'Operator' ? '#47e8a0'
+    : 'var(--t3)';
+  const assigned = trackerIdentity.role === 'Operator' ? (function () {
+    const r = (VMIX_ROOMS || []).find(function (x) { return x.key === trackerIdentity.assignedRoom; });
+    return r ? r.name : '(unassigned)';
+  })() : '';
+  chip.style.display = 'block';
+  chip.innerHTML =
+    '<div style="font-weight:700;color:var(--t1);">' + escapeHtml(trackerIdentity.name) + '</div>' +
+    '<div style="color:' + roleHue + ';font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;">' + escapeHtml(trackerIdentity.role) + (assigned ? ' · ' + escapeHtml(assigned) : '') + '</div>';
+}
+
+// Ensure identity exists before showing Rooms page. If not, force-open the modal.
+function trackerEnsureIdentity() {
+  if (!trackerIdentity) {
+    trackerOpenIdentityModal();
+    return false;
+  }
+  return true;
+}
+
+// ─── Audit log writes ──────────────────────────────────────────────────────
+function trackerWriteAudit(action, roomKey, result) {
+  try {
+    if (!fbDb || !currentEventId) return;
+    const identity = trackerIdentity
+      ? { name: trackerIdentity.name, role: trackerIdentity.role }
+      : { name: 'anonymous', role: 'Observer' };
+    const entry = {
+      timestamp: Date.now(),
+      source: 'tracker',
+      identity: identity,
+      action: action,
+      room: roomKey || '__all__',
+      result: result || 'ok'
+    };
+    fbDb.child('events/' + currentEventId + '/audit').push().set(entry).catch(function (e) {
+      console.warn('[tracker audit] write failed', e);
+    });
+  } catch (e) { console.warn('[tracker audit] threw', e); }
+}
+
+// Map vMix API fn → human-readable action string (matches Commander convention)
+function trackerFnToAction(fn) {
+  const m = {
+    'StartRecording':   'START REC',
+    'StopRecording':    'STOP REC',
+    'StartStreaming':   'START STREAM',
+    'StopStreaming':    'STOP STREAM',
+    'StartMultiCorder': 'START MULTI',
+    'StopMultiCorder':  'STOP MULTI'
+  };
+  return m[fn] || fn;
+}
+
+// ─── Run-of-show view (read-only) ──────────────────────────────────────────
+function trackerSubscribeRunOfShow() {
+  if (!fbDb) return;
+  const eventId = currentEventId || null;
+  if (eventId === trackerRunOfShowEventId) return;
+  if (trackerRunOfShowRef) { trackerRunOfShowRef.off(); trackerRunOfShowRef = null; }
+  trackerRunOfShowEventId = eventId;
+  trackerRunOfShow = [];
+  if (!eventId) { trackerRenderRunOfShow(); return; }
+  trackerRunOfShowRef = fbDb.child('events/' + eventId + '/runOfShow');
+  trackerRunOfShowRef.on('value', function (snap) {
+    const v = snap.val();
+    trackerRunOfShow = Array.isArray(v) ? v.slice() : (v && typeof v === 'object' ? Object.values(v) : []);
+    trackerRenderRunOfShow();
+  }, function (err) { console.warn('[tracker ros]', err); });
+}
+
+function trackerToggleRunOfShow() {
+  trackerRosCollapsed = !trackerRosCollapsed;
+  const body = document.getElementById('vmix-ros-body');
+  const chev = document.getElementById('vmix-ros-chevron');
+  if (body) body.style.display = trackerRosCollapsed ? 'none' : 'flex';
+  if (chev) chev.textContent = trackerRosCollapsed ? '▸' : '▾';
+}
+
+function trackerRenderRunOfShow() {
+  const panel = document.getElementById('vmix-ros-panel');
+  const body = document.getElementById('vmix-ros-body');
+  if (!panel || !body) return;
+  const upcoming = (trackerRunOfShow || [])
+    .filter(function (i) { return i && (i.status === 'Pending' || !i.status); })
+    .slice()
+    .sort(function (a, b) { return String(a.time || '').localeCompare(String(b.time || '')); })
+    .slice(0, 5);
+  if (!upcoming.length) { panel.style.display = 'none'; return; }
+  panel.style.display = 'block';
+  body.innerHTML = '';
+  upcoming.forEach(function (item) {
+    const row = document.createElement('div');
+    row.style.cssText = 'display:flex;align-items:center;gap:10px;padding:6px 0;border-top:1px solid var(--line2);';
+    const time = document.createElement('span');
+    time.style.cssText = 'font-family:monospace;font-size:11px;font-weight:700;color:var(--t2);min-width:48px;';
+    time.textContent = item.time || '—';
+    const title = document.createElement('span');
+    title.style.cssText = 'flex:1;font-size:12px;color:var(--t1);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;';
+    title.textContent = item.title || '(untitled)';
+    const room = document.createElement('span');
+    room.style.cssText = 'font-size:10px;color:var(--t3);';
+    room.textContent = item.room || '';
+    const action = document.createElement('span');
+    action.style.cssText = 'font-size:10px;font-weight:700;padding:2px 7px;border-radius:4px;background:var(--s3,#2a2a2a);border:1px solid var(--line2);color:var(--t2);';
+    action.textContent = item.action || '';
+    row.appendChild(time);
+    row.appendChild(title);
+    if (item.room) row.appendChild(room);
+    if (item.action) row.appendChild(action);
+    body.appendChild(row);
+  });
+}
+
+// ─── Per-room locks ────────────────────────────────────────────────────────
+function trackerSubscribeRoomLocks() {
+  if (!fbDb) return;
+  const eventId = currentEventId || null;
+  if (eventId === trackerRoomLocksEventId) return;
+  if (trackerRoomLocksRef) { trackerRoomLocksRef.off(); trackerRoomLocksRef = null; }
+  trackerRoomLocksEventId = eventId;
+  trackerRoomLocks = {};
+  if (!eventId) { if (currentPage === 'rooms') renderVmixCards(); return; }
+  trackerRoomLocksRef = fbDb.child('events/' + eventId + '/roomLocks');
+  trackerRoomLocksRef.on('value', function (snap) {
+    const v = snap.val() || {};
+    trackerRoomLocks = (v && typeof v === 'object') ? v : {};
+    if (currentPage === 'rooms') renderVmixCards();
+  }, function (err) { console.warn('[tracker roomLocks]', err); });
+}
+
+function trackerRoomIsLocked(key) {
+  if (!key) return false;
+  if (trackerRoomLocks && trackerRoomLocks[key]) return true;
+  // vmixLive may mirror roomLocks — honor it too
+  if (vmixLive && vmixLive.roomLocks && vmixLive.roomLocks[key]) return true;
+  return false;
+}
+
+// ─── Controller (heartbeat) ────────────────────────────────────────────────
+function trackerSubscribeController() {
+  if (!fbDb) return;
+  const eventId = currentEventId || null;
+  if (eventId === trackerControllerEventId) return;
+  if (trackerControllerRef) { trackerControllerRef.off(); trackerControllerRef = null; }
+  trackerControllerEventId = eventId;
+  trackerController = null;
+  if (!eventId) { if (currentPage === 'rooms') renderVmixBanner(); return; }
+  trackerControllerRef = fbDb.child('events/' + eventId + '/controller');
+  trackerControllerRef.on('value', function (snap) {
+    trackerController = snap.val() || null;
+    if (currentPage === 'rooms') renderVmixBanner();
+  }, function (err) { console.warn('[tracker controller]', err); });
+}
+
+function trackerControllerFresh() {
+  if (!trackerController || !trackerController.lastHeartbeat) return false;
+  return (Date.now() - trackerController.lastHeartbeat) < 10000;
+}
+
+// ─── Per-event proxy URL (reader) ──────────────────────────────────────────
+function trackerSubscribePerEventProxy() {
+  if (!fbDb) return;
+  const eventId = currentEventId || null;
+  if (eventId === trackerPerEventProxyEventId) return;
+  if (trackerPerEventProxyRef) { trackerPerEventProxyRef.off(); trackerPerEventProxyRef = null; }
+  trackerPerEventProxyEventId = eventId;
+  trackerPerEventProxyUrl = null;
+  if (!eventId) { trackerReconcileProxy(); return; }
+  trackerPerEventProxyRef = fbDb.child('events/' + eventId + '/config/vmixProxyUrl');
+  trackerPerEventProxyRef.on('value', function (snap) {
+    trackerPerEventProxyUrl = snap.val() || null;
+    trackerReconcileProxy();
+  }, function (err) { console.warn('[tracker per-event proxy]', err); });
+}
+
+// Pick the effective proxy URL (per-event wins, else global). Apply QR self-heal toast.
+function trackerReconcileProxy() {
+  const resolved = trackerPerEventProxyUrl || trackerGlobalProxyUrl || '';
+  // Detect stale-QR scenario (page loaded with ?proxy=X, but Firebase delivered a different URL)
+  try {
+    const params = new URLSearchParams(window.location.search);
+    const qrUrl = params.get('proxy');
+    if (qrUrl && resolved && qrUrl !== resolved && !trackerQrSelfHealNoticed) {
+      trackerQrSelfHealNoticed = true;
+      showToast('Proxy URL updated — the QR code you scanned was out of date.');
+    }
+  } catch (e) {}
+  if (resolved !== vmixProxyUrl) {
+    vmixProxyUrl = resolved;
+    try {
+      if (resolved) localStorage.setItem('kc_vmix_proxy', resolved);
+      else localStorage.removeItem('kc_vmix_proxy');
+    } catch (e) {}
+    updateVmixHttpsWarn();
+    if (currentPage === 'rooms') renderVmixCards();
+  }
+}
+
+
 // Refresh room list from current event (called when event switches or config updates)
 function vmixRefreshRooms() {
   const ev = (typeof currentEvent === 'function') ? currentEvent() : null;
@@ -4243,20 +4608,14 @@ let vmixProxyUrl = localStorage.getItem('kc_vmix_proxy') || '';
   }
 })();
 
-// Listen for proxy URL updates from Firebase (pushed by vMix Commander)
+// Listen for proxy URL updates from Firebase (pushed by vMix Commander).
+// Global /vmix_proxy_url is a fallback — per-event events/<id>/config/vmixProxyUrl
+// takes precedence and is wired up via trackerSubscribePerEventProxy().
 function vmixListenProxyUrl() {
   if (!fbDb) return;
   fbDb.child('vmix_proxy_url').on('value', s => {
-    const url = s.val();
-    if (url) {
-      vmixProxyUrl = url;
-      localStorage.setItem('kc_vmix_proxy', url);
-    } else {
-      vmixProxyUrl = '';
-      localStorage.removeItem('kc_vmix_proxy');
-    }
-    updateVmixHttpsWarn();
-    if (currentPage === 'rooms') renderVmixCards();
+    trackerGlobalProxyUrl = s.val() || null;
+    trackerReconcileProxy();
   });
 }
 
@@ -4268,11 +4627,17 @@ function updateVmixHttpsWarn() {
 }
 
 // Subscribe to Commander's live vmix status for the current event.
-// Runs whenever the active event changes.
+// Runs whenever the active event changes. Also fans out to per-event
+// proxy URL / roomLocks / runOfShow / controller listeners.
 function vmixSubscribeStatus() {
   if (!fbDb) return;
   const eventId = (typeof currentEventId !== 'undefined' && currentEventId) ? currentEventId : null;
-  if (eventId === vmixLiveEventId) return;  // no change
+  // Always refresh side-channel subs even if vmixStatus event id is unchanged
+  trackerSubscribePerEventProxy();
+  trackerSubscribeRoomLocks();
+  trackerSubscribeRunOfShow();
+  trackerSubscribeController();
+  if (eventId === vmixLiveEventId) return;  // no change to main status stream
   if (vmixLiveRef) { vmixLiveRef.off(); vmixLiveRef = null; }
   vmixLiveEventId = eventId;
   vmixLive = null;
@@ -4313,10 +4678,20 @@ function vmixIsLocked() {
 function renderVmixBanner() {
   var el = document.getElementById('vmix-commander-banner');
   if (!el) return;
-  if (!vmixLive) { el.style.display = 'none'; return; }
-  var fresh = vmixIsLiveFresh();
-  var op = vmixLive.operator;
-  var locked = !!vmixLive.safetyLocked;
+  // Prefer controller data when fresher; fall back to vmixLive.operator.
+  var controllerOp = (trackerController && trackerControllerFresh()) ? trackerController.operator : null;
+  var liveOp = vmixLive ? vmixLive.operator : null;
+  var op = null;
+  if (controllerOp && liveOp) {
+    // Pick the fresher of the two (controller is always fresh if we got here, but vmixLive.updatedAt may be newer)
+    var liveFresher = vmixIsLiveFresh() && vmixLive.updatedAt && trackerController.lastHeartbeat && (vmixLive.updatedAt > trackerController.lastHeartbeat);
+    op = liveFresher ? liveOp : controllerOp;
+  } else {
+    op = controllerOp || liveOp;
+  }
+  if (!vmixLive && !trackerController) { el.style.display = 'none'; return; }
+  var fresh = vmixIsLiveFresh() || trackerControllerFresh();
+  var locked = !!(vmixLive && vmixLive.safetyLocked);
   var parts = [];
   if (op && op.name) {
     parts.push('<span style="color:var(--t2);">Controlled by</span> <strong style="color:var(--t1);">' + escapeHtml(op.name) + '</strong>' + (op.role ? ' <span style="color:var(--t3);">(' + escapeHtml(op.role) + ')</span>' : ''));
@@ -4389,14 +4764,19 @@ function vmixMakeCard(r) {
   var st   = vmixStatus[r.key] || {};
   var err  = st.ok === false;
   var tier = st.tier || (err ? 'unreachable' : (r.ip ? 'offline' : 'offline'));
-  var locked = vmixIsLocked();
-  var disabled = locked || !vmixProxyUrl || !r.ip;
-  var disabledTitle = locked ? 'Controls locked by operator' :
-                      !vmixProxyUrl ? 'Commander tunnel offline — cannot reach vMix' :
-                      !r.ip ? 'Set room IP first' : '';
+  var globallyLocked = vmixIsLocked();
+  var roomLocked = trackerRoomIsLocked(r.key);
+  var locked = globallyLocked || roomLocked;
+  var isObserver = trackerRoleIsObserver();
+  var disabled = locked || !vmixProxyUrl || !r.ip || isObserver;
+  var disabledTitle = globallyLocked ? 'Controls locked by operator'
+                      : roomLocked ? 'This room is locked by the operator.'
+                      : isObserver ? 'Observer is read-only'
+                      : !vmixProxyUrl ? 'Commander tunnel offline — cannot reach vMix'
+                      : !r.ip ? 'Set room IP first' : '';
 
   var card = document.createElement('div');
-  card.style.cssText = 'background:var(--s2);border:1px solid var(--line2);border-radius:14px;overflow:hidden;' + (locked ? 'opacity:0.75;' : '');
+  card.style.cssText = 'background:var(--s2);border:1px solid var(--line2);border-radius:14px;overflow:hidden;' + (locked ? 'opacity:0.65;' : '');
 
   // ── Header: tier dot · name · REC timer · Ping · gear ──
   var hdr = document.createElement('div');
@@ -4439,6 +4819,13 @@ function vmixMakeCard(r) {
 
   hdr.appendChild(dot);
   hdr.appendChild(nameEl);
+  if (roomLocked) {
+    var lockEl = document.createElement('span');
+    lockEl.title = 'This room is locked by the operator.';
+    lockEl.textContent = '🔒';
+    lockEl.style.cssText = 'font-size:12px;';
+    hdr.appendChild(lockEl);
+  }
   hdr.appendChild(timerEl);
   hdr.appendChild(spacer);
   hdr.appendChild(pingEl);
@@ -4473,6 +4860,20 @@ function vmixMakeCard(r) {
   ];
 
   fns.forEach(function(f) {
+    if (isObserver) {
+      // Read-only pill for observers
+      var pill = document.createElement('div');
+      pill.className = 'vmix-fn-toggle ' + (err ? 'error' : f.on ? 'active' : 'inactive');
+      pill.style.cssText = 'cursor:default;opacity:0.85;';
+      var plbl = document.createElement('span'); plbl.className = 'vmix-fn-label'; plbl.textContent = f.label;
+      var pstate = document.createElement('span'); pstate.className = 'vmix-fn-state';
+      if (err) pstate.textContent = 'ERR';
+      else if (f.on) pstate.innerHTML = '<span class="vmix-fn-dot"></span>LIVE';
+      else pstate.textContent = 'OFF';
+      pill.appendChild(plbl); pill.appendChild(pstate);
+      controls.appendChild(pill);
+      return;
+    }
     var btn = document.createElement('button');
     var klass = err ? 'error' : f.on ? 'active' : 'inactive';
     btn.className = 'vmix-fn-toggle ' + klass;
@@ -4502,6 +4903,9 @@ function vmixMakeCard(r) {
   });
   card.appendChild(controls);
 
+  // Observer doesn't get master controls at all.
+  if (isObserver) return card;
+
   // ── Master controls (START ALL / STOP ALL) ──
   var master = document.createElement('div');
   master.className = 'vmix-master-controls';
@@ -4518,7 +4922,16 @@ function vmixMakeCard(r) {
   stopAll.disabled = disabled;
   stopAll.title = disabled ? disabledTitle : '';
   stopAll.innerHTML = VMIX_ICON_STOP + '<span>STOP ALL</span>';
-  stopAll.onclick = function() { if (!disabled) vmixRoomAction(r.key, 'stop'); };
+  stopAll.onclick = function() {
+    if (disabled) return;
+    showConfirm(
+      'Stop all recordings?',
+      'This will stop REC + STREAM + MULTI for ' + r.name + '.',
+      'Stop All',
+      'background:#7a2d2d;color:#ff6b6b;',
+      function () { vmixRoomAction(r.key, 'stop'); }
+    );
+  };
 
   master.appendChild(startAll);
   master.appendChild(stopAll);
@@ -4534,23 +4947,63 @@ var VMIX_ICON_STOP = '<svg width="10" height="10" viewBox="0 0 10 10" fill="curr
 function renderVmixCards() {
   var el = document.getElementById('vmix-cards');
   if (!el) return;
-  el.innerHTML = '';
-  VMIX_ROOMS.forEach(function(r) {
-    el.appendChild(vmixMakeCard(r));
-  });
-  // Gate the page-level All Rooms buttons on lock / proxy availability too.
-  var disabled = vmixIsLocked() || !vmixProxyUrl;
-  var startAll = document.getElementById('vmix-all-start');
-  var stopAll  = document.getElementById('vmix-all-stop');
-  if (startAll) {
-    startAll.disabled = disabled;
-    startAll.title = disabled ? (vmixIsLocked() ? 'Controls locked by operator' : 'Commander tunnel offline') : '';
-    startAll.innerHTML = VMIX_ICON_PLAY + '<span>START ALL</span>';
+
+  // Render identity chip + upcoming schedule on every pass (both are cheap)
+  trackerRenderIdentityChip();
+  trackerRenderRunOfShow();
+
+  // Decide which rooms are visible for this role
+  var rooms = VMIX_ROOMS.slice();
+  var operatorEmpty = false;
+  if (trackerRoleIsOperator()) {
+    var assigned = trackerIdentity ? trackerIdentity.assignedRoom : null;
+    if (!assigned) { operatorEmpty = true; rooms = []; }
+    else {
+      var onlyMine = rooms.filter(function (r) { return r.key === assigned; });
+      if (!onlyMine.length) { operatorEmpty = true; rooms = []; }
+      else rooms = onlyMine;
+    }
   }
-  if (stopAll) {
-    stopAll.disabled = disabled;
-    stopAll.title = disabled ? (vmixIsLocked() ? 'Controls locked by operator' : 'Commander tunnel offline') : '';
-    stopAll.innerHTML = VMIX_ICON_STOP + '<span>STOP ALL</span>';
+
+  // Toggle the operator empty state
+  var emptyEl = document.getElementById('vmix-operator-empty');
+  if (emptyEl) emptyEl.style.display = operatorEmpty ? 'block' : 'none';
+
+  el.innerHTML = '';
+  rooms.forEach(function (r) { el.appendChild(vmixMakeCard(r)); });
+
+  // Page-level All Rooms row visibility
+  var allRow = document.getElementById('vmix-all-row');
+  var showAllRow = trackerRoleIsDirector();
+  if (allRow) allRow.style.display = showAllRow ? '' : 'none';
+
+  if (showAllRow) {
+    // Gate the page-level All Rooms buttons on lock / proxy availability too.
+    var disabled = vmixIsLocked() || !vmixProxyUrl;
+    var disabledTitle = vmixIsLocked() ? 'Controls locked by operator' : 'Commander tunnel offline';
+    var startAll = document.getElementById('vmix-all-start');
+    var stopAll  = document.getElementById('vmix-all-stop');
+    if (startAll) {
+      startAll.disabled = disabled;
+      startAll.title = disabled ? disabledTitle : '';
+      startAll.innerHTML = VMIX_ICON_PLAY + '<span>START ALL</span>';
+      startAll.onclick = function () { if (!disabled) vmixAllAction('start'); };
+    }
+    if (stopAll) {
+      stopAll.disabled = disabled;
+      stopAll.title = disabled ? disabledTitle : '';
+      stopAll.innerHTML = VMIX_ICON_STOP + '<span>STOP ALL</span>';
+      stopAll.onclick = function () {
+        if (disabled) return;
+        showConfirm(
+          'Stop all recordings?',
+          'This will stop REC + STREAM + MULTI for every room in this event.',
+          'Stop All',
+          'background:#7a2d2d;color:#ff6b6b;',
+          function () { vmixAllAction('stop'); }
+        );
+      };
+    }
   }
   renderVmixBanner();
 }
@@ -4629,17 +5082,51 @@ async function vmixRefreshAll() {
 async function vmixOne(key, fn) {
   const room = VMIX_ROOMS.find(r => r.key === key);
   if (!room) return;
-  if (!room.ip) { showToast('⚠ No IP set for ' + room.name); return; }
+  const action = trackerFnToAction(fn);
+  // Role / lock denial (belt-and-suspenders — UI should hide these)
+  if (trackerRoleIsObserver()) {
+    showToast('Observers can\'t run actions.');
+    trackerWriteAudit(action, key, 'denied'); return;
+  }
+  if (trackerRoleIsOperator() && trackerIdentity && trackerIdentity.assignedRoom !== key) {
+    showToast('You can only control your assigned room.');
+    trackerWriteAudit(action, key, 'denied'); return;
+  }
+  if (vmixIsLocked() || trackerRoomIsLocked(key)) {
+    showToast('Controls are locked.');
+    trackerWriteAudit(action, key, 'denied'); return;
+  }
+  if (!room.ip) {
+    showToast('⚠ No IP set for ' + room.name);
+    trackerWriteAudit(action, key, 'fail'); return;
+  }
   showToast('⏳ ' + fn + '…');
   const res = await vmixCall(room.ip, fn);
   showToast(res.ok ? '✓ ' + fn : '✗ Failed: ' + (res.error || 'blocked?'));
+  trackerWriteAudit(action, key, res.ok ? 'ok' : 'fail');
   setTimeout(() => vmixRefreshStatus(key), 1000);
 }
 
 async function vmixRoomAction(key, action) {
   const room = VMIX_ROOMS.find(r => r.key === key);
   if (!room) return;
-  if (!room.ip) { showToast('⚠ No IP set for ' + room.name); return; }
+  const auditAction = action === 'start' ? 'START ALL' : 'STOP ALL';
+  if (trackerRoleIsObserver()) {
+    showToast('Observers can\'t run actions.');
+    trackerWriteAudit(auditAction, key, 'denied'); return;
+  }
+  if (trackerRoleIsOperator() && trackerIdentity && trackerIdentity.assignedRoom !== key) {
+    showToast('You can only control your assigned room.');
+    trackerWriteAudit(auditAction, key, 'denied'); return;
+  }
+  if (vmixIsLocked() || trackerRoomIsLocked(key)) {
+    showToast('Controls are locked.');
+    trackerWriteAudit(auditAction, key, 'denied'); return;
+  }
+  if (!room.ip) {
+    showToast('⚠ No IP set for ' + room.name);
+    trackerWriteAudit(auditAction, key, 'fail'); return;
+  }
   showToast('⏳ ' + (action === 'start' ? 'Starting' : 'Stopping') + ' ' + room.name + '…');
   const fns = action === 'start'
     ? ['StartRecording','StartStreaming','StartMultiCorder']
@@ -4647,15 +5134,29 @@ async function vmixRoomAction(key, action) {
   const results = await Promise.all(fns.map(f => vmixCall(room.ip, f)));
   const ok = results.filter(r => r.ok).length;
   showToast(ok === 3 ? '✓ ' + room.name + ' done' : '✗ ' + ok + '/3 OK — HTTPS blocking?');
+  trackerWriteAudit(auditAction, key, ok === 3 ? 'ok' : 'fail');
   setTimeout(() => vmixRefreshStatus(key), 1200);
 }
 
 async function vmixAllAction(action) {
+  const auditAction = action === 'start' ? 'START ALL' : 'STOP ALL';
+  if (!trackerRoleIsDirector()) {
+    showToast('Only Directors can use All Rooms.');
+    trackerWriteAudit(auditAction, '__all__', 'denied'); return;
+  }
+  if (vmixIsLocked()) {
+    showToast('Controls are locked.');
+    trackerWriteAudit(auditAction, '__all__', 'denied'); return;
+  }
   showToast(`${action === 'start' ? 'Starting' : 'Stopping'} all rooms…`);
   const fns = action === 'start'
     ? ['StartRecording','StartStreaming','StartMultiCorder']
     : ['StopRecording','StopStreaming','StopMultiCorder'];
-  await Promise.all(VMIX_ROOMS.flatMap(r => fns.map(f => vmixCall(r.ip, f))));
+  // Per-room lock respected: skip locked rooms
+  const targets = VMIX_ROOMS.filter(function (r) { return !trackerRoomIsLocked(r.key); });
+  const results = await Promise.all(targets.flatMap(r => fns.map(f => vmixCall(r.ip, f))));
+  const ok = results.filter(r => r.ok).length;
+  trackerWriteAudit(auditAction, '__all__', ok > 0 ? 'ok' : 'fail');
   setTimeout(vmixRefreshAll, 1200);
 }
 
@@ -4676,6 +5177,8 @@ window.switchPage = function(page) {
     vmixSubscribeStatus();
     vmixStartTick();
     vmixRefreshAll();  // fallback direct poll — no-op when Commander live
+    // First-visit gate: require identity before showing the page
+    if (!trackerIdentity) trackerOpenIdentityModal();
   } else {
     vmixStopTick();
     _switchPageOrig(page);
@@ -4683,6 +5186,7 @@ window.switchPage = function(page) {
 };
 
 vmixLoadIps();
+trackerLoadIdentity();
 
 // Show HTTPS warning if needed (hidden again once proxy URL arrives from Firebase)
 updateVmixHttpsWarn();
@@ -4693,6 +5197,8 @@ if (currentPage === 'rooms') {
     vmixLoadIps();
     renderVmixCards();
     vmixStartTick();
+    // First-load identity gate
+    if (!trackerIdentity) trackerOpenIdentityModal();
   });
 }
 </script>
