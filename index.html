@@ -5181,6 +5181,13 @@ function vmixSetCrewFilter(value) {
   renderVmixCards();
 }
 
+// Normalize a room name for cross-app matching. Crew assignments and vMix
+// room names are typed by humans on different screens — collapse case +
+// whitespace differences so a typo doesn't silently filter out everything.
+function vmixNormName(s) {
+  return String(s == null ? '' : s).trim().toLowerCase();
+}
+
 function renderVmixCards() {
   var el = document.getElementById('vmix-cards');
   if (!el) return;
@@ -5197,6 +5204,8 @@ function renderVmixCards() {
   var operatorEmpty = false;
   var operatorEmptyReason = null; // 'unassigned' | 'crew-deleted' | 'no-match'
   var mismatchedNames = [];
+  // Director-side diagnostic when a non-"all" filter yields zero rooms.
+  var directorFilterEmpty = null; // null | { crewName, expected: string[], available: string[] }
 
   if (trackerRoleIsOperator()) {
     // Prefer the new name-based multi-room field; fall back to legacy single key.
@@ -5225,7 +5234,8 @@ function renderVmixCards() {
         operatorEmptyReason = 'unassigned';
         rooms = [];
       } else {
-        var onlyMine = rooms.filter(function (r) { return names.indexOf(r.name) !== -1; });
+        var normNames = names.map(vmixNormName);
+        var onlyMine = rooms.filter(function (r) { return normNames.indexOf(vmixNormName(r.name)) !== -1; });
         if (!onlyMine.length) {
           operatorEmpty = true;
           operatorEmptyReason = 'no-match';
@@ -5234,8 +5244,9 @@ function renderVmixCards() {
         } else {
           rooms = onlyMine;
           // Surface mismatched names (assigned but not in VMIX_ROOMS) as a dim banner below cards.
+          var availNorm = (VMIX_ROOMS || []).map(function (r) { return vmixNormName(r.name); });
           mismatchedNames = names.filter(function (n) {
-            return !(VMIX_ROOMS || []).some(function (r) { return r.name === n; });
+            return availNorm.indexOf(vmixNormName(n)) === -1;
           });
         }
       }
@@ -5256,9 +5267,22 @@ function renderVmixCards() {
     }
     if (vmixActiveCrewFilter !== 'all') {
       var activeCrew = crewList.find(function (c) { return c.id === vmixActiveCrewFilter; });
-      if (activeCrew && Array.isArray(activeCrew.rooms)) {
-        var crewRoomNames = activeCrew.rooms.map(function (r) { return r && r.name; }).filter(Boolean);
-        rooms = rooms.filter(function (r) { return crewRoomNames.indexOf(r.name) !== -1; });
+      if (activeCrew) {
+        var crewRoomNames = (Array.isArray(activeCrew.rooms) ? activeCrew.rooms : [])
+          .map(function (r) { return r && r.name; })
+          .filter(Boolean);
+        var crewRoomNorm = crewRoomNames.map(vmixNormName);
+        var matched = rooms.filter(function (r) { return crewRoomNorm.indexOf(vmixNormName(r.name)) !== -1; });
+        rooms = matched;
+        // Diagnostic: when the filter yields zero rooms, surface why so the
+        // Director isn't staring at a blank screen wondering what broke.
+        if (matched.length === 0) {
+          directorFilterEmpty = {
+            crewName: activeCrew.name || 'this crew member',
+            expected: crewRoomNames,
+            available: (VMIX_ROOMS || []).map(function (r) { return r.name; })
+          };
+        }
       }
     }
   }
@@ -5292,11 +5316,36 @@ function renderVmixCards() {
   }
 
   el.innerHTML = '';
+
+  // Director diagnostic: when a crew tab is active but yields zero rooms,
+  // explain why instead of leaving the page blank.
+  if (directorFilterEmpty) {
+    var diag = document.createElement('div');
+    diag.style.cssText = 'background:var(--s2);border:1px solid var(--line2);border-radius:14px;padding:18px 20px;color:var(--t2);font-size:13px;line-height:1.55;';
+    var title = '<div style="color:var(--t1);font-weight:700;margin-bottom:8px;font-size:14px;">No rooms shown for ' + escapeHtml(directorFilterEmpty.crewName) + '</div>';
+    var body;
+    if (!directorFilterEmpty.expected.length) {
+      body = '<strong>' + escapeHtml(directorFilterEmpty.crewName) + '</strong> has no rooms assigned in the Setup page. Open Setup to add rooms to this crew member.';
+    } else {
+      body = '<strong>' + escapeHtml(directorFilterEmpty.crewName) + "'s assigned rooms</strong> don't match any vMix room. Names must match exactly (case-insensitive, trimmed).<br><br>" +
+        '<span style="color:var(--t3);">Expected:</span> ' +
+        directorFilterEmpty.expected.map(function (n) { return '<code style="color:var(--t1);background:var(--s3);padding:1px 6px;border-radius:4px;font-size:12px;">' + escapeHtml(n) + '</code>'; }).join(' ') +
+        '<br><span style="color:var(--t3);">Available in vMix:</span> ' +
+        (directorFilterEmpty.available.length
+          ? directorFilterEmpty.available.map(function (n) { return '<code style="color:var(--t1);background:var(--s3);padding:1px 6px;border-radius:4px;font-size:12px;">' + escapeHtml(n) + '</code>'; }).join(' ')
+          : '<em>none configured</em>');
+    }
+    diag.innerHTML = title + body;
+    el.appendChild(diag);
+  }
+
   rooms.forEach(function (r) { el.appendChild(vmixMakeCard(r)); });
 
-  // Page-level All Rooms row visibility
+  // Page-level All Rooms row visibility — hide when a non-"all" crew filter
+  // is active so the master "START ALL" doesn't shadow the filtered scope
+  // (the Director can pop back to the All tab to use it).
   var allRow = document.getElementById('vmix-all-row');
-  var showAllRow = trackerRoleIsDirector();
+  var showAllRow = trackerRoleIsDirector() && vmixActiveCrewFilter === 'all';
   if (allRow) allRow.style.display = showAllRow ? '' : 'none';
 
   if (showAllRow) {
@@ -5412,7 +5461,10 @@ function trackerOperatorCanControl(roomKey) {
   const names = Array.isArray(trackerIdentity.assignedRooms) && trackerIdentity.assignedRooms.length
     ? trackerIdentity.assignedRooms
     : null;
-  if (names) return names.indexOf(room.name) !== -1;
+  if (names) {
+    const norm = vmixNormName(room.name);
+    return names.some(n => vmixNormName(n) === norm);
+  }
   // Legacy: compare room key directly.
   return trackerIdentity.assignedRoom === roomKey;
 }
