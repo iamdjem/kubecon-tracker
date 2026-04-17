@@ -5404,7 +5404,16 @@ function renderVmixCards() {
       startAll.disabled = disabled;
       startAll.title = disabled ? disabledTitle : '';
       startAll.innerHTML = VMIX_ICON_PLAY + '<span>START ALL</span>';
-      startAll.onclick = function () { if (!disabled) vmixAllAction('start'); };
+      startAll.onclick = function () {
+        if (disabled) return;
+        showConfirm(
+          'Start all recordings?',
+          'This will start REC + STREAM + MULTI for every room in this event.',
+          'Start All',
+          'background:#1a3d1a;color:#5dcc5d;',
+          function () { vmixAllAction('start'); }
+        );
+      };
     }
     if (stopAll) {
       stopAll.disabled = disabled;
