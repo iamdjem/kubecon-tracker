@@ -4552,18 +4552,21 @@ function trackerRenderIdentityChip() {
     : 'var(--t3)';
   let assigned = '';
   if (trackerIdentity.role === 'Operator') {
-    const names = Array.isArray(trackerIdentity.assignedRooms) && trackerIdentity.assignedRooms.length
-      ? trackerIdentity.assignedRooms
-      : (trackerIdentity.assignedRoom ? [(function () {
-          const r = (VMIX_ROOMS || []).find(x => x.key === trackerIdentity.assignedRoom);
-          return r ? r.name : trackerIdentity.assignedRoom;
-        })()] : []);
+    // Live-resolved (re-derived from config.crew when bound to a crewId)
+    // so renamed crew rooms show up in the chip without a re-pick.
+    const names = trackerEffectiveAssignedRooms(trackerIdentity);
     assigned = names.length ? names.join(', ') : '(unassigned)';
   }
   chip.style.display = 'block';
+  // Re-match button only appears when bound to a crew member (otherwise
+  // there's no live source to re-derive from).
+  const rematchBtn = trackerIdentity.crewId
+    ? '<button onclick="event.stopPropagation(); trackerRematchAssignedRooms();" style="margin-top:6px;background:var(--s3);border:1px solid var(--line2);color:var(--t2);font-size:10px;font-weight:600;padding:3px 8px;border-radius:5px;cursor:pointer;font-family:inherit;">↻ Re-match rooms</button>'
+    : '';
   chip.innerHTML =
     '<div style="font-weight:700;color:var(--t1);">' + escapeHtml(trackerIdentity.name) + '</div>' +
-    '<div style="color:' + roleHue + ';font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;">' + escapeHtml(trackerIdentity.role) + (assigned ? ' · ' + escapeHtml(assigned) : '') + '</div>';
+    '<div style="color:' + roleHue + ';font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;">' + escapeHtml(trackerIdentity.role) + (assigned ? ' · ' + escapeHtml(assigned) : '') + '</div>' +
+    rematchBtn;
 }
 
 // Ensure identity exists before showing Rooms page. If not, force-open the modal.
@@ -5188,6 +5191,54 @@ function vmixNormName(s) {
   return String(s == null ? '' : s).trim().toLowerCase();
 }
 
+// Live room resolution. When a tracker identity is bound to a crew member
+// (identity.crewId is set), re-derive assignedRooms from the current
+// config.crew on every read — so renaming a vMix room or fixing a typo
+// in the crew config takes effect immediately, no re-pick required.
+function trackerEffectiveAssignedRooms(identity) {
+  if (!identity) return [];
+  if (identity.crewId && typeof config === 'object' && config && Array.isArray(config.crew)) {
+    var crew = config.crew.find(function (c) { return c && c.id === identity.crewId; });
+    if (crew && Array.isArray(crew.rooms)) {
+      var live = crew.rooms.map(function (r) { return r && r.name; }).filter(Boolean);
+      // Only adopt the live list if it has rooms; otherwise fall through
+      // to the cached value to avoid mid-session "you have no rooms" flicker.
+      if (live.length) return live;
+    }
+  }
+  if (Array.isArray(identity.assignedRooms) && identity.assignedRooms.length) {
+    return identity.assignedRooms.slice();
+  }
+  if (identity.assignedRoom) {
+    var r = (VMIX_ROOMS || []).find(function (x) { return x.key === identity.assignedRoom; });
+    return [r ? r.name : identity.assignedRoom];
+  }
+  return [];
+}
+
+// Manual re-trigger: re-resolves and persists assignedRooms from the current
+// crew config. Useful after fixing a name on either side.
+function trackerRematchAssignedRooms() {
+  if (!trackerIdentity) { showToast('No identity set'); return; }
+  if (!trackerIdentity.crewId) {
+    showToast("Not bound to a crew member — pick one in Change Identity first");
+    return;
+  }
+  var crewList = (typeof config === 'object' && config && Array.isArray(config.crew)) ? config.crew : [];
+  var crew = crewList.find(function (c) { return c && c.id === trackerIdentity.crewId; });
+  if (!crew) { showToast('Crew member not found in this event'); return; }
+  var crewRoomNames = (Array.isArray(crew.rooms) ? crew.rooms : [])
+    .map(function (r) { return r && r.name; })
+    .filter(Boolean);
+  trackerIdentity.assignedRooms = crewRoomNames;
+  trackerSaveIdentityToStorage();
+  if (currentPage === 'rooms') renderVmixCards();
+  // Match count is best-effort: how many crew rooms exist in VMIX_ROOMS.
+  var availNorm = (VMIX_ROOMS || []).map(function (r) { return vmixNormName(r.name); });
+  var matched = crewRoomNames.filter(function (n) { return availNorm.indexOf(vmixNormName(n)) !== -1; });
+  showToast('Re-matched: ' + matched.length + ' of ' + crewRoomNames.length + ' crew rooms');
+}
+
 function renderVmixCards() {
   var el = document.getElementById('vmix-cards');
   if (!el) return;
@@ -5208,14 +5259,9 @@ function renderVmixCards() {
   var directorFilterEmpty = null; // null | { crewName, expected: string[], available: string[] }
 
   if (trackerRoleIsOperator()) {
-    // Prefer the new name-based multi-room field; fall back to legacy single key.
-    var names = Array.isArray(trackerIdentity && trackerIdentity.assignedRooms) && trackerIdentity.assignedRooms.length
-      ? trackerIdentity.assignedRooms.slice()
-      : (trackerIdentity && trackerIdentity.assignedRoom ? (function () {
-          // legacy: assignedRoom is a room KEY — translate to a name if we can.
-          var r = (VMIX_ROOMS || []).find(function (x) { return x.key === trackerIdentity.assignedRoom; });
-          return [r ? r.name : trackerIdentity.assignedRoom];
-        })() : []);
+    // Live-resolved (re-derived from config.crew when bound to a crewId);
+    // falls back to stored assignedRooms / legacy assignedRoom otherwise.
+    var names = trackerEffectiveAssignedRooms(trackerIdentity);
 
     // Self-check: crewId references a crew that's been deleted from config.crew
     if (trackerIdentity && trackerIdentity.crewId) {
@@ -5458,15 +5504,14 @@ function trackerOperatorCanControl(roomKey) {
   if (!trackerIdentity) return false;
   const room = (VMIX_ROOMS || []).find(r => r.key === roomKey);
   if (!room) return false;
-  const names = Array.isArray(trackerIdentity.assignedRooms) && trackerIdentity.assignedRooms.length
-    ? trackerIdentity.assignedRooms
-    : null;
-  if (names) {
+  // Use the live-resolved assignedRooms so a renamed crew room takes
+  // effect immediately for action gating, not just for visible cards.
+  const names = trackerEffectiveAssignedRooms(trackerIdentity);
+  if (names.length) {
     const norm = vmixNormName(room.name);
     return names.some(n => vmixNormName(n) === norm);
   }
-  // Legacy: compare room key directly.
-  return trackerIdentity.assignedRoom === roomKey;
+  return false;
 }
 
 async function vmixOne(key, fn) {
