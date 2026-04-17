@@ -2245,6 +2245,7 @@ function switchEvent(eventId, opts = {}) {
   if (currentDay && !config.days.find(d => d.key === currentDay)) currentDay = config.days[0]?.key || '';
   saveConfig();
   renderAllIncludingSettings();
+  if (typeof vmixRefreshRooms === 'function') vmixRefreshRooms();
   if (opts.toast !== false && fromEventId !== eventId) showToast(`Switched to ${currentEvent()?.name || 'event'}`);
 }
 function upsertEventAndRefresh(ev, toastLabel = 'Event saved') {
@@ -2662,6 +2663,8 @@ function initFirebase(url) {
             syncActiveEvent();
             saveAppData();
             renderAll();
+            // Refresh vMix rooms in case current event's config.vmixRooms was updated
+            if (typeof vmixRefreshRooms === 'function') vmixRefreshRooms();
           }
         }, fbErrorHandler('events'));
         fbDb.child('deletedEvents').on('value', s => {
@@ -4047,17 +4050,35 @@ function toggleSchedStep(crewId, roomId, day, idx, stepKey) {
 }
 
 // ─── vMix Room Control ────────────────────────────────────────────────────
-const VMIX_ROOMS = [
+// Rooms are loaded from the current event's config.vmixRooms (pushed by vMix Commander).
+// Fallback to a legacy hardcoded list if no event-scoped rooms are defined.
+const VMIX_LEGACY_ROOMS = [
   { key: 'auditorium', name: 'Auditorium', ip: '' },
   { key: 'e103',       name: 'E103-105',   ip: '' },
   { key: 'e106',       name: 'E106-108',   ip: '' },
 ];
+let VMIX_ROOMS = [...VMIX_LEGACY_ROOMS];
 const VMIX_STORE_KEY = 'kc_vmix_ips';
+
+// Refresh room list from current event (called when event switches or config updates)
+function vmixRefreshRooms() {
+  const ev = (typeof currentEvent === 'function') ? currentEvent() : null;
+  const eventRooms = ev && ev.config && Array.isArray(ev.config.vmixRooms) ? ev.config.vmixRooms : null;
+  if (eventRooms && eventRooms.length > 0) {
+    VMIX_ROOMS = eventRooms.map(r => ({ key: r.key, name: r.name, ip: r.ip || '' }));
+  } else {
+    VMIX_ROOMS = [...VMIX_LEGACY_ROOMS];
+  }
+  vmixLoadIps();
+  if (typeof currentPage !== 'undefined' && currentPage === 'rooms') {
+    renderVmixCards();
+  }
+}
 
 function vmixLoadIps() {
   try {
     const saved = JSON.parse(localStorage.getItem(VMIX_STORE_KEY) || '{}');
-    VMIX_ROOMS.forEach(r => { if (saved[r.key]) r.ip = saved[r.key]; });
+    VMIX_ROOMS.forEach(r => { if (!r.ip && saved[r.key]) r.ip = saved[r.key]; });
   } catch(e) {}
 }
 
@@ -4335,8 +4356,7 @@ window.switchPage = function(page) {
     document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('on'));
     document.getElementById('page-rooms').classList.add('active');
     document.getElementById('nav-rooms').classList.add('on');
-    vmixLoadIps();
-    renderVmixCards();
+    vmixRefreshRooms();
     vmixRefreshAll();
   } else {
     _switchPageOrig(page);
