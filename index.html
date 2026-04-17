@@ -5035,7 +5035,7 @@ function vmixStartTick() {
       if (!el) return;
       var st = vmixStatus[r.key];
       if (st && st.recording && st.recordingStartTime) {
-        el.textContent = 'Recording ' + vmixFmtDuration(Date.now() - st.recordingStartTime);
+        el.textContent = 'REC ' + vmixFmtDuration(Date.now() - st.recordingStartTime);
         el.style.display = '';
       } else {
         el.style.display = 'none';
@@ -5085,7 +5085,7 @@ function vmixMakeCard(r) {
   timerEl.id = 'vmix-timer-' + r.key;
   timerEl.style.cssText = 'font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-variant-numeric:tabular-nums;font-size:11px;font-weight:700;color:#ff6b6b;background:#2a0d0d;border:1px solid #5a2020;padding:2px 7px;border-radius:5px;letter-spacing:0.3px;';
   if (st.recording && st.recordingStartTime) {
-    timerEl.textContent = 'Recording ' + vmixFmtDuration(Date.now() - st.recordingStartTime);
+    timerEl.textContent = 'REC ' + vmixFmtDuration(Date.now() - st.recordingStartTime);
   } else {
     timerEl.style.display = 'none';
   }
