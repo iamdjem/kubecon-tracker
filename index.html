@@ -83,6 +83,10 @@ body {
 .filter-bar::-webkit-scrollbar { display: none; }
 .filter-row { display: flex; gap: 6px; align-items: center; width: max-content; }
 
+/* Recording-page Director filter row — same chip style as Setup #filterRow */
+#vmix-filter-row { scrollbar-width: none; }
+#vmix-filter-row::-webkit-scrollbar { display: none; }
+
 .fc {
   font-size: 12px; font-weight: 500;
   padding: 4px 11px;
@@ -1136,10 +1140,12 @@ body.role-user .admin-only-input { pointer-events: none; opacity: 0.55; }
   </div>
   <div id="vmix-operator-empty" style="display:none;background:var(--s2);border:1px solid var(--line2);border-radius:12px;padding:18px 16px;margin-bottom:12px;font-size:13px;color:var(--t2);line-height:1.5;text-align:center;">
     <div style="font-size:14px;font-weight:700;color:var(--t1);margin-bottom:6px;">No room assigned</div>
-    <div style="margin-bottom:12px;">Ask a Director to update your identity, or change your role below.</div>
+    <div id="vmix-operator-empty-msg" style="margin-bottom:12px;">Ask a Director to update your identity, or change your role below.</div>
     <button type="button" onclick="trackerOpenIdentityModal()" style="background:var(--accent);border:none;color:#000;border-radius:8px;padding:9px 18px;font-size:12px;font-weight:700;cursor:pointer;">Change identity</button>
   </div>
+  <div id="vmix-filter-row" style="display:none;gap:6px;margin-bottom:12px;overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:2px;"></div>
   <div id="vmix-cards" style="display:flex;flex-direction:column;gap:12px;"></div>
+  <div id="vmix-operator-mismatch" style="display:none;margin-top:10px;padding:8px 12px;border-radius:8px;font-size:11px;line-height:1.5;background:var(--s2);border:1px solid var(--line2);color:var(--t3);"></div>
   <div id="vmix-all-row" style="margin-top:16px;background:var(--s2);border:1px solid var(--line2);border-radius:14px;overflow:hidden;">
     <div style="padding:14px 16px 10px;font-size:15px;font-weight:700;color:var(--t1);">All Rooms</div>
     <div class="vmix-master-controls">
@@ -1255,9 +1261,13 @@ body.role-user .admin-only-input { pointer-events: none; opacity: 0.55; }
   <div class="modal-card">
     <div class="modal-title">Who are you?</div>
     <div class="modal-copy">Your identity is used to log actions in the shared audit trail and to scope what you can control.</div>
-    <label style="display:block;font-size:11px;font-weight:700;color:var(--t2);text-transform:uppercase;letter-spacing:0.6px;margin-bottom:4px;">Name</label>
+    <label style="display:block;font-size:11px;font-weight:700;color:var(--t2);text-transform:uppercase;letter-spacing:0.6px;margin-bottom:4px;">Crew member (optional)</label>
+    <select id="tracker-id-crew" class="si" onchange="trackerIdentityCrewChanged()" style="margin-bottom:4px;"></select>
+    <div id="tracker-id-crew-hint" style="display:none;font-size:10px;color:var(--t3);margin-bottom:10px;line-height:1.4;"></div>
+    <div id="tracker-id-crew-spacer" style="height:8px;"></div>
+    <label style="display:block;font-size:11px;font-weight:700;color:var(--t2);text-transform:uppercase;letter-spacing:0.6px;margin-bottom:4px;">Name <span id="tracker-id-name-hint" style="display:none;font-size:10px;color:var(--t3);font-weight:500;text-transform:none;letter-spacing:0;margin-left:6px;">— from crew list —</span></label>
     <input id="tracker-id-name" class="si" placeholder="Your name" style="margin-bottom:12px;">
-    <label style="display:block;font-size:11px;font-weight:700;color:var(--t2);text-transform:uppercase;letter-spacing:0.6px;margin-bottom:4px;">Role</label>
+    <label style="display:block;font-size:11px;font-weight:700;color:var(--t2);text-transform:uppercase;letter-spacing:0.6px;margin-bottom:4px;">Role <span id="tracker-id-role-hint" style="display:none;font-size:10px;color:var(--t3);font-weight:500;text-transform:none;letter-spacing:0;margin-left:6px;">— from crew list —</span></label>
     <select id="tracker-id-role" class="si" onchange="trackerIdentityRoleChanged()" style="margin-bottom:12px;">
       <option value="Director">Director — full access</option>
       <option value="Operator">Operator — single room</option>
@@ -2405,7 +2415,7 @@ function fbCleanSync() {
 function saveConfig(push=true) { saveAppData(); if (push) pushEventData(); }
 function saveState(push=true)  { saveAppData(); if (push) pushEventData(); }
 function isSettingsOpen() { return document.getElementById('sheet')?.classList.contains('open'); }
-function renderAll() { render(); renderOverview(); if (currentPage === 'today') renderToday(); if (currentPage === 'record') renderRecord(); }
+function renderAll() { render(); renderOverview(); if (currentPage === 'today') renderToday(); if (currentPage === 'record') renderRecord(); if (currentPage === 'rooms' && typeof renderVmixCards === 'function') renderVmixCards(); }
 function renderAllIncludingSettings() { renderAll(); if (isSettingsOpen()) renderSettings(); }
 let eventModalState = null;
 function switchEvent(eventId, opts = {}) {
@@ -4256,16 +4266,48 @@ let trackerPerEventProxyUrl = null;  // value from events/<id>/config/vmixProxyU
 let trackerGlobalProxyUrl = null;    // value from /vmix_proxy_url
 let trackerQrSelfHealNoticed = false; // one-shot toast per page load
 
+// Recording-page Director crew filter — 'all' or a crew.id. Defaults to 'all'
+// but smart-defaults to the operator's own crew on first render if applicable.
+const VMIX_FILTER_KEY = 'kc_vmix_filter';
+let vmixActiveCrewFilter = 'all';
+// Becomes true once the user has explicitly clicked a filter chip in this session,
+// so we stop applying the smart-default on subsequent renders.
+let vmixFilterUserOverride = false;
+// Becomes true once the smart-default has been evaluated for the current identity.
+let vmixFilterDefaultApplied = false;
+try {
+  const saved = localStorage.getItem(VMIX_FILTER_KEY);
+  if (saved) {
+    vmixActiveCrewFilter = saved;
+    vmixFilterUserOverride = true;
+  }
+} catch (e) {}
+
 function trackerLoadIdentity() {
   try {
     const raw = localStorage.getItem(TRACKER_IDENTITY_KEY);
     if (!raw) { trackerIdentity = null; return; }
     const v = JSON.parse(raw);
     if (v && typeof v === 'object' && v.name && v.role) {
+      // Back-compat: if assignedRoom exists (room key) but assignedRooms (names) doesn't,
+      // seed assignedRooms from it. We keep assignedRoom around for now in case older
+      // code paths still reference it; Phase-3 can drop it.
+      let assignedRooms = Array.isArray(v.assignedRooms)
+        ? v.assignedRooms.filter(x => typeof x === 'string' && x.length).map(String)
+        : null;
+      if (!assignedRooms && v.assignedRoom) {
+        // v.assignedRoom historically stored a vMix room KEY. Translate to name via VMIX_ROOMS
+        // when possible; if the room is no longer known, fall back to the raw value so the
+        // user can at least see what was assigned.
+        const match = (VMIX_ROOMS || []).find(r => r.key === v.assignedRoom);
+        assignedRooms = [match ? match.name : String(v.assignedRoom)];
+      }
       trackerIdentity = {
         name: String(v.name),
         role: String(v.role),
         assignedRoom: v.assignedRoom || null,
+        crewId: v.crewId ? String(v.crewId) : null,
+        assignedRooms: assignedRooms || null,
       };
     } else {
       trackerIdentity = null;
@@ -4293,12 +4335,95 @@ function trackerOpenIdentityModal() {
   const roleEl = document.getElementById('tracker-id-role');
   if (nameEl) nameEl.value = trackerIdentity ? trackerIdentity.name : '';
   if (roleEl) roleEl.value = trackerIdentity ? trackerIdentity.role : 'Director';
+  trackerPopulateIdentityCrew();
   trackerPopulateIdentityRooms();
-  trackerIdentityRoleChanged();
+  trackerIdentityCrewChanged();       // applies crew-mode side-effects
+  trackerIdentityRoleChanged();       // toggles room-wrap
   // Hide the Cancel button on forced first-time identity setup
   const cancelBtn = document.getElementById('tracker-id-cancel-btn');
   if (cancelBtn) cancelBtn.style.display = trackerIdentity ? '' : 'none';
   modal.style.display = 'flex';
+}
+
+function trackerPopulateIdentityCrew() {
+  const sel = document.getElementById('tracker-id-crew');
+  const hint = document.getElementById('tracker-id-crew-hint');
+  if (!sel) return;
+  const crewList = (config && Array.isArray(config.crew)) ? config.crew : [];
+  sel.innerHTML = '';
+  const custom = document.createElement('option');
+  custom.value = '__custom__';
+  custom.textContent = '— Custom identity —';
+  sel.appendChild(custom);
+  const director = document.createElement('option');
+  director.value = '__director__';
+  director.textContent = 'Director — All rooms';
+  sel.appendChild(director);
+  crewList.forEach(c => {
+    if (!c || !c.id) return;
+    const name = c.name || 'Unnamed crew';
+    const roomNames = Array.isArray(c.rooms) ? c.rooms.map(r => r && r.name).filter(Boolean) : [];
+    const label = roomNames.length ? (name + ' (' + roomNames.join(', ') + ')') : name;
+    const opt = document.createElement('option');
+    opt.value = c.id;
+    opt.textContent = label;
+    sel.appendChild(opt);
+  });
+  // Select the current crew if identity has one, else Custom by default.
+  const currentCrewId = trackerIdentity && trackerIdentity.crewId;
+  if (currentCrewId && crewList.some(c => c.id === currentCrewId)) {
+    sel.value = currentCrewId;
+  } else {
+    sel.value = '__custom__';
+  }
+  // Show a dim helper line when there's no crew list for the event.
+  if (hint) {
+    if (!crewList.length) {
+      hint.textContent = 'No crew list in this event.';
+      hint.style.display = 'block';
+    } else {
+      hint.textContent = '';
+      hint.style.display = 'none';
+    }
+  }
+}
+
+function trackerIdentityCrewChanged() {
+  const sel = document.getElementById('tracker-id-crew');
+  const nameEl = document.getElementById('tracker-id-name');
+  const roleEl = document.getElementById('tracker-id-role');
+  const nameHint = document.getElementById('tracker-id-name-hint');
+  const roleHint = document.getElementById('tracker-id-role-hint');
+  if (!sel || !nameEl || !roleEl) return;
+  const val = sel.value;
+  const crewList = (config && Array.isArray(config.crew)) ? config.crew : [];
+
+  // Default: fields editable.
+  nameEl.disabled = false;
+  roleEl.disabled = false;
+  if (nameHint) nameHint.style.display = 'none';
+  if (roleHint) roleHint.style.display = 'none';
+
+  if (val === '__custom__') {
+    // Don't touch Name / Role inputs — keep whatever the user had.
+    trackerIdentityRoleChanged();
+    return;
+  }
+  if (val === '__director__') {
+    roleEl.value = 'Director';
+    trackerIdentityRoleChanged();
+    return;
+  }
+  // Crew member chosen
+  const crew = crewList.find(c => c.id === val);
+  if (!crew) { trackerIdentityRoleChanged(); return; }
+  nameEl.value = crew.name || '';
+  roleEl.value = 'Operator';
+  nameEl.disabled = true;
+  roleEl.disabled = true;
+  if (nameHint) nameHint.style.display = 'inline';
+  if (roleHint) roleHint.style.display = 'inline';
+  trackerIdentityRoleChanged();
 }
 
 function trackerCancelIdentity() {
@@ -4328,20 +4453,82 @@ function trackerPopulateIdentityRooms() {
 
 function trackerIdentityRoleChanged() {
   const roleEl = document.getElementById('tracker-id-role');
+  const crewSel = document.getElementById('tracker-id-crew');
   const wrap = document.getElementById('tracker-id-room-wrap');
   if (!roleEl || !wrap) return;
-  wrap.style.display = roleEl.value === 'Operator' ? 'block' : 'none';
+  // When a crew member is selected, rooms come from config.crew — hide the manual picker.
+  const crewPicked = crewSel && crewSel.value && crewSel.value !== '__custom__' && crewSel.value !== '__director__';
+  wrap.style.display = (roleEl.value === 'Operator' && !crewPicked) ? 'block' : 'none';
 }
 
 function trackerSaveIdentity() {
+  const crewSel = document.getElementById('tracker-id-crew');
+  const crewChoice = crewSel ? crewSel.value : '__custom__';
+  const crewList = (config && Array.isArray(config.crew)) ? config.crew : [];
+  const pickedCrew = (crewChoice && crewChoice !== '__custom__' && crewChoice !== '__director__')
+    ? crewList.find(c => c.id === crewChoice)
+    : null;
+
   const name = (document.getElementById('tracker-id-name') || {}).value || '';
   const role = (document.getElementById('tracker-id-role') || {}).value || 'Director';
   const assignedRoom = (document.getElementById('tracker-id-room') || {}).value || '';
   const n = name.trim();
   if (!n) { showToast('Enter your name'); return; }
-  if (role === 'Operator' && !assignedRoom) { showToast('Pick your assigned room'); return; }
-  trackerIdentity = { name: n, role: role, assignedRoom: role === 'Operator' ? assignedRoom : null };
+
+  let crewId = null;
+  let assignedRooms = null;
+  let legacyAssignedRoom = null;
+
+  if (pickedCrew) {
+    crewId = pickedCrew.id;
+    assignedRooms = Array.isArray(pickedCrew.rooms)
+      ? pickedCrew.rooms.map(r => r && r.name).filter(x => typeof x === 'string' && x.length)
+      : [];
+    // Back-compat: pick the first matching VMIX_ROOMS key (if any) so older code paths that
+    // still reference trackerIdentity.assignedRoom continue to resolve a room.
+    const firstMatch = (VMIX_ROOMS || []).find(r => assignedRooms.includes(r.name));
+    legacyAssignedRoom = firstMatch ? firstMatch.key : null;
+  } else if (crewChoice === '__director__') {
+    // Director shortcut: clear crew / room assignment entirely.
+    crewId = null;
+    assignedRooms = null;
+    legacyAssignedRoom = null;
+  } else {
+    // Custom identity — Operator needs a manual assigned room (legacy single-room path).
+    if (role === 'Operator' && !assignedRoom) { showToast('Pick your assigned room'); return; }
+    if (role === 'Operator') {
+      const match = (VMIX_ROOMS || []).find(r => r.key === assignedRoom);
+      legacyAssignedRoom = assignedRoom;
+      assignedRooms = [match ? match.name : assignedRoom];
+    }
+  }
+
+  trackerIdentity = {
+    name: n,
+    role: pickedCrew ? 'Operator' : (crewChoice === '__director__' ? 'Director' : role),
+    assignedRoom: legacyAssignedRoom,
+    crewId: crewId,
+    assignedRooms: assignedRooms,
+  };
   trackerSaveIdentityToStorage();
+
+  // Warn (but still save) if the chosen crew has zero matching vMix rooms.
+  if (pickedCrew && assignedRooms && assignedRooms.length) {
+    const matched = (VMIX_ROOMS || []).filter(r => assignedRooms.includes(r.name));
+    if (!matched.length) {
+      showToast("Crew member '" + pickedCrew.name + "' has no matching vMix rooms — check that Commander's room names match your Setup-page crew assignments.");
+    }
+  }
+
+  // Reset filter default when identity changes — smart default is reapplied on next render
+  // unless the user previously saved an explicit "All" preference in localStorage.
+  vmixFilterDefaultApplied = false;
+  try {
+    const savedFilter = localStorage.getItem(VMIX_FILTER_KEY);
+    vmixFilterUserOverride = !!savedFilter;
+    if (!savedFilter) vmixActiveCrewFilter = 'all';
+  } catch (e) { vmixFilterUserOverride = false; }
+
   const modal = document.getElementById('tracker-identity-modal');
   if (modal) modal.style.display = 'none';
   trackerIdentityModalOpen = false;
@@ -4359,10 +4546,16 @@ function trackerRenderIdentityChip() {
   const roleHue = trackerIdentity.role === 'Director' ? 'var(--accent)'
     : trackerIdentity.role === 'Operator' ? '#47e8a0'
     : 'var(--t3)';
-  const assigned = trackerIdentity.role === 'Operator' ? (function () {
-    const r = (VMIX_ROOMS || []).find(function (x) { return x.key === trackerIdentity.assignedRoom; });
-    return r ? r.name : '(unassigned)';
-  })() : '';
+  let assigned = '';
+  if (trackerIdentity.role === 'Operator') {
+    const names = Array.isArray(trackerIdentity.assignedRooms) && trackerIdentity.assignedRooms.length
+      ? trackerIdentity.assignedRooms
+      : (trackerIdentity.assignedRoom ? [(function () {
+          const r = (VMIX_ROOMS || []).find(x => x.key === trackerIdentity.assignedRoom);
+          return r ? r.name : trackerIdentity.assignedRoom;
+        })()] : []);
+    assigned = names.length ? names.join(', ') : '(unassigned)';
+  }
   chip.style.display = 'block';
   chip.innerHTML =
     '<div style="font-weight:700;color:var(--t1);">' + escapeHtml(trackerIdentity.name) + '</div>' +
@@ -4694,7 +4887,14 @@ function renderVmixBanner() {
   var locked = !!(vmixLive && vmixLive.safetyLocked);
   var parts = [];
   if (op && op.name) {
-    parts.push('<span style="color:var(--t2);">Controlled by</span> <strong style="color:var(--t1);">' + escapeHtml(op.name) + '</strong>' + (op.role ? ' <span style="color:var(--t3);">(' + escapeHtml(op.role) + ')</span>' : ''));
+    var crewSuffix = '';
+    if (op.crewId && typeof config === 'object' && config && Array.isArray(config.crew)) {
+      var crewMatch = config.crew.find(function (c) { return c.id === op.crewId; });
+      if (crewMatch && crewMatch.name) {
+        crewSuffix = ' <span style="color:var(--t3);">— crew: \'' + escapeHtml(crewMatch.name) + '\'</span>';
+      }
+    }
+    parts.push('<span style="color:var(--t2);">Controlled by</span> <strong style="color:var(--t1);">' + escapeHtml(op.name) + '</strong>' + (op.role ? ' <span style="color:var(--t3);">(' + escapeHtml(op.role) + ')</span>' : '') + crewSuffix);
   }
   if (!fresh) {
     el.style.cssText = 'margin-bottom:12px;padding:10px 12px;border-radius:8px;font-size:11px;line-height:1.5;background:#3d1a1a;border:1px solid #7a2d2d;color:#ff9b9b;';
@@ -4944,6 +5144,39 @@ function vmixMakeCard(r) {
 var VMIX_ICON_PLAY = '<svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor" aria-hidden="true"><polygon points="2,0 12,6 2,12"/></svg>';
 var VMIX_ICON_STOP = '<svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor" aria-hidden="true"><rect x="0" y="0" width="10" height="10" rx="1.5"/></svg>';
 
+// Render the Director-only crew filter row above #vmix-cards. Mirrors the Setup
+// page's #filterRow chips (class .fc / .fc.on). Hidden for Operator / Observer
+// and when there's no crew list (no chips to show).
+function renderVmixFilterRow() {
+  var row = document.getElementById('vmix-filter-row');
+  if (!row) return;
+  if (!trackerRoleIsDirector()) { row.style.display = 'none'; row.innerHTML = ''; return; }
+  var crewList = (typeof config === 'object' && config && Array.isArray(config.crew)) ? config.crew : [];
+  if (!crewList.length) { row.style.display = 'none'; row.innerHTML = ''; return; }
+  // Build "All" + one chip per crew
+  var html = '<div class="fc' + (vmixActiveCrewFilter === 'all' ? ' on' : '') +
+    '" onclick="vmixSetCrewFilter(\'all\')" style="display:inline-flex;align-items:center;">All</div>';
+  html += crewList.map(function (c, i) {
+    var name = c.name || ('Crew ' + (i + 1));
+    var on = vmixActiveCrewFilter === c.id;
+    return '<div class="fc' + (on ? ' on' : '') + '" onclick="vmixSetCrewFilter(\'' +
+      String(c.id).replace(/'/g, "\\'") + '\')" style="gap:6px;display:inline-flex;align-items:center;">' +
+      avatarHtml(name, 18) + escapeHtml(name) + '</div>';
+  }).join('');
+  row.innerHTML = html;
+  row.style.display = 'flex';
+}
+
+function vmixSetCrewFilter(value) {
+  vmixActiveCrewFilter = value;
+  vmixFilterUserOverride = true;
+  try {
+    if (value === 'all') localStorage.setItem(VMIX_FILTER_KEY, 'all');
+    else localStorage.removeItem(VMIX_FILTER_KEY);
+  } catch (e) {}
+  renderVmixCards();
+}
+
 function renderVmixCards() {
   var el = document.getElementById('vmix-cards');
   if (!el) return;
@@ -4952,22 +5185,107 @@ function renderVmixCards() {
   trackerRenderIdentityChip();
   trackerRenderRunOfShow();
 
+  // Render Director crew-filter row (only visible for Directors)
+  renderVmixFilterRow();
+
   // Decide which rooms are visible for this role
   var rooms = VMIX_ROOMS.slice();
   var operatorEmpty = false;
+  var operatorEmptyReason = null; // 'unassigned' | 'crew-deleted' | 'no-match'
+  var mismatchedNames = [];
+
   if (trackerRoleIsOperator()) {
-    var assigned = trackerIdentity ? trackerIdentity.assignedRoom : null;
-    if (!assigned) { operatorEmpty = true; rooms = []; }
-    else {
-      var onlyMine = rooms.filter(function (r) { return r.key === assigned; });
-      if (!onlyMine.length) { operatorEmpty = true; rooms = []; }
-      else rooms = onlyMine;
+    // Prefer the new name-based multi-room field; fall back to legacy single key.
+    var names = Array.isArray(trackerIdentity && trackerIdentity.assignedRooms) && trackerIdentity.assignedRooms.length
+      ? trackerIdentity.assignedRooms.slice()
+      : (trackerIdentity && trackerIdentity.assignedRoom ? (function () {
+          // legacy: assignedRoom is a room KEY — translate to a name if we can.
+          var r = (VMIX_ROOMS || []).find(function (x) { return x.key === trackerIdentity.assignedRoom; });
+          return [r ? r.name : trackerIdentity.assignedRoom];
+        })() : []);
+
+    // Self-check: crewId references a crew that's been deleted from config.crew
+    if (trackerIdentity && trackerIdentity.crewId) {
+      var crewList = (typeof config === 'object' && config && Array.isArray(config.crew)) ? config.crew : [];
+      var found = crewList.find(function (c) { return c.id === trackerIdentity.crewId; });
+      if (!found) {
+        operatorEmpty = true;
+        operatorEmptyReason = 'crew-deleted';
+        rooms = [];
+      }
+    }
+
+    if (!operatorEmpty) {
+      if (!names.length) {
+        operatorEmpty = true;
+        operatorEmptyReason = 'unassigned';
+        rooms = [];
+      } else {
+        var onlyMine = rooms.filter(function (r) { return names.indexOf(r.name) !== -1; });
+        if (!onlyMine.length) {
+          operatorEmpty = true;
+          operatorEmptyReason = 'no-match';
+          mismatchedNames = names.slice();
+          rooms = [];
+        } else {
+          rooms = onlyMine;
+          // Surface mismatched names (assigned but not in VMIX_ROOMS) as a dim banner below cards.
+          mismatchedNames = names.filter(function (n) {
+            return !(VMIX_ROOMS || []).some(function (r) { return r.name === n; });
+          });
+        }
+      }
+    }
+  } else if (trackerRoleIsDirector()) {
+    // Directors: apply crew-tab filter if set and valid.
+    var crewList = (typeof config === 'object' && config && Array.isArray(config.crew)) ? config.crew : [];
+    // Smart default: if identity.crewId matches a crew and user hasn't overridden, use that.
+    if (!vmixFilterDefaultApplied && !vmixFilterUserOverride
+        && trackerIdentity && trackerIdentity.crewId
+        && crewList.some(function (c) { return c.id === trackerIdentity.crewId; })) {
+      vmixActiveCrewFilter = trackerIdentity.crewId;
+    }
+    vmixFilterDefaultApplied = true;
+    // If the filter references a crew that no longer exists, reset to 'all'.
+    if (vmixActiveCrewFilter !== 'all' && !crewList.some(function (c) { return c.id === vmixActiveCrewFilter; })) {
+      vmixActiveCrewFilter = 'all';
+    }
+    if (vmixActiveCrewFilter !== 'all') {
+      var activeCrew = crewList.find(function (c) { return c.id === vmixActiveCrewFilter; });
+      if (activeCrew && Array.isArray(activeCrew.rooms)) {
+        var crewRoomNames = activeCrew.rooms.map(function (r) { return r && r.name; }).filter(Boolean);
+        rooms = rooms.filter(function (r) { return crewRoomNames.indexOf(r.name) !== -1; });
+      }
     }
   }
 
-  // Toggle the operator empty state
+  // Toggle the operator empty state (and supply the right message)
   var emptyEl = document.getElementById('vmix-operator-empty');
+  var emptyMsg = document.getElementById('vmix-operator-empty-msg');
   if (emptyEl) emptyEl.style.display = operatorEmpty ? 'block' : 'none';
+  if (emptyMsg) {
+    if (operatorEmptyReason === 'crew-deleted') {
+      emptyMsg.textContent = 'Your crew assignment was removed. Ask a Director to reassign you, or change identity.';
+    } else if (operatorEmptyReason === 'no-match') {
+      emptyMsg.textContent = "Your assigned rooms aren't configured in vMix: " +
+        mismatchedNames.map(function (n) { return "'" + n + "'"; }).join(', ') +
+        ". Ask a Director to update the room list, or change identity.";
+    } else {
+      emptyMsg.textContent = 'Ask a Director to update your identity, or change your role below.';
+    }
+  }
+
+  // Render a dim mismatched-names banner below cards when Operator has partial mismatches.
+  var mismatchEl = document.getElementById('vmix-operator-mismatch');
+  if (mismatchEl) {
+    if (!operatorEmpty && trackerRoleIsOperator() && mismatchedNames.length) {
+      mismatchEl.style.display = 'block';
+      mismatchEl.innerHTML = 'Some of your assigned rooms aren\'t configured in vMix: ' +
+        mismatchedNames.map(function (n) { return "'" + escapeHtml(n) + "'"; }).join(', ') + '.';
+    } else {
+      mismatchEl.style.display = 'none';
+    }
+  }
 
   el.innerHTML = '';
   rooms.forEach(function (r) { el.appendChild(vmixMakeCard(r)); });
@@ -5079,6 +5397,22 @@ async function vmixRefreshAll() {
   await Promise.all(VMIX_ROOMS.map(r => vmixRefreshStatus(r.key)));
 }
 
+// True when the current Operator identity is allowed to control `roomKey`.
+// Matches by room name against assignedRooms (new), falling back to legacy
+// assignedRoom (key) when present.
+function trackerOperatorCanControl(roomKey) {
+  if (!trackerRoleIsOperator()) return true;
+  if (!trackerIdentity) return false;
+  const room = (VMIX_ROOMS || []).find(r => r.key === roomKey);
+  if (!room) return false;
+  const names = Array.isArray(trackerIdentity.assignedRooms) && trackerIdentity.assignedRooms.length
+    ? trackerIdentity.assignedRooms
+    : null;
+  if (names) return names.indexOf(room.name) !== -1;
+  // Legacy: compare room key directly.
+  return trackerIdentity.assignedRoom === roomKey;
+}
+
 async function vmixOne(key, fn) {
   const room = VMIX_ROOMS.find(r => r.key === key);
   if (!room) return;
@@ -5088,7 +5422,7 @@ async function vmixOne(key, fn) {
     showToast('Observers can\'t run actions.');
     trackerWriteAudit(action, key, 'denied'); return;
   }
-  if (trackerRoleIsOperator() && trackerIdentity && trackerIdentity.assignedRoom !== key) {
+  if (trackerRoleIsOperator() && !trackerOperatorCanControl(key)) {
     showToast('You can only control your assigned room.');
     trackerWriteAudit(action, key, 'denied'); return;
   }
@@ -5115,7 +5449,7 @@ async function vmixRoomAction(key, action) {
     showToast('Observers can\'t run actions.');
     trackerWriteAudit(auditAction, key, 'denied'); return;
   }
-  if (trackerRoleIsOperator() && trackerIdentity && trackerIdentity.assignedRoom !== key) {
+  if (trackerRoleIsOperator() && !trackerOperatorCanControl(key)) {
     showToast('You can only control your assigned room.');
     trackerWriteAudit(auditAction, key, 'denied'); return;
   }
