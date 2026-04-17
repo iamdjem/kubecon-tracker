@@ -1149,8 +1149,10 @@ body.role-user .admin-only-input { pointer-events: none; opacity: 0.55; }
        (or accidentally tapped instead of) a per-room card. -->
   <div id="vmix-all-row" style="display:none;margin-bottom:24px;background:linear-gradient(135deg, rgba(212, 168, 67, 0.16), rgba(212, 168, 67, 0.04));border:1px solid rgba(212, 168, 67, 0.5);box-shadow:0 0 0 1px rgba(212, 168, 67, 0.15), 0 4px 20px rgba(212, 168, 67, 0.06);border-radius:14px;overflow:hidden;">
     <div style="padding:14px 16px 10px;font-size:15px;font-weight:700;color:var(--accent);display:flex;align-items:center;gap:8px;">
-      All Rooms
+      <span>All Rooms</span>
       <span style="display:inline-block;font-size:9px;font-weight:700;letter-spacing:1.2px;color:var(--accent);background:rgba(212, 168, 67, 0.12);border:1px solid rgba(212, 168, 67, 0.4);padding:2px 6px;border-radius:5px;">MASTER</span>
+      <span style="flex:1;"></span>
+      <button id="vmix-all-lock-toggle" type="button" onclick="trackerToggleSafetyLock()" style="display:none;background:none;border:1px solid var(--line2);color:var(--t2);font-size:10px;font-weight:700;letter-spacing:1.2px;padding:5px 12px;border-radius:6px;cursor:pointer;font-family:inherit;text-transform:uppercase;">LIVE</button>
     </div>
     <div class="vmix-master-controls">
       <button id="vmix-all-start" class="vmix-btn-start-all" onclick="vmixAllAction('start')"></button>
@@ -4703,6 +4705,63 @@ function trackerRoomIsLocked(key) {
   return false;
 }
 
+// Director-only: toggle a room's lock state. Writes to Firebase; both
+// apps' subscriptions reflect the change within ~1s.
+function trackerToggleRoomLock(roomKey) {
+  if (!trackerRoleIsDirector()) { showToast('Director only.'); return; }
+  if (!fbDb || !currentEventId) { showToast('Not connected.'); return; }
+  const room = (VMIX_ROOMS || []).find(r => r.key === roomKey);
+  if (!room) return;
+  const next = !trackerRoomIsLocked(roomKey);
+  fbDb.child('events/' + currentEventId + '/roomLocks/' + roomKey).set(next)
+    .then(function () {
+      showToast(next ? '🔒 ' + room.name + ' locked' : '🔓 ' + room.name + ' unlocked');
+      trackerWriteAudit(next ? 'LOCK ROOM' : 'UNLOCK ROOM', roomKey, 'ok');
+    })
+    .catch(function (e) {
+      console.warn('[tracker roomLock toggle]', e);
+      showToast('Lock toggle failed');
+      trackerWriteAudit(next ? 'LOCK ROOM' : 'UNLOCK ROOM', roomKey, 'fail');
+    });
+}
+
+// ─── Global safety lock (All Rooms) ────────────────────────────────────────
+let trackerSafetyLockRef = null;
+let trackerSafetyLockEventId = null;
+let trackerRemoteSafetyLocked = null;  // null = unknown; true/false from Firebase
+
+function trackerSubscribeSafetyLock() {
+  if (!fbDb) return;
+  const eventId = currentEventId || null;
+  if (eventId === trackerSafetyLockEventId) return;
+  if (trackerSafetyLockRef) { trackerSafetyLockRef.off(); trackerSafetyLockRef = null; }
+  trackerSafetyLockEventId = eventId;
+  trackerRemoteSafetyLocked = null;
+  if (!eventId) { if (currentPage === 'rooms') renderVmixCards(); return; }
+  trackerSafetyLockRef = fbDb.child('events/' + eventId + '/safetyLocked');
+  trackerSafetyLockRef.on('value', function (snap) {
+    const v = snap.val();
+    trackerRemoteSafetyLocked = (typeof v === 'boolean') ? v : null;
+    if (currentPage === 'rooms') renderVmixCards();
+  }, function (err) { console.warn('[tracker safetyLock]', err); });
+}
+
+function trackerToggleSafetyLock() {
+  if (!trackerRoleIsDirector()) { showToast('Director only.'); return; }
+  if (!fbDb || !currentEventId) { showToast('Not connected.'); return; }
+  const next = !vmixIsLocked();
+  fbDb.child('events/' + currentEventId + '/safetyLocked').set(next)
+    .then(function () {
+      showToast(next ? '🔒 All Rooms locked' : '🔓 All Rooms unlocked');
+      trackerWriteAudit(next ? 'LOCK ALL' : 'UNLOCK ALL', '__all__', 'ok');
+    })
+    .catch(function (e) {
+      console.warn('[tracker safetyLock toggle]', e);
+      showToast('Lock toggle failed');
+      trackerWriteAudit(next ? 'LOCK ALL' : 'UNLOCK ALL', '__all__', 'fail');
+    });
+}
+
 // ─── Controller (heartbeat) ────────────────────────────────────────────────
 function trackerSubscribeController() {
   if (!fbDb) return;
@@ -4843,6 +4902,7 @@ function vmixSubscribeStatus() {
   trackerSubscribeRoomLocks();
   trackerSubscribeRunOfShow();
   trackerSubscribeController();
+  trackerSubscribeSafetyLock();
   if (eventId === vmixLiveEventId) return;  // no change to main status stream
   if (vmixLiveRef) { vmixLiveRef.off(); vmixLiveRef = null; }
   vmixLiveEventId = eventId;
@@ -4878,6 +4938,10 @@ function vmixIsLiveFresh() {
 }
 
 function vmixIsLocked() {
+  // Direct safetyLocked subscription wins when present (instant updates
+  // from either app); fall back to the vmixLive mirror so older Commander
+  // versions that only push via vmixStatus still register.
+  if (typeof trackerRemoteSafetyLocked === 'boolean') return trackerRemoteSafetyLocked;
   return !!(vmixLive && vmixLive.safetyLocked && vmixIsLiveFresh());
 }
 
@@ -5029,9 +5093,24 @@ function vmixMakeCard(r) {
     row.style.display = row.style.display === 'none' ? 'flex' : 'none';
   };
 
+  // Per-room lock toggle (Director-only). Acts on the same Firebase node
+  // Commander writes to, so changes from either app sync within ~1s.
+  var lockBtn = null;
+  if (trackerRoleIsDirector()) {
+    lockBtn = document.createElement('button');
+    lockBtn.textContent = roomLocked ? '🔒' : '🔓';
+    lockBtn.title = roomLocked ? 'Unlock this room' : 'Lock this room (prevents accidental taps)';
+    lockBtn.style.cssText = 'background:' + (roomLocked ? 'rgba(212,168,67,0.15)' : 'none') +
+      ';border:1px solid ' + (roomLocked ? 'rgba(212,168,67,0.4)' : 'var(--line2)') +
+      ';color:' + (roomLocked ? 'rgb(212,168,67)' : 'var(--t3)') +
+      ';border-radius:6px;padding:3px 8px;font-size:12px;cursor:pointer;flex-shrink:0;';
+    lockBtn.onclick = function (e) { e.stopPropagation(); trackerToggleRoomLock(r.key); };
+  }
+
   hdr.appendChild(dot);
   hdr.appendChild(nameEl);
-  if (roomLocked) {
+  // Show a static 🔒 indicator only when the user can't toggle (Operator/Observer).
+  if (roomLocked && !lockBtn) {
     var lockEl = document.createElement('span');
     lockEl.title = 'This room is locked by the operator.';
     lockEl.textContent = '🔒';
@@ -5041,6 +5120,7 @@ function vmixMakeCard(r) {
   hdr.appendChild(timerEl);
   hdr.appendChild(spacer);
   hdr.appendChild(pingEl);
+  if (lockBtn) hdr.appendChild(lockBtn);
   hdr.appendChild(ipToggle);
   card.appendChild(hdr);
 
@@ -5398,11 +5478,35 @@ function renderVmixCards() {
   var allRow = document.getElementById('vmix-all-row');
   var showAllRow = trackerRoleIsDirector() && vmixActiveCrewFilter === 'all';
   if (allRow) allRow.style.display = showAllRow ? '' : 'none';
+  if (!showAllRow) {
+    var hiddenLockToggle = document.getElementById('vmix-all-lock-toggle');
+    if (hiddenLockToggle) hiddenLockToggle.style.display = 'none';
+  }
 
   if (showAllRow) {
     // Gate the page-level All Rooms buttons on lock / proxy availability too.
     var disabled = vmixIsLocked() || !vmixProxyUrl;
     var disabledTitle = vmixIsLocked() ? 'Controls locked by operator' : 'Commander tunnel offline';
+
+    // Update the LIVE/LOCKED toggle to reflect current safety-lock state.
+    var lockToggle = document.getElementById('vmix-all-lock-toggle');
+    if (lockToggle) {
+      lockToggle.style.display = '';
+      if (vmixIsLocked()) {
+        lockToggle.textContent = '🔒 LOCKED';
+        lockToggle.style.background = 'rgba(220, 50, 50, 0.18)';
+        lockToggle.style.borderColor = 'rgba(220, 50, 50, 0.5)';
+        lockToggle.style.color = '#ff6b6b';
+        lockToggle.title = 'Click to unlock the All Rooms master controls';
+      } else {
+        lockToggle.textContent = '● LIVE';
+        lockToggle.style.background = 'rgba(93, 204, 93, 0.12)';
+        lockToggle.style.borderColor = 'rgba(93, 204, 93, 0.4)';
+        lockToggle.style.color = '#5dcc5d';
+        lockToggle.title = 'Click to lock the All Rooms master controls';
+      }
+    }
+
     var startAll = document.getElementById('vmix-all-start');
     var stopAll  = document.getElementById('vmix-all-stop');
     if (startAll) {
