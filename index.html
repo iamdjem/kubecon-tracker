@@ -4969,7 +4969,13 @@ function renderVmixBanner() {
   var fresh = controllerOnline || statusFresh;
   var locked = !!(vmixLive && vmixLive.safetyLocked);
   var parts = [];
-  if (op && op.name) {
+  // Suppress the "Controlled by" line when the local tracker identity IS
+  // the active controller — the identity chip in the header already shows
+  // who the user is, so the banner would be pure duplication.
+  var localIsOp = op && op.name && trackerIdentity &&
+    String(op.name).trim().toLowerCase() === String(trackerIdentity.name || '').trim().toLowerCase() &&
+    String(op.role || '').toLowerCase() === String(trackerIdentity.role || '').toLowerCase();
+  if (op && op.name && !localIsOp) {
     var crewSuffix = '';
     if (op.crewId && typeof config === 'object' && config && Array.isArray(config.crew)) {
       var crewMatch = config.crew.find(function (c) { return c.id === op.crewId; });
@@ -5029,7 +5035,7 @@ function vmixStartTick() {
       if (!el) return;
       var st = vmixStatus[r.key];
       if (st && st.recording && st.recordingStartTime) {
-        el.textContent = 'REC ' + vmixFmtDuration(Date.now() - st.recordingStartTime);
+        el.textContent = 'Recording ' + vmixFmtDuration(Date.now() - st.recordingStartTime);
         el.style.display = '';
       } else {
         el.style.display = 'none';
@@ -5072,19 +5078,24 @@ function vmixMakeCard(r) {
   nameEl.style.cssText = 'font-size:15px;font-weight:700;color:var(--t1);';
   nameEl.textContent = r.name;
 
+  // Timer: "Recording HH:MM:SS" pill — font-size matches Commander (11px,
+  // weight 700) for cross-app consistency. Uses tabular-nums so the digits
+  // don't jiggle as they tick.
   var timerEl = document.createElement('span');
   timerEl.id = 'vmix-timer-' + r.key;
-  timerEl.style.cssText = 'font-family:monospace;font-size:11px;font-weight:700;color:#ff6b6b;background:#2a0d0d;border:1px solid #5a2020;padding:2px 7px;border-radius:5px;letter-spacing:0.3px;';
+  timerEl.style.cssText = 'font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-variant-numeric:tabular-nums;font-size:11px;font-weight:700;color:#ff6b6b;background:#2a0d0d;border:1px solid #5a2020;padding:2px 7px;border-radius:5px;letter-spacing:0.3px;';
   if (st.recording && st.recordingStartTime) {
-    timerEl.textContent = 'REC ' + vmixFmtDuration(Date.now() - st.recordingStartTime);
+    timerEl.textContent = 'Recording ' + vmixFmtDuration(Date.now() - st.recordingStartTime);
   } else {
     timerEl.style.display = 'none';
   }
 
+  // Ping sits right next to the timer (same group as name + timer) — same
+  // 11px size + tabular-nums so the metrics line up visually.
   var pingEl = document.createElement('span');
-  pingEl.style.cssText = 'font-size:10px;font-weight:600;color:' + vmixTierColor(tier) + ';white-space:nowrap;';
-  if (r.ip && st.ok) pingEl.textContent = '● Ping ' + Math.round(st.latency || 0) + 'ms';
-  else if (err)      pingEl.textContent = '● Unreachable';
+  pingEl.style.cssText = 'font-size:11px;font-weight:600;font-variant-numeric:tabular-nums;color:' + vmixTierColor(tier) + ';white-space:nowrap;display:inline-flex;align-items:center;gap:4px;';
+  if (r.ip && st.ok) pingEl.innerHTML = '<span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:' + vmixTierColor(tier) + ';"></span>Ping ' + Math.round(st.latency || 0) + 'ms';
+  else if (err)      pingEl.innerHTML = '<span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:' + vmixTierColor(tier) + ';"></span>Unreachable';
   else               pingEl.textContent = '';
 
   var spacer = document.createElement('span');
@@ -5132,9 +5143,10 @@ function vmixMakeCard(r) {
     lockEl.style.cssText = 'color:rgb(212,168,67);display:inline-flex;align-items:center;';
     hdr.appendChild(lockEl);
   }
+  // Timer + ping cluster together right after the name — matches Commander.
   hdr.appendChild(timerEl);
-  hdr.appendChild(spacer);
   hdr.appendChild(pingEl);
+  hdr.appendChild(spacer);
   if (lockBtn) hdr.appendChild(lockBtn);
   hdr.appendChild(ipToggle);
   card.appendChild(hdr);
