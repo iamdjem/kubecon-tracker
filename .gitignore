@@ -1,0 +1,15 @@
+# macOS Finder metadata
+.DS_Store
+**/.DS_Store
+
+# Editor backups
+*.bak
+
+# Local server / build artifacts
+.firebase/
+.cache/
+node_modules/
+
+# Local secrets (should never be committed)
+.env
+.env.local

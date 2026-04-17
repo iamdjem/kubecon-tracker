@@ -4960,7 +4960,13 @@ function renderVmixBanner() {
     op = controllerOp || liveOp;
   }
   if (!vmixLive && !trackerController) { el.style.display = 'none'; return; }
-  var fresh = vmixIsLiveFresh() || trackerControllerFresh();
+  var controllerOnline = trackerControllerFresh();
+  var statusFresh = vmixIsLiveFresh();
+  // "Commander online" follows the presence heartbeat (5s tick), not the
+  // status push (which only fires when the operator's polling loop is
+  // active). Without this distinction, switching tabs in Commander would
+  // falsely mark it "offline" on the tracker.
+  var fresh = controllerOnline || statusFresh;
   var locked = !!(vmixLive && vmixLive.safetyLocked);
   var parts = [];
   if (op && op.name) {
