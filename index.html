@@ -5066,24 +5066,29 @@ function vmixMakeCard(r) {
   var card = document.createElement('div');
   card.style.cssText = 'background:var(--s2);border:1px solid var(--line2);border-radius:14px;overflow:hidden;' + (roomLocked ? 'opacity:0.65;' : '');
 
-  // ── Header: tier dot · name · REC timer · Ping · gear ──
+  // ── Header: tier dot · name · REC timer · Ping · lock · gear ──
+  // gap:8px (was 10) so the trailing buttons don't push the name off-screen
+  // on narrow phones; flex-wrap:nowrap is the default but explicit for clarity.
   var hdr = document.createElement('div');
-  hdr.style.cssText = 'display:flex;align-items:center;gap:10px;padding:14px 16px 10px;';
+  hdr.style.cssText = 'display:flex;align-items:center;flex-wrap:nowrap;gap:8px;padding:14px 16px 10px;';
 
   var dot = document.createElement('span');
   dot.title = tier;
   dot.style.cssText = 'width:8px;height:8px;border-radius:50%;flex-shrink:0;background:' + vmixTierColor(tier) + ';' + (st.recording || st.streaming || st.multicorder ? 'box-shadow:0 0 6px ' + vmixTierColor(tier) + '88;' : '');
 
+  // Name truncates with ellipsis when the row gets tight (e.g. mobile width
+  // + an active REC pill + ping). Without nowrap + min-width:0, the browser
+  // wraps "Bohemia 2" onto two lines.
   var nameEl = document.createElement('span');
-  nameEl.style.cssText = 'font-size:15px;font-weight:700;color:var(--t1);';
+  nameEl.style.cssText = 'font-size:15px;font-weight:700;color:var(--t1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;flex-shrink:1;';
+  nameEl.title = r.name;
   nameEl.textContent = r.name;
 
-  // Timer: "Recording HH:MM:SS" pill — font-size matches Commander (11px,
-  // weight 700) for cross-app consistency. Uses tabular-nums so the digits
-  // don't jiggle as they tick.
+  // Timer: "REC HH:MM:SS" pill — flex-shrink:0 so the pill keeps its full
+  // size while the name handles the squeeze.
   var timerEl = document.createElement('span');
   timerEl.id = 'vmix-timer-' + r.key;
-  timerEl.style.cssText = 'font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-variant-numeric:tabular-nums;font-size:11px;font-weight:700;color:#ff6b6b;background:#2a0d0d;border:1px solid #5a2020;padding:2px 7px;border-radius:5px;letter-spacing:0.3px;';
+  timerEl.style.cssText = 'flex-shrink:0;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-variant-numeric:tabular-nums;font-size:11px;font-weight:700;color:#ff6b6b;background:#2a0d0d;border:1px solid #5a2020;padding:2px 7px;border-radius:5px;letter-spacing:0.3px;';
   if (st.recording && st.recordingStartTime) {
     timerEl.textContent = 'REC ' + vmixFmtDuration(Date.now() - st.recordingStartTime);
   } else {
@@ -5093,7 +5098,7 @@ function vmixMakeCard(r) {
   // Ping sits right next to the timer (same group as name + timer) — same
   // 11px size + tabular-nums so the metrics line up visually.
   var pingEl = document.createElement('span');
-  pingEl.style.cssText = 'font-size:11px;font-weight:600;font-variant-numeric:tabular-nums;color:' + vmixTierColor(tier) + ';white-space:nowrap;display:inline-flex;align-items:center;gap:4px;';
+  pingEl.style.cssText = 'flex-shrink:0;font-size:11px;font-weight:600;font-variant-numeric:tabular-nums;color:' + vmixTierColor(tier) + ';white-space:nowrap;display:inline-flex;align-items:center;gap:4px;';
   if (r.ip && st.ok) pingEl.innerHTML = '<span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:' + vmixTierColor(tier) + ';"></span>Ping ' + Math.round(st.latency || 0) + 'ms';
   else if (err)      pingEl.innerHTML = '<span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:' + vmixTierColor(tier) + ';"></span>Unreachable';
   else               pingEl.textContent = '';
