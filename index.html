@@ -937,6 +937,136 @@ body.role-user .admin-only-input { pointer-events: none; opacity: 0.55; }
   min-height: 36px;
 }
 .auth-signout:active { background: var(--red); border-color: var(--red); color: #fff; }
+
+/* ─── vMix Room Controls — mirrors vMix Commander's .fn-toggle + .btn-start-all/stop-all ─── */
+.vmix-room-controls {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  padding: 8px 12px;
+}
+.vmix-fn-toggle {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  padding: 10px 4px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: inherit;
+  background: transparent;
+  -webkit-tap-highlight-color: transparent;
+}
+.vmix-fn-toggle:active { transform: scale(0.97); }
+.vmix-fn-toggle:disabled { cursor: not-allowed; opacity: 0.45; transform: none; }
+.vmix-fn-label {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--t1);
+}
+.vmix-fn-state {
+  font-size: 11px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.vmix-fn-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: currentColor;
+  display: inline-block;
+  animation: vmix-pulse-dot 1.5s ease-in-out infinite;
+}
+@keyframes vmix-pulse-dot {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%      { opacity: 0.5; transform: scale(0.8); }
+}
+.vmix-fn-toggle.inactive {
+  background: rgba(93, 204, 93, 0.05);
+  border-color: rgba(93, 204, 93, 0.12);
+  color: #4a9e4a;
+}
+.vmix-fn-toggle.inactive:hover {
+  background: rgba(93, 204, 93, 0.12);
+  border-color: rgba(93, 204, 93, 0.3);
+}
+.vmix-fn-toggle.active {
+  background: rgba(220, 50, 50, 0.15);
+  border-color: rgba(220, 50, 50, 0.4);
+  color: #ef4444;
+  box-shadow: inset 0 0 12px rgba(220, 50, 50, 0.08), 0 0 0 0 rgba(220, 50, 50, 0);
+  animation: vmix-pulse-border 2s ease-in-out infinite;
+}
+@keyframes vmix-pulse-border {
+  0%, 100% { box-shadow: inset 0 0 12px rgba(220, 50, 50, 0.08), 0 0 0 0px rgba(220, 50, 50, 0.3); }
+  50%      { box-shadow: inset 0 0 12px rgba(220, 50, 50, 0.08), 0 0 0 4px rgba(220, 50, 50, 0.08); }
+}
+.vmix-fn-toggle.active:hover {
+  background: rgba(220, 50, 50, 0.22);
+  border-color: rgba(220, 50, 50, 0.55);
+  animation: none;
+}
+.vmix-fn-toggle.error {
+  background: rgba(204, 93, 93, 0.05);
+  border-color: rgba(204, 93, 93, 0.15);
+  color: var(--t3);
+}
+.vmix-fn-toggle.pending { opacity: 0.6; cursor: wait; }
+
+.vmix-master-controls {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  padding: 4px 12px 12px;
+}
+.vmix-btn-start-all,
+.vmix-btn-stop-all {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  letter-spacing: 0.3px;
+  transition: all 0.2s ease;
+  border-radius: 10px;
+  font-family: inherit;
+  color: var(--t1);
+  -webkit-tap-highlight-color: transparent;
+}
+.vmix-btn-start-all:active,
+.vmix-btn-stop-all:active { transform: scale(0.97); }
+.vmix-btn-start-all:disabled,
+.vmix-btn-stop-all:disabled { cursor: not-allowed; opacity: 0.45; transform: none; }
+.vmix-btn-start-all {
+  background: rgba(93, 204, 93, 0.08);
+  border: 1px solid rgba(93, 204, 93, 0.18);
+}
+.vmix-btn-start-all svg { color: #4a9e4a; }
+.vmix-btn-start-all:hover:not(:disabled) {
+  background: rgba(93, 204, 93, 0.15);
+  border-color: rgba(93, 204, 93, 0.35);
+}
+.vmix-btn-stop-all {
+  background: rgba(204, 93, 93, 0.08);
+  border: 1px solid rgba(204, 93, 93, 0.18);
+}
+.vmix-btn-stop-all svg { color: #9e4a4a; }
+.vmix-btn-stop-all:hover:not(:disabled) {
+  background: rgba(204, 93, 93, 0.15);
+  border-color: rgba(204, 93, 93, 0.35);
+}
 </style>
 </head>
 <body>
@@ -993,11 +1123,11 @@ body.role-user .admin-only-input { pointer-events: none; opacity: 0.55; }
   </div>
   <div id="vmix-commander-banner" style="display:none;margin-bottom:12px;padding:10px 12px;border-radius:8px;font-size:11px;line-height:1.5;"></div>
   <div id="vmix-cards" style="display:flex;flex-direction:column;gap:12px;"></div>
-  <div id="vmix-all-row" style="margin-top:16px;background:var(--s2);border:1px solid var(--line2);border-radius:12px;padding:14px 16px;display:flex;align-items:center;justify-content:space-between;gap:12px;">
-    <div style="font-size:13px;font-weight:600;color:var(--t1);">All Rooms</div>
-    <div style="display:flex;gap:8px;">
-      <button id="vmix-all-start" onclick="vmixAllAction('start')" style="background:#1a3d1a;border:1px solid #2d7a2d;color:#5dcc5d;border-radius:8px;padding:9px 18px;font-size:13px;font-weight:700;cursor:pointer;">▶ START ALL</button>
-      <button id="vmix-all-stop"  onclick="vmixAllAction('stop')"  style="background:#3d1a1a;border:1px solid #7a2d2d;color:#cc5d5d;border-radius:8px;padding:9px 18px;font-size:13px;font-weight:700;cursor:pointer;">■ STOP ALL</button>
+  <div id="vmix-all-row" style="margin-top:16px;background:var(--s2);border:1px solid var(--line2);border-radius:14px;overflow:hidden;">
+    <div style="padding:14px 16px 10px;font-size:15px;font-weight:700;color:var(--t1);">All Rooms</div>
+    <div class="vmix-master-controls">
+      <button id="vmix-all-start" class="vmix-btn-start-all" onclick="vmixAllAction('start')"></button>
+      <button id="vmix-all-stop"  class="vmix-btn-stop-all"  onclick="vmixAllAction('stop')"></button>
     </div>
   </div>
 </div>
@@ -4332,77 +4462,74 @@ function vmixMakeCard(r) {
   ipRow.appendChild(saveBtn);
   card.appendChild(ipRow);
 
-  // ── Status row ──
-  var statusRow = document.createElement('div');
-  statusRow.style.cssText = 'display:grid;grid-template-columns:1fr 1fr 1fr;border-top:1px solid var(--line2);border-bottom:1px solid var(--line2);';
+  // ── Function toggles (single state-aware button per function) ──
+  var controls = document.createElement('div');
+  controls.className = 'vmix-room-controls';
 
   var fns = [
-    { label: 'REC',    startFn: 'StartRecording',   stopFn: 'StopRecording',   on: st.recording   },
-    { label: 'STREAM', startFn: 'StartStreaming',    stopFn: 'StopStreaming',    on: st.streaming   },
-    { label: 'MULTI',  startFn: 'StartMultiCorder', stopFn: 'StopMultiCorder', on: st.multicorder },
+    { label: 'Record',      startFn: 'StartRecording',   stopFn: 'StopRecording',   on: st.recording   },
+    { label: 'Stream',      startFn: 'StartStreaming',   stopFn: 'StopStreaming',   on: st.streaming   },
+    { label: 'MultiCorder', startFn: 'StartMultiCorder', stopFn: 'StopMultiCorder', on: st.multicorder },
   ];
 
-  fns.forEach(function(f, i) {
-    var cell = document.createElement('div');
-    cell.style.cssText = 'display:flex;flex-direction:column;align-items:center;padding:10px 6px;gap:6px;' + (i < 2 ? 'border-right:1px solid var(--line2);' : '');
+  fns.forEach(function(f) {
+    var btn = document.createElement('button');
+    var klass = err ? 'error' : f.on ? 'active' : 'inactive';
+    btn.className = 'vmix-fn-toggle ' + klass;
+    btn.disabled = disabled || err;
+    btn.title = err ? 'Unreachable' : (disabled ? disabledTitle : (f.on ? 'Stop ' + f.label : 'Start ' + f.label));
 
-    var lbl = document.createElement('div');
-    lbl.style.cssText = 'font-size:9px;font-weight:700;letter-spacing:0.8px;color:var(--t3);';
+    var lbl = document.createElement('span');
+    lbl.className = 'vmix-fn-label';
     lbl.textContent = f.label;
 
-    var pillEl = document.createElement('div');
-    var pillColor = err ? '#cc5d5d' : f.on ? '#5dcc5d' : '#555';
-    pillEl.style.cssText = 'display:flex;align-items:center;gap:4px;font-size:10px;font-weight:700;color:' + pillColor + ';';
-    pillEl.innerHTML = '<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:' + pillColor + ';' + (f.on && !err ? 'box-shadow:0 0 6px ' + pillColor + '88;' : '') + '"></span>';
-    var pillTxt = document.createElement('span');
-    pillTxt.textContent = err ? 'ERR' : f.on ? 'LIVE' : 'OFF';
-    pillEl.appendChild(pillTxt);
+    var state = document.createElement('span');
+    state.className = 'vmix-fn-state';
+    if (err)      state.textContent = 'ERR';
+    else if (f.on) state.innerHTML = '<span class="vmix-fn-dot"></span>LIVE';
+    else           state.textContent = 'OFF';
 
-    var btnRow = document.createElement('div');
-    btnRow.style.cssText = 'display:flex;gap:4px;width:100%;';
-    var bs = document.createElement('button');
-    bs.textContent = '▶';
-    bs.title = disabled ? disabledTitle : 'Start ' + f.label;
-    bs.disabled = disabled;
-    bs.style.cssText = 'flex:1;border-radius:6px;padding:6px 0;font-size:12px;cursor:' + (disabled ? 'not-allowed' : 'pointer') + ';border:1px solid #2d7a2d;background:#0d2e0d;color:#5dcc5d;font-weight:700;' + (disabled ? 'opacity:0.4;' : '');
-    bs.onclick = function() { if (!disabled) vmixOne(r.key, f.startFn); };
-    var bx = document.createElement('button');
-    bx.textContent = '■';
-    bx.title = disabled ? disabledTitle : 'Stop ' + f.label;
-    bx.disabled = disabled;
-    bx.style.cssText = 'flex:1;border-radius:6px;padding:6px 0;font-size:12px;cursor:' + (disabled ? 'not-allowed' : 'pointer') + ';border:1px solid #7a2d2d;background:#2e0d0d;color:#cc5d5d;font-weight:700;' + (disabled ? 'opacity:0.4;' : '');
-    bx.onclick = function() { if (!disabled) vmixOne(r.key, f.stopFn); };
-    btnRow.appendChild(bs);
-    btnRow.appendChild(bx);
-
-    cell.appendChild(lbl);
-    cell.appendChild(pillEl);
-    cell.appendChild(btnRow);
-    statusRow.appendChild(cell);
+    btn.appendChild(lbl);
+    btn.appendChild(state);
+    btn.onclick = function() {
+      if (btn.disabled) return;
+      btn.classList.add('pending');
+      btn.disabled = true;
+      state.textContent = f.on ? 'Stopping…' : 'Starting…';
+      vmixOne(r.key, f.on ? f.stopFn : f.startFn);
+    };
+    controls.appendChild(btn);
   });
-  card.appendChild(statusRow);
+  card.appendChild(controls);
 
-  // ── Master buttons ──
-  var masterRow = document.createElement('div');
-  masterRow.style.cssText = 'display:grid;grid-template-columns:1fr 1fr;';
+  // ── Master controls (START ALL / STOP ALL) ──
+  var master = document.createElement('div');
+  master.className = 'vmix-master-controls';
+
   var startAll = document.createElement('button');
-  startAll.innerHTML = '▶ &nbsp;START ALL';
+  startAll.className = 'vmix-btn-start-all';
   startAll.disabled = disabled;
   startAll.title = disabled ? disabledTitle : '';
-  startAll.style.cssText = 'padding:13px;font-size:13px;font-weight:700;cursor:' + (disabled ? 'not-allowed' : 'pointer') + ';border:none;border-right:1px solid var(--line2);background:#0d2e0d;color:#5dcc5d;border-radius:0 0 0 14px;letter-spacing:0.3px;' + (disabled ? 'opacity:0.4;' : '');
+  startAll.innerHTML = VMIX_ICON_PLAY + '<span>START ALL</span>';
   startAll.onclick = function() { if (!disabled) vmixRoomAction(r.key, 'start'); };
+
   var stopAll = document.createElement('button');
-  stopAll.innerHTML = '■ &nbsp;STOP ALL';
+  stopAll.className = 'vmix-btn-stop-all';
   stopAll.disabled = disabled;
   stopAll.title = disabled ? disabledTitle : '';
-  stopAll.style.cssText = 'padding:13px;font-size:13px;font-weight:700;cursor:' + (disabled ? 'not-allowed' : 'pointer') + ';border:none;background:#2e0d0d;color:#cc5d5d;border-radius:0 0 14px 0;letter-spacing:0.3px;' + (disabled ? 'opacity:0.4;' : '');
+  stopAll.innerHTML = VMIX_ICON_STOP + '<span>STOP ALL</span>';
   stopAll.onclick = function() { if (!disabled) vmixRoomAction(r.key, 'stop'); };
-  masterRow.appendChild(startAll);
-  masterRow.appendChild(stopAll);
-  card.appendChild(masterRow);
+
+  master.appendChild(startAll);
+  master.appendChild(stopAll);
+  card.appendChild(master);
 
   return card;
 }
+
+// SVG icons cloned from vMix Commander (renderer/index.html <template> blocks)
+var VMIX_ICON_PLAY = '<svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor" aria-hidden="true"><polygon points="2,0 12,6 2,12"/></svg>';
+var VMIX_ICON_STOP = '<svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor" aria-hidden="true"><rect x="0" y="0" width="10" height="10" rx="1.5"/></svg>';
 
 function renderVmixCards() {
   var el = document.getElementById('vmix-cards');
@@ -4415,13 +4542,16 @@ function renderVmixCards() {
   var disabled = vmixIsLocked() || !vmixProxyUrl;
   var startAll = document.getElementById('vmix-all-start');
   var stopAll  = document.getElementById('vmix-all-stop');
-  [startAll, stopAll].forEach(function(b) {
-    if (!b) return;
-    b.disabled = disabled;
-    b.style.opacity = disabled ? '0.4' : '';
-    b.style.cursor = disabled ? 'not-allowed' : 'pointer';
-    b.title = disabled ? (vmixIsLocked() ? 'Controls locked by operator' : 'Commander tunnel offline') : '';
-  });
+  if (startAll) {
+    startAll.disabled = disabled;
+    startAll.title = disabled ? (vmixIsLocked() ? 'Controls locked by operator' : 'Commander tunnel offline') : '';
+    startAll.innerHTML = VMIX_ICON_PLAY + '<span>START ALL</span>';
+  }
+  if (stopAll) {
+    stopAll.disabled = disabled;
+    stopAll.title = disabled ? (vmixIsLocked() ? 'Controls locked by operator' : 'Commander tunnel offline') : '';
+    stopAll.innerHTML = VMIX_ICON_STOP + '<span>STOP ALL</span>';
+  }
   renderVmixBanner();
 }
 
