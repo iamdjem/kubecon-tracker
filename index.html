@@ -3704,9 +3704,13 @@ document.addEventListener('click', e => {
 document.addEventListener('keydown', e => {
   const eventModal = document.getElementById('event-modal');
   const confirmModal = document.getElementById('confirm-modal');
+  const identityModal = document.getElementById('tracker-identity-modal');
   if (e.key === 'Escape') {
     if (eventModal && eventModal.style.display === 'flex') closeEventModal();
     if (confirmModal && confirmModal.style.display === 'flex') confirmCancel();
+    // Identity modal: only dismissible once an identity is saved (first-time
+    // setup blocks ESC so the user must pick a role before using the app).
+    if (identityModal && identityModal.style.display === 'flex' && trackerIdentity) trackerCancelIdentity();
   }
   if (e.key === 'Enter' && eventModal && eventModal.style.display === 'flex' && !e.shiftKey) {
     const tag = document.activeElement?.tagName;
