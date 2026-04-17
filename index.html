@@ -1144,15 +1144,16 @@ body.role-user .admin-only-input { pointer-events: none; opacity: 0.55; }
     <button type="button" onclick="trackerOpenIdentityModal()" style="background:var(--accent);border:none;color:#000;border-radius:8px;padding:9px 18px;font-size:12px;font-weight:700;cursor:pointer;">Change identity</button>
   </div>
   <div id="vmix-filter-row" style="display:none;gap:6px;margin-bottom:12px;overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:2px;"></div>
-  <div id="vmix-cards" style="display:flex;flex-direction:column;gap:12px;"></div>
-  <div id="vmix-operator-mismatch" style="display:none;margin-top:10px;padding:8px 12px;border-radius:8px;font-size:11px;line-height:1.5;background:var(--s2);border:1px solid var(--line2);color:var(--t3);"></div>
-  <div id="vmix-all-row" style="margin-top:16px;background:var(--s2);border:1px solid var(--line2);border-radius:14px;overflow:hidden;">
+  <!-- All Rooms master card sits ABOVE individual room cards to mirror Commander's layout. -->
+  <div id="vmix-all-row" style="display:none;margin-bottom:12px;background:var(--s2);border:1px solid var(--line2);border-radius:14px;overflow:hidden;">
     <div style="padding:14px 16px 10px;font-size:15px;font-weight:700;color:var(--t1);">All Rooms</div>
     <div class="vmix-master-controls">
       <button id="vmix-all-start" class="vmix-btn-start-all" onclick="vmixAllAction('start')"></button>
       <button id="vmix-all-stop"  class="vmix-btn-stop-all"  onclick="vmixAllAction('stop')"></button>
     </div>
   </div>
+  <div id="vmix-cards" style="display:flex;flex-direction:column;gap:12px;"></div>
+  <div id="vmix-operator-mismatch" style="display:none;margin-top:10px;padding:8px 12px;border-radius:8px;font-size:11px;line-height:1.5;background:var(--s2);border:1px solid var(--line2);color:var(--t3);"></div>
 </div>
 
 <!-- PAGE: SCHEDULE -->
@@ -4911,7 +4912,7 @@ function renderVmixBanner() {
   }
   if (locked) {
     el.style.cssText = 'margin-bottom:12px;padding:10px 12px;border-radius:8px;font-size:11px;line-height:1.5;background:#3d2a00;border:1px solid #996600;color:#ffb74d;';
-    el.innerHTML = '🔒 <strong>Controls locked</strong> by operator — buttons disabled. ' + parts.join(' · ');
+    el.innerHTML = '🔒 <strong>All Rooms locked</strong> by operator — START / STOP ALL disabled. Per-room controls still work. ' + parts.join(' · ');
     el.style.display = 'block';
     return;
   }
@@ -4971,19 +4972,18 @@ function vmixMakeCard(r) {
   var st   = vmixStatus[r.key] || {};
   var err  = st.ok === false;
   var tier = st.tier || (err ? 'unreachable' : (r.ip ? 'offline' : 'offline'));
-  var globallyLocked = vmixIsLocked();
+  // Global safety lock now ONLY guards the All Rooms card. Individual rooms
+  // remain operable so the operator can still react per-room mid-event.
   var roomLocked = trackerRoomIsLocked(r.key);
-  var locked = globallyLocked || roomLocked;
   var isObserver = trackerRoleIsObserver();
-  var disabled = locked || !vmixProxyUrl || !r.ip || isObserver;
-  var disabledTitle = globallyLocked ? 'Controls locked by operator'
-                      : roomLocked ? 'This room is locked by the operator.'
+  var disabled = roomLocked || !vmixProxyUrl || !r.ip || isObserver;
+  var disabledTitle = roomLocked ? 'This room is locked by the operator.'
                       : isObserver ? 'Observer is read-only'
                       : !vmixProxyUrl ? 'Commander tunnel offline — cannot reach vMix'
                       : !r.ip ? 'Set room IP first' : '';
 
   var card = document.createElement('div');
-  card.style.cssText = 'background:var(--s2);border:1px solid var(--line2);border-radius:14px;overflow:hidden;' + (locked ? 'opacity:0.65;' : '');
+  card.style.cssText = 'background:var(--s2);border:1px solid var(--line2);border-radius:14px;overflow:hidden;' + (roomLocked ? 'opacity:0.65;' : '');
 
   // ── Header: tier dot · name · REC timer · Ping · gear ──
   var hdr = document.createElement('div');
@@ -5527,8 +5527,10 @@ async function vmixOne(key, fn) {
     showToast('You can only control your assigned room.');
     trackerWriteAudit(action, key, 'denied'); return;
   }
-  if (vmixIsLocked() || trackerRoomIsLocked(key)) {
-    showToast('Controls are locked.');
+  // Per-room lock still gates per-room actions; the global safety lock
+  // only blocks the All Rooms master controls (vmixAllAction).
+  if (trackerRoomIsLocked(key)) {
+    showToast('This room is locked by the operator.');
     trackerWriteAudit(action, key, 'denied'); return;
   }
   if (!room.ip) {
@@ -5554,8 +5556,11 @@ async function vmixRoomAction(key, action) {
     showToast('You can only control your assigned room.');
     trackerWriteAudit(auditAction, key, 'denied'); return;
   }
-  if (vmixIsLocked() || trackerRoomIsLocked(key)) {
-    showToast('Controls are locked.');
+  // Global safety lock no longer gates per-room actions — only the per-room
+  // 🔒 toggle does. Use the All Rooms master controls if you need to block
+  // everything at once.
+  if (trackerRoomIsLocked(key)) {
+    showToast('This room is locked by the operator.');
     trackerWriteAudit(auditAction, key, 'denied'); return;
   }
   if (!room.ip) {
