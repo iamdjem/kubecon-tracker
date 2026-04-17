@@ -991,12 +991,13 @@ body.role-user .admin-only-input { pointer-events: none; opacity: 0.55; }
     Open on your laptop instead: <strong>http://localhost:8765</strong> → Rooms tab.<br>
     Or in Chrome: tap the 🔒 lock → <em>Site settings</em> → allow <em>Insecure content</em>.
   </div>
+  <div id="vmix-commander-banner" style="display:none;margin-bottom:12px;padding:10px 12px;border-radius:8px;font-size:11px;line-height:1.5;"></div>
   <div id="vmix-cards" style="display:flex;flex-direction:column;gap:12px;"></div>
-  <div style="margin-top:16px;background:var(--s2);border:1px solid var(--line2);border-radius:12px;padding:14px 16px;display:flex;align-items:center;justify-content:space-between;gap:12px;">
+  <div id="vmix-all-row" style="margin-top:16px;background:var(--s2);border:1px solid var(--line2);border-radius:12px;padding:14px 16px;display:flex;align-items:center;justify-content:space-between;gap:12px;">
     <div style="font-size:13px;font-weight:600;color:var(--t1);">All Rooms</div>
     <div style="display:flex;gap:8px;">
-      <button onclick="vmixAllAction('start')" style="background:#1a3d1a;border:1px solid #2d7a2d;color:#5dcc5d;border-radius:8px;padding:9px 18px;font-size:13px;font-weight:700;cursor:pointer;">▶ START ALL</button>
-      <button onclick="vmixAllAction('stop')"  style="background:#3d1a1a;border:1px solid #7a2d2d;color:#cc5d5d;border-radius:8px;padding:9px 18px;font-size:13px;font-weight:700;cursor:pointer;">■ STOP ALL</button>
+      <button id="vmix-all-start" onclick="vmixAllAction('start')" style="background:#1a3d1a;border:1px solid #2d7a2d;color:#5dcc5d;border-radius:8px;padding:9px 18px;font-size:13px;font-weight:700;cursor:pointer;">▶ START ALL</button>
+      <button id="vmix-all-stop"  onclick="vmixAllAction('stop')"  style="background:#3d1a1a;border:1px solid #7a2d2d;color:#cc5d5d;border-radius:8px;padding:9px 18px;font-size:13px;font-weight:700;cursor:pointer;">■ STOP ALL</button>
     </div>
   </div>
 </div>
@@ -1045,7 +1046,7 @@ body.role-user .admin-only-input { pointer-events: none; opacity: 0.55; }
     Schedule
   </div>
   <div class="nav-tab" id="nav-rooms" onclick="switchPage('rooms')">
-    <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+    <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4" fill="currentColor" stroke="none"/></svg>
     Recording
   </div>
   <div class="nav-tab" id="nav-share" onclick="copyAppLink()" style="color:#25D366;">
@@ -2246,6 +2247,7 @@ function switchEvent(eventId, opts = {}) {
   saveConfig();
   renderAllIncludingSettings();
   if (typeof vmixRefreshRooms === 'function') vmixRefreshRooms();
+  if (typeof vmixSubscribeStatus === 'function') vmixSubscribeStatus();
   if (opts.toast !== false && fromEventId !== eventId) showToast(`Switched to ${currentEvent()?.name || 'event'}`);
 }
 function upsertEventAndRefresh(ev, toastLabel = 'Event saved') {
@@ -2691,6 +2693,7 @@ function initFirebase(url) {
         }, fbErrorHandler('deletedEvents'));
         fbDb.child('vmix_ips').on('value', s => { const v=s.val(); if(v){ VMIX_ROOMS.forEach(r => { if(v[r.key]) r.ip=v[r.key]; }); vmixSaveIps(); if(currentPage==='rooms') renderVmixCards(); } }, fbErrorHandler('vmix_ips'));
         vmixListenProxyUrl();
+        vmixSubscribeStatus();
       } catch(e) {
         console.error('Firebase init failed', e);
         setFbStatus(false);
@@ -4090,6 +4093,13 @@ function vmixSaveIps() {
 
 const vmixStatus = {};
 
+// Live blob pushed by vMix Commander: { updatedAt, operator, safetyLocked, rooms: {...} }
+// Used as source of truth for card display, operator identity, and safety-lock state.
+let vmixLive = null;
+let vmixLiveEventId = null;
+let vmixLiveRef = null;
+const VMIX_STALE_MS = 15000;  // if Commander hasn't pushed in this long, show "offline" warning
+
 // vMix proxy URL — allows HTTPS→HTTP bridging via vMix Commander tunnel
 let vmixProxyUrl = localStorage.getItem('kc_vmix_proxy') || '';
 
@@ -4111,48 +4121,197 @@ function vmixListenProxyUrl() {
     if (url) {
       vmixProxyUrl = url;
       localStorage.setItem('kc_vmix_proxy', url);
+    } else {
+      vmixProxyUrl = '';
+      localStorage.removeItem('kc_vmix_proxy');
     }
+    updateVmixHttpsWarn();
+    if (currentPage === 'rooms') renderVmixCards();
   });
 }
 
-function vmixMakeCard(r) {
-  var st  = vmixStatus[r.key] || {};
-  var err = st.ok === false;
-  var connected = r.ip && !err;
+function updateVmixHttpsWarn() {
+  var w = document.getElementById('vmix-https-warn');
+  if (!w) return;
+  // The warning matters only when HTTPS is blocking us AND no proxy bridge is available.
+  w.style.display = (location.protocol === 'https:' && !vmixProxyUrl) ? 'block' : 'none';
+}
 
-  function pill(on) {
-    if (err) return '<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#cc5d5d;"></span>';
-    if (on)  return '<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#5dcc5d;box-shadow:0 0 6px #5dcc5d88;"></span>';
-    return '<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#444;"></span>';
+// Subscribe to Commander's live vmix status for the current event.
+// Runs whenever the active event changes.
+function vmixSubscribeStatus() {
+  if (!fbDb) return;
+  const eventId = (typeof currentEventId !== 'undefined' && currentEventId) ? currentEventId : null;
+  if (eventId === vmixLiveEventId) return;  // no change
+  if (vmixLiveRef) { vmixLiveRef.off(); vmixLiveRef = null; }
+  vmixLiveEventId = eventId;
+  vmixLive = null;
+  if (!eventId) { if (currentPage === 'rooms') renderVmixCards(); return; }
+  vmixLiveRef = fbDb.child('vmixStatus/' + eventId);
+  vmixLiveRef.on('value', function(snap) {
+    vmixLive = snap.val();
+    if (vmixLive && vmixLive.rooms) {
+      Object.keys(vmixLive.rooms).forEach(function(k) {
+        var r = vmixLive.rooms[k];
+        vmixStatus[k] = {
+          ok: !!r.ok,
+          recording: !!r.recording,
+          streaming: !!r.streaming,
+          multicorder: !!r.multicorder,
+          latency: r.latency || 0,
+          tier: r.tier || 'offline',
+          recordingStartTime: r.recordingStartTime || null
+        };
+      });
+    }
+    if (currentPage === 'rooms') {
+      renderVmixCards();
+      renderVmixBanner();
+    }
+  }, function(err) { console.error('vmixStatus listen error', err); });
+}
+
+function vmixIsLiveFresh() {
+  if (!vmixLive || !vmixLive.updatedAt) return false;
+  return (Date.now() - vmixLive.updatedAt) < VMIX_STALE_MS;
+}
+
+function vmixIsLocked() {
+  return !!(vmixLive && vmixLive.safetyLocked && vmixIsLiveFresh());
+}
+
+function renderVmixBanner() {
+  var el = document.getElementById('vmix-commander-banner');
+  if (!el) return;
+  if (!vmixLive) { el.style.display = 'none'; return; }
+  var fresh = vmixIsLiveFresh();
+  var op = vmixLive.operator;
+  var locked = !!vmixLive.safetyLocked;
+  var parts = [];
+  if (op && op.name) {
+    parts.push('<span style="color:var(--t2);">Controlled by</span> <strong style="color:var(--t1);">' + escapeHtml(op.name) + '</strong>' + (op.role ? ' <span style="color:var(--t3);">(' + escapeHtml(op.role) + ')</span>' : ''));
   }
+  if (!fresh) {
+    el.style.cssText = 'margin-bottom:12px;padding:10px 12px;border-radius:8px;font-size:11px;line-height:1.5;background:#3d1a1a;border:1px solid #7a2d2d;color:#ff9b9b;';
+    el.innerHTML = '⚠️ <strong>Commander offline</strong> — showing last-known state. ' + parts.join(' · ');
+    el.style.display = 'block';
+    return;
+  }
+  if (locked) {
+    el.style.cssText = 'margin-bottom:12px;padding:10px 12px;border-radius:8px;font-size:11px;line-height:1.5;background:#3d2a00;border:1px solid #996600;color:#ffb74d;';
+    el.innerHTML = '🔒 <strong>Controls locked</strong> by operator — buttons disabled. ' + parts.join(' · ');
+    el.style.display = 'block';
+    return;
+  }
+  if (parts.length) {
+    el.style.cssText = 'margin-bottom:12px;padding:8px 12px;border-radius:8px;font-size:11px;line-height:1.5;background:var(--s2);border:1px solid var(--line2);color:var(--t3);';
+    el.innerHTML = parts.join(' · ');
+    el.style.display = 'block';
+  } else {
+    el.style.display = 'none';
+  }
+}
+
+function vmixFmtDuration(ms) {
+  var sec = Math.floor(ms / 1000);
+  var h = Math.floor(sec / 3600);
+  var m = Math.floor((sec % 3600) / 60);
+  var s = sec % 60;
+  var pad = function(n) { return n < 10 ? '0' + n : String(n); };
+  return h > 0 ? h + ':' + pad(m) + ':' + pad(s) : pad(m) + ':' + pad(s);
+}
+
+function vmixTierColor(tier) {
+  if (tier === 'healthy')     return '#5dcc5d';
+  if (tier === 'degraded')    return '#ffb74d';
+  if (tier === 'unreachable') return '#cc5d5d';
+  return '#555';  // offline
+}
+
+// 1Hz loop — updates REC HH:MM:SS timer and staleness banner. Started lazily
+// when the Rooms page is visible, stopped otherwise.
+let _vmixTickInterval = null;
+function vmixStartTick() {
+  if (_vmixTickInterval) return;
+  _vmixTickInterval = setInterval(function() {
+    if (currentPage !== 'rooms') return;
+    // Update timers
+    VMIX_ROOMS.forEach(function(r) {
+      var el = document.getElementById('vmix-timer-' + r.key);
+      if (!el) return;
+      var st = vmixStatus[r.key];
+      if (st && st.recording && st.recordingStartTime) {
+        el.textContent = 'REC ' + vmixFmtDuration(Date.now() - st.recordingStartTime);
+        el.style.display = '';
+      } else {
+        el.style.display = 'none';
+      }
+    });
+    // Re-check staleness banner
+    renderVmixBanner();
+  }, 1000);
+}
+function vmixStopTick() {
+  if (_vmixTickInterval) { clearInterval(_vmixTickInterval); _vmixTickInterval = null; }
+}
+
+function vmixMakeCard(r) {
+  var st   = vmixStatus[r.key] || {};
+  var err  = st.ok === false;
+  var tier = st.tier || (err ? 'unreachable' : (r.ip ? 'offline' : 'offline'));
+  var locked = vmixIsLocked();
+  var disabled = locked || !vmixProxyUrl || !r.ip;
+  var disabledTitle = locked ? 'Controls locked by operator' :
+                      !vmixProxyUrl ? 'Commander tunnel offline — cannot reach vMix' :
+                      !r.ip ? 'Set room IP first' : '';
 
   var card = document.createElement('div');
-  card.style.cssText = 'background:var(--s2);border:1px solid var(--line2);border-radius:14px;overflow:hidden;';
+  card.style.cssText = 'background:var(--s2);border:1px solid var(--line2);border-radius:14px;overflow:hidden;' + (locked ? 'opacity:0.75;' : '');
 
-  // ── Header ──
+  // ── Header: tier dot · name · REC timer · Ping · gear ──
   var hdr = document.createElement('div');
-  hdr.style.cssText = 'display:flex;align-items:center;justify-content:space-between;padding:14px 16px 10px;';
+  hdr.style.cssText = 'display:flex;align-items:center;gap:10px;padding:14px 16px 10px;';
 
-  var nameWrap = document.createElement('div');
-  nameWrap.style.cssText = 'display:flex;align-items:center;gap:8px;';
-  var nameDot = document.createElement('span');
-  nameDot.innerHTML = pill(st.recording || st.streaming || st.multicorder);
+  var dot = document.createElement('span');
+  dot.title = tier;
+  dot.style.cssText = 'width:8px;height:8px;border-radius:50%;flex-shrink:0;background:' + vmixTierColor(tier) + ';' + (st.recording || st.streaming || st.multicorder ? 'box-shadow:0 0 6px ' + vmixTierColor(tier) + '88;' : '');
+
   var nameEl = document.createElement('span');
   nameEl.style.cssText = 'font-size:15px;font-weight:700;color:var(--t1);';
   nameEl.textContent = r.name;
-  nameWrap.appendChild(nameDot);
-  nameWrap.appendChild(nameEl);
+
+  var timerEl = document.createElement('span');
+  timerEl.id = 'vmix-timer-' + r.key;
+  timerEl.style.cssText = 'font-family:monospace;font-size:11px;font-weight:700;color:#ff6b6b;background:#2a0d0d;border:1px solid #5a2020;padding:2px 7px;border-radius:5px;letter-spacing:0.3px;';
+  if (st.recording && st.recordingStartTime) {
+    timerEl.textContent = 'REC ' + vmixFmtDuration(Date.now() - st.recordingStartTime);
+  } else {
+    timerEl.style.display = 'none';
+  }
+
+  var pingEl = document.createElement('span');
+  pingEl.style.cssText = 'font-size:10px;font-weight:600;color:' + vmixTierColor(tier) + ';white-space:nowrap;';
+  if (r.ip && st.ok) pingEl.textContent = '● Ping ' + Math.round(st.latency || 0) + 'ms';
+  else if (err)      pingEl.textContent = '● Unreachable';
+  else               pingEl.textContent = '';
+
+  var spacer = document.createElement('span');
+  spacer.style.cssText = 'flex:1;';
 
   var ipToggle = document.createElement('button');
-  ipToggle.textContent = r.ip ? r.ip.split('.').slice(-1)[0] ? '⚙' : '⚙' : '+ IP';
+  ipToggle.textContent = '⚙';
   ipToggle.title = r.ip || 'Set IP';
-  ipToggle.style.cssText = 'background:none;border:1px solid var(--line2);color:var(--t3);border-radius:6px;padding:3px 8px;font-size:11px;cursor:pointer;';
+  ipToggle.style.cssText = 'background:none;border:1px solid var(--line2);color:var(--t3);border-radius:6px;padding:3px 8px;font-size:11px;cursor:pointer;flex-shrink:0;';
   ipToggle.onclick = function() {
     var row = card.querySelector('.vmix-ip-row');
     row.style.display = row.style.display === 'none' ? 'flex' : 'none';
   };
 
-  hdr.appendChild(nameWrap);
+  hdr.appendChild(dot);
+  hdr.appendChild(nameEl);
+  hdr.appendChild(timerEl);
+  hdr.appendChild(spacer);
+  hdr.appendChild(pingEl);
   hdr.appendChild(ipToggle);
   card.appendChild(hdr);
 
@@ -4192,8 +4351,9 @@ function vmixMakeCard(r) {
     lbl.textContent = f.label;
 
     var pillEl = document.createElement('div');
-    pillEl.innerHTML = pill(f.on);
-    pillEl.style.cssText = 'display:flex;align-items:center;gap:4px;font-size:10px;color:' + (err ? '#cc5d5d' : f.on ? '#5dcc5d' : '#555') + ';';
+    var pillColor = err ? '#cc5d5d' : f.on ? '#5dcc5d' : '#555';
+    pillEl.style.cssText = 'display:flex;align-items:center;gap:4px;font-size:10px;font-weight:700;color:' + pillColor + ';';
+    pillEl.innerHTML = '<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:' + pillColor + ';' + (f.on && !err ? 'box-shadow:0 0 6px ' + pillColor + '88;' : '') + '"></span>';
     var pillTxt = document.createElement('span');
     pillTxt.textContent = err ? 'ERR' : f.on ? 'LIVE' : 'OFF';
     pillEl.appendChild(pillTxt);
@@ -4202,14 +4362,16 @@ function vmixMakeCard(r) {
     btnRow.style.cssText = 'display:flex;gap:4px;width:100%;';
     var bs = document.createElement('button');
     bs.textContent = '▶';
-    bs.title = 'Start ' + f.label;
-    bs.style.cssText = 'flex:1;border-radius:6px;padding:6px 0;font-size:12px;cursor:pointer;border:1px solid #2d7a2d;background:#0d2e0d;color:#5dcc5d;font-weight:700;';
-    bs.onclick = function() { vmixOne(r.key, f.startFn); };
+    bs.title = disabled ? disabledTitle : 'Start ' + f.label;
+    bs.disabled = disabled;
+    bs.style.cssText = 'flex:1;border-radius:6px;padding:6px 0;font-size:12px;cursor:' + (disabled ? 'not-allowed' : 'pointer') + ';border:1px solid #2d7a2d;background:#0d2e0d;color:#5dcc5d;font-weight:700;' + (disabled ? 'opacity:0.4;' : '');
+    bs.onclick = function() { if (!disabled) vmixOne(r.key, f.startFn); };
     var bx = document.createElement('button');
     bx.textContent = '■';
-    bx.title = 'Stop ' + f.label;
-    bx.style.cssText = 'flex:1;border-radius:6px;padding:6px 0;font-size:12px;cursor:pointer;border:1px solid #7a2d2d;background:#2e0d0d;color:#cc5d5d;font-weight:700;';
-    bx.onclick = function() { vmixOne(r.key, f.stopFn); };
+    bx.title = disabled ? disabledTitle : 'Stop ' + f.label;
+    bx.disabled = disabled;
+    bx.style.cssText = 'flex:1;border-radius:6px;padding:6px 0;font-size:12px;cursor:' + (disabled ? 'not-allowed' : 'pointer') + ';border:1px solid #7a2d2d;background:#2e0d0d;color:#cc5d5d;font-weight:700;' + (disabled ? 'opacity:0.4;' : '');
+    bx.onclick = function() { if (!disabled) vmixOne(r.key, f.stopFn); };
     btnRow.appendChild(bs);
     btnRow.appendChild(bx);
 
@@ -4225,12 +4387,16 @@ function vmixMakeCard(r) {
   masterRow.style.cssText = 'display:grid;grid-template-columns:1fr 1fr;';
   var startAll = document.createElement('button');
   startAll.innerHTML = '▶ &nbsp;START ALL';
-  startAll.style.cssText = 'padding:13px;font-size:13px;font-weight:700;cursor:pointer;border:none;border-right:1px solid var(--line2);background:#0d2e0d;color:#5dcc5d;border-radius:0 0 0 14px;letter-spacing:0.3px;';
-  startAll.onclick = function() { vmixRoomAction(r.key, 'start'); };
+  startAll.disabled = disabled;
+  startAll.title = disabled ? disabledTitle : '';
+  startAll.style.cssText = 'padding:13px;font-size:13px;font-weight:700;cursor:' + (disabled ? 'not-allowed' : 'pointer') + ';border:none;border-right:1px solid var(--line2);background:#0d2e0d;color:#5dcc5d;border-radius:0 0 0 14px;letter-spacing:0.3px;' + (disabled ? 'opacity:0.4;' : '');
+  startAll.onclick = function() { if (!disabled) vmixRoomAction(r.key, 'start'); };
   var stopAll = document.createElement('button');
   stopAll.innerHTML = '■ &nbsp;STOP ALL';
-  stopAll.style.cssText = 'padding:13px;font-size:13px;font-weight:700;cursor:pointer;border:none;background:#2e0d0d;color:#cc5d5d;border-radius:0 0 14px 0;letter-spacing:0.3px;';
-  stopAll.onclick = function() { vmixRoomAction(r.key, 'stop'); };
+  stopAll.disabled = disabled;
+  stopAll.title = disabled ? disabledTitle : '';
+  stopAll.style.cssText = 'padding:13px;font-size:13px;font-weight:700;cursor:' + (disabled ? 'not-allowed' : 'pointer') + ';border:none;background:#2e0d0d;color:#cc5d5d;border-radius:0 0 14px 0;letter-spacing:0.3px;' + (disabled ? 'opacity:0.4;' : '');
+  stopAll.onclick = function() { if (!disabled) vmixRoomAction(r.key, 'stop'); };
   masterRow.appendChild(startAll);
   masterRow.appendChild(stopAll);
   card.appendChild(masterRow);
@@ -4245,6 +4411,18 @@ function renderVmixCards() {
   VMIX_ROOMS.forEach(function(r) {
     el.appendChild(vmixMakeCard(r));
   });
+  // Gate the page-level All Rooms buttons on lock / proxy availability too.
+  var disabled = vmixIsLocked() || !vmixProxyUrl;
+  var startAll = document.getElementById('vmix-all-start');
+  var stopAll  = document.getElementById('vmix-all-stop');
+  [startAll, stopAll].forEach(function(b) {
+    if (!b) return;
+    b.disabled = disabled;
+    b.style.opacity = disabled ? '0.4' : '';
+    b.style.cursor = disabled ? 'not-allowed' : 'pointer';
+    b.title = disabled ? (vmixIsLocked() ? 'Controls locked by operator' : 'Commander tunnel offline') : '';
+  });
+  renderVmixBanner();
 }
 
 async function vmixSaveIp(key) {
@@ -4300,13 +4478,21 @@ async function vmixGetStatus(ip) {
 }
 
 async function vmixRefreshStatus(key) {
+  // Source of truth is the Commander's Firebase push (vmixLive). If it's
+  // fresh, skip the direct poll — Commander will publish the updated state
+  // within a few seconds. Direct polling here would also clobber fields
+  // Commander provides (latency, tier, recordingStartTime).
+  if (vmixIsLiveFresh()) return;
   const room = VMIX_ROOMS.find(r => r.key === key);
   if (!room) return;
-  vmixStatus[key] = await vmixGetStatus(room.ip);
+  const prev = vmixStatus[key] || {};
+  const fresh = await vmixGetStatus(room.ip);
+  vmixStatus[key] = Object.assign({}, prev, fresh);
   renderVmixCards();
 }
 
 async function vmixRefreshAll() {
+  if (vmixIsLiveFresh()) return;  // Firebase is driving the UI
   await Promise.all(VMIX_ROOMS.map(r => vmixRefreshStatus(r.key)));
 }
 
@@ -4357,25 +4543,26 @@ window.switchPage = function(page) {
     document.getElementById('page-rooms').classList.add('active');
     document.getElementById('nav-rooms').classList.add('on');
     vmixRefreshRooms();
-    vmixRefreshAll();
+    vmixSubscribeStatus();
+    vmixStartTick();
+    vmixRefreshAll();  // fallback direct poll — no-op when Commander live
   } else {
+    vmixStopTick();
     _switchPageOrig(page);
   }
 };
 
 vmixLoadIps();
 
-// Show HTTPS warning if needed
-if (location.protocol === 'https:') {
-  var w = document.getElementById('vmix-https-warn');
-  if (w) w.style.display = 'block';
-}
+// Show HTTPS warning if needed (hidden again once proxy URL arrives from Firebase)
+updateVmixHttpsWarn();
 
 // If page was rooms on last visit, render cards after all init settles
 if (currentPage === 'rooms') {
   requestAnimationFrame(function() {
     vmixLoadIps();
     renderVmixCards();
+    vmixStartTick();
   });
 }
 </script>
