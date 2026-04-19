@@ -1072,6 +1072,12 @@ body.role-user .admin-only-input { pointer-events: none; opacity: 0.55; }
   border-color: rgba(204, 93, 93, 0.35);
 }
 
+/* HTTPS-warn summary — hide the default disclosure triangle across engines
+ * so the custom chevron-less "Tap for details" cue reads as intended. */
+#vmix-https-warn > summary::-webkit-details-marker { display: none; }
+#vmix-https-warn > summary::marker { content: ''; }
+#vmix-https-warn[open] > summary span[style*="opacity"] { display: none; }
+
 /* ─── No-live-event empty state ─── */
 /* Body-level overlay — fixed positioning so the empty state lands at
  * exactly the same screen coordinates regardless of which page is
@@ -1224,11 +1230,16 @@ body.role-user .admin-only-input { pointer-events: none; opacity: 0.55; }
     </div>
     <div id="vmix-identity-chip" style="display:none;flex-shrink:0;font-size:11px;color:var(--t2);background:var(--s2);border:1px solid var(--line2);border-radius:8px;padding:6px 10px;line-height:1.35;cursor:pointer;" onclick="trackerOpenIdentityModal()" title="Change identity"></div>
   </div>
-  <div id="vmix-https-warn" style="display:none;background:#3d2a00;border:1px solid #996600;border-radius:8px;padding:10px 12px;margin-bottom:14px;font-size:11px;color:#ffb74d;line-height:1.5;">
-    ⚠️ <strong>No vMix proxy connected</strong> — buttons won't reach vMix from this HTTPS page.<br>
-    The operator's vMix Commander app needs to be running with <em>Sync with Crew Tracker</em> enabled and linked to this event. Commander publishes its Cloudflare tunnel URL to Firebase; the tracker picks it up automatically.<br>
-    If Commander is already running, check Commander → Tunnel tab to confirm the tunnel is up.
-  </div>
+  <details id="vmix-https-warn" style="display:none;background:#3d2a00;border:1px solid #996600;border-radius:8px;margin-bottom:14px;font-size:11px;color:#ffb74d;line-height:1.5;">
+    <summary style="padding:8px 12px;cursor:pointer;list-style:none;display:flex;align-items:center;gap:8px;user-select:none;">
+      <span style="font-size:12px;">⚠️</span>
+      <span><strong>No vMix proxy connected</strong> — buttons won't reach vMix. <span style="color:#ffb74d;opacity:0.7;font-weight:400;">Tap for details.</span></span>
+    </summary>
+    <div style="padding:0 12px 10px 34px;">
+      The operator's vMix Commander app needs to be running with <em>Sync with Crew Tracker</em> enabled and linked to this event. Commander publishes its Cloudflare tunnel URL to Firebase; the tracker picks it up automatically.<br>
+      If Commander is already running, check Commander → Tunnel tab to confirm the tunnel is up.
+    </div>
+  </details>
   <div id="vmix-commander-banner" style="display:none;margin-bottom:12px;padding:10px 12px;border-radius:8px;font-size:11px;line-height:1.5;"></div>
   <div id="vmix-ros-panel" style="display:none;margin-bottom:12px;background:var(--s2);border:1px solid var(--line2);border-radius:10px;overflow:hidden;">
     <div id="vmix-ros-header" style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;cursor:pointer;user-select:none;" onclick="trackerToggleRunOfShow()">
