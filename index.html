@@ -2351,6 +2351,15 @@ let fbInitStarted = false;
 
 function currentEvent() { return appData.events[currentEventId]; }
 function hasAnyEvent() { return Object.keys(appData.events).length > 0; }
+// Templates are stencils, not bookable events — treat them as "no live event"
+// for routing purposes so the user never accidentally lands inside a template.
+function hasAnyLiveEvent() {
+  return Object.values(appData.events).some(ev => !isTemplateEvent(ev));
+}
+function firstLiveEventId() {
+  const ev = Object.values(appData.events).find(e => !isTemplateEvent(e));
+  return ev ? ev.id : null;
+}
 function syncActiveEvent() {
   if (!hasAnyEvent()) {
     // No events at all — set empty config/state so render doesn't crash
@@ -2360,7 +2369,19 @@ function syncActiveEvent() {
     state = {};
     return;
   }
-  if (!appData.events[currentEventId]) currentEventId = Object.keys(appData.events)[0];
+  // If currentEventId is missing OR points to a template, fall back to a
+  // non-template. If only templates exist, leave currentEventId null and
+  // let the empty-state UI guide the user to duplicate one.
+  const candidate = appData.events[currentEventId];
+  if (!candidate || isTemplateEvent(candidate)) {
+    currentEventId = firstLiveEventId();
+    if (!currentEventId) {
+      appData.currentEventId = null;
+      config = { title:'', subtitle:'', crew:[], steps:[], days:[], schedSteps:[] };
+      state = {};
+      return;
+    }
+  }
   appData.currentEventId = currentEventId;
   const ev = currentEvent();
   ev.config = normalizeConfig(ev.config);
@@ -2438,7 +2459,12 @@ function renderAll() { render(); renderOverview(); if (currentPage === 'today') 
 function renderAllIncludingSettings() { renderAll(); if (isSettingsOpen()) renderSettings(); }
 let eventModalState = null;
 function switchEvent(eventId, opts = {}) {
-  if (!appData.events[eventId]) return;
+  const target = appData.events[eventId];
+  if (!target) return;
+  if (isTemplateEvent(target)) {
+    showToast("Templates can't be live events — duplicate it to start a new event.");
+    return;
+  }
   const fromEventId = currentEventId;
   currentEventId = eventId;
   syncActiveEvent();
@@ -2601,6 +2627,10 @@ function updateEventName(eventId, value) { updateEventField(eventId, 'name', val
 function toggleEventArchive(eventId) {
   const ev = appData.events[eventId];
   if (!ev) return;
+  if (isTemplateEvent(ev)) {
+    showToast("Templates can't be archived. Duplicate to a new event instead.");
+    return;
+  }
   if (!ev.archived) {
     const liveCount = getOrderedEvents(false).length;
     if (liveCount <= 1) { showToast('Keep at least one live event'); return; }
@@ -3065,19 +3095,35 @@ function renderEventSwitcher() {
 function render() {
   ensureActiveEventForState();
   renderEventSwitcher();
-  const hasEvents = hasAnyEvent();
-  document.getElementById('confSub2').textContent = hasEvents ? (currentEvent()?.name || '') : 'No event selected';
+  const hasLiveEvents = hasAnyLiveEvent();
+  // Templates exist? Surface a "duplicate from template" affordance in the
+  // empty state so a fresh install with only the E3 Tracker Template can
+  // bootstrap a live event in one click.
+  const templates = Object.values(appData.events).filter(isTemplateEvent);
+  document.getElementById('confSub2').textContent = hasLiveEvents ? (currentEvent()?.name || '') : 'No event selected';
 
   const tracker = document.getElementById('tracker');
-  if (!hasEvents) {
-    // Empty state — prompt admin to create first event, user to wait for admin
-    const adminPrompt = `
+  if (!hasLiveEvents) {
+    // Empty state — different copy depending on whether templates exist:
+    //   • templates available → admin can duplicate one to get going
+    //   • no templates       → admin starts from scratch
+    //   • non-admin           → wait for admin
+    const templateButtons = templates.map(t =>
+      `<button class="save-btn" style="display:inline-block;padding:12px 20px;width:auto;font-size:13px;margin:4px;" data-duplicate-event="${escapeHtml(t.id)}">Start from "${escapeHtml(t.name || 'Template')}"</button>`
+    ).join('');
+    const adminPrompt = templates.length
+      ? `
+        <div style="font-size:18px;font-weight:700;color:var(--t1);margin-bottom:10px;">No live events yet</div>
+        <div style="font-size:13px;line-height:1.5;margin-bottom:24px;max-width:380px;margin-left:auto;margin-right:auto;">You have a template ready. Duplicate it to start a new live event, or create one from scratch.</div>
+        <div style="display:flex;flex-wrap:wrap;justify-content:center;gap:8px;margin-bottom:14px;">${templateButtons}</div>
+        <button class="rst-btn" style="display:inline-block;padding:10px 20px;width:auto;font-size:13px;" data-create-event="true">+ Create blank event</button>`
+      : `
         <div style="font-size:18px;font-weight:700;color:var(--t1);margin-bottom:10px;">No events yet</div>
         <div style="font-size:13px;line-height:1.5;margin-bottom:24px;max-width:340px;margin-left:auto;margin-right:auto;">Create your first event to start tracking setup progress. You can configure crews, rooms, days and checklist steps in Settings.</div>
         <button class="save-btn" style="display:inline-block;padding:12px 24px;width:auto;font-size:14px;" data-create-event="true">+ Create your first event</button>`;
     const userPrompt = `
-        <div style="font-size:18px;font-weight:700;color:var(--t1);margin-bottom:10px;">No events yet</div>
-        <div style="font-size:13px;line-height:1.5;max-width:340px;margin-left:auto;margin-right:auto;">Your admin hasn't created any events yet. Check back once they've set one up.</div>`;
+        <div style="font-size:18px;font-weight:700;color:var(--t1);margin-bottom:10px;">No live events yet</div>
+        <div style="font-size:13px;line-height:1.5;max-width:340px;margin-left:auto;margin-right:auto;">Your admin hasn't created a live event yet. Check back once they've set one up.</div>`;
     tracker.innerHTML = `
       <div style="padding:60px 24px;text-align:center;color:var(--t2);">
         ${isAdmin() ? adminPrompt : userPrompt}
@@ -3370,10 +3416,14 @@ function renderSettings() {
             ${eventMetaLine(ev) ? `<span class="event-pill">${escapeHtml(eventMetaLine(ev))}</span>` : ''}
           </div>
           <div class="event-admin-row event-admin-actions">
-            ${ev.id === currentEventId ? '<button class="rst-btn" type="button" disabled>Current event</button>' : `<button class="rst-btn" type="button" data-switch-event="${escapeHtml(ev.id)}">Switch to event</button>`}
-            <button class="rst-btn admin-only admin-only-flex" type="button" data-duplicate-event="${escapeHtml(ev.id)}">Duplicate</button>
-            <button class="rst-btn admin-only admin-only-flex" type="button" data-toggle-archive-event="${escapeHtml(ev.id)}">${ev.archived ? 'Unarchive' : 'Archive'}</button>
-            <button class="rst-btn admin-only admin-only-flex" type="button" data-delete-event="${escapeHtml(ev.id)}">Delete</button>
+            ${isTemplateEvent(ev) ? `
+              <button class="rst-btn admin-only admin-only-flex" type="button" data-duplicate-event="${escapeHtml(ev.id)}">Duplicate to new event</button>
+            ` : `
+              ${ev.id === currentEventId ? '<button class="rst-btn" type="button" disabled>Current event</button>' : `<button class="rst-btn" type="button" data-switch-event="${escapeHtml(ev.id)}">Switch to event</button>`}
+              <button class="rst-btn admin-only admin-only-flex" type="button" data-duplicate-event="${escapeHtml(ev.id)}">Duplicate</button>
+              <button class="rst-btn admin-only admin-only-flex" type="button" data-toggle-archive-event="${escapeHtml(ev.id)}">${ev.archived ? 'Unarchive' : 'Archive'}</button>
+              <button class="rst-btn admin-only admin-only-flex" type="button" data-delete-event="${escapeHtml(ev.id)}">Delete</button>
+            `}
           </div>
         </div>`;
   };
