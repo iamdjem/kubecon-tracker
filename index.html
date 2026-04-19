@@ -2673,6 +2673,30 @@ function submitEventModal() {
   const baseConfig = isDuplicate
     ? clone(source?.config || {})
     : { title: cleanName, subtitle: '', crew: [], steps: [], days: [], schedSteps: [] };
+  // When duplicating (especially from a template), if the source has crew
+  // rooms but no vmixRooms, auto-derive vmixRooms from the flattened crew
+  // rooms so the new event's Recording page isn't empty. vmixRooms and
+  // config.crew[].rooms are separate lists by design, but for a fresh
+  // template-duplicated event they should start in sync.
+  if (isDuplicate &&
+      (!Array.isArray(baseConfig.vmixRooms) || baseConfig.vmixRooms.length === 0) &&
+      Array.isArray(baseConfig.crew) && baseConfig.crew.length) {
+    const flat = [];
+    const seen = new Set();
+    baseConfig.crew.forEach(c => {
+      (c.rooms || []).forEach(r => {
+        const name = (r && r.name) ? String(r.name).trim() : '';
+        if (!name || seen.has(name.toLowerCase())) return;
+        seen.add(name.toLowerCase());
+        flat.push({
+          key: 'room_' + Math.random().toString(36).slice(2, 10),
+          name,
+          ip: ''
+        });
+      });
+    });
+    if (flat.length) baseConfig.vmixRooms = flat;
+  }
   const includeState = isDuplicate && document.getElementById('event-modal-copy-state').checked;
   const subtitle = [location, dateLabel].filter(Boolean).join(' · ');
   const ev = makeEvent({
