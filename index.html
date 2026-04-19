@@ -1071,6 +1071,75 @@ body.role-user .admin-only-input { pointer-events: none; opacity: 0.55; }
   background: rgba(204, 93, 93, 0.15);
   border-color: rgba(204, 93, 93, 0.35);
 }
+
+/* ─── No-live-event empty state ─── */
+/* Self-centering shell — works regardless of parent container shape.
+ * min-height pushes the content roughly to viewport center on every page;
+ * flex centering aligns the inner block consistently. */
+.no-live-event-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 60vh;
+  padding: 40px 24px;
+  text-align: center;
+  color: var(--t2);
+  box-sizing: border-box;
+  flex: 1 1 auto;
+}
+.no-live-event-empty .empty-state-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--t1);
+  margin-bottom: 10px;
+  line-height: 1.3;
+}
+.no-live-event-empty .empty-state-body {
+  font-size: 13px;
+  line-height: 1.5;
+  margin-bottom: 24px;
+  max-width: 380px;
+}
+.no-live-event-empty .empty-state-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+.no-live-event-empty .empty-state-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: auto;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  cursor: pointer;
+  font-family: inherit;
+  font-weight: 700;
+  white-space: nowrap;
+  transition: opacity 0.15s ease, transform 0.15s ease;
+}
+.no-live-event-empty .empty-state-btn:active { transform: scale(0.97); }
+.no-live-event-empty .empty-state-btn-primary {
+  background: var(--accent);
+  color: #000;
+  font-size: 13px;
+  padding: 12px 22px;
+  margin: 4px;
+}
+.no-live-event-empty .empty-state-btn-primary:hover { opacity: 0.92; }
+.no-live-event-empty .empty-state-btn-secondary {
+  background: var(--s3);
+  border: 1px solid var(--line2);
+  color: var(--t1);
+  font-size: 13px;
+  font-weight: 600;
+  padding: 10px 20px;
+}
+.no-live-event-empty .empty-state-btn-secondary:hover { background: var(--s4); border-color: var(--accent); color: var(--accent); }
 </style>
 </head>
 <body>
@@ -2457,7 +2526,17 @@ function fbCleanSync() {
 function saveConfig(push=true) { saveAppData(); if (push) pushEventData(); }
 function saveState(push=true)  { saveAppData(); if (push) pushEventData(); }
 function isSettingsOpen() { return document.getElementById('sheet')?.classList.contains('open'); }
-function renderAll() { render(); renderOverview(); if (currentPage === 'today') renderToday(); if (currentPage === 'record') renderRecord(); if (currentPage === 'rooms' && typeof renderVmixCards === 'function') renderVmixCards(); }
+function renderAll() {
+  render();
+  renderOverview();
+  // Always re-render schedule + rooms so empty-state buttons on a hidden
+  // page disappear after an event is created elsewhere — without this, a
+  // Director who creates the first event from Setup still sees stale
+  // "Start from <template>" buttons when they navigate to Recording.
+  renderToday();
+  if (currentPage === 'record') renderRecord();
+  if (typeof renderVmixCards === 'function') renderVmixCards();
+}
 function renderAllIncludingSettings() { renderAll(); if (isSettingsOpen()) renderSettings(); }
 let eventModalState = null;
 function switchEvent(eventId, opts = {}) {
@@ -3082,30 +3161,29 @@ function hideSignInScreen() {
 // Render
 
 // Shared empty-state markup used on every page when no live event exists.
-// Different copy + actions depending on:
-//   - admin with templates available  → "Start from <template>" buttons + create blank
-//   - admin with no templates          → "+ Create your first event"
-//   - non-admin                        → "Your admin hasn't created a live event yet"
-// Returns inner HTML for an empty-state container; callers wrap as needed.
+// Returns a self-centering container — uses min-height:60vh + flex centering
+// so it lands in the same visual position whether the parent is a scrolling
+// page (page-rooms), a flex column (page-today), or a grid container
+// (ovGrid). Inner content uses identical sizing across all pages.
 function renderNoLiveEventEmptyHTML() {
   const templates = Object.values(appData.events).filter(isTemplateEvent);
   const templateButtons = templates.map(t =>
-    `<button class="save-btn" style="display:inline-block;padding:12px 20px;width:auto;font-size:13px;margin:4px;" data-duplicate-event="${escapeHtml(t.id)}">Start from "${escapeHtml(t.name || 'Template')}"</button>`
+    `<button class="empty-state-btn empty-state-btn-primary" data-duplicate-event="${escapeHtml(t.id)}">Start from "${escapeHtml(t.name || 'Template')}"</button>`
   ).join('');
   const adminPrompt = templates.length
     ? `
-      <div style="font-size:18px;font-weight:700;color:var(--t1);margin-bottom:10px;">No live events yet</div>
-      <div style="font-size:13px;line-height:1.5;margin-bottom:24px;max-width:380px;margin-left:auto;margin-right:auto;">You have a template ready. Duplicate it to start a new live event, or create one from scratch.</div>
-      <div style="display:flex;flex-wrap:wrap;justify-content:center;gap:8px;margin-bottom:14px;">${templateButtons}</div>
-      <button class="rst-btn" style="display:inline-block;padding:10px 20px;width:auto;font-size:13px;" data-create-event="true">+ Create blank event</button>`
+      <div class="empty-state-title">No live events yet</div>
+      <div class="empty-state-body">You have a template ready. Duplicate it to start a new live event, or create one from scratch.</div>
+      <div class="empty-state-actions">${templateButtons}</div>
+      <button class="empty-state-btn empty-state-btn-secondary" data-create-event="true">+ Create blank event</button>`
     : `
-      <div style="font-size:18px;font-weight:700;color:var(--t1);margin-bottom:10px;">No events yet</div>
-      <div style="font-size:13px;line-height:1.5;margin-bottom:24px;max-width:340px;margin-left:auto;margin-right:auto;">Create your first event to start tracking setup progress. You can configure crews, rooms, days and checklist steps in Settings.</div>
-      <button class="save-btn" style="display:inline-block;padding:12px 24px;width:auto;font-size:14px;" data-create-event="true">+ Create your first event</button>`;
+      <div class="empty-state-title">No events yet</div>
+      <div class="empty-state-body">Create your first event to start tracking setup progress. You can configure crews, rooms, days and checklist steps in Settings.</div>
+      <button class="empty-state-btn empty-state-btn-primary" data-create-event="true">+ Create your first event</button>`;
   const userPrompt = `
-      <div style="font-size:18px;font-weight:700;color:var(--t1);margin-bottom:10px;">No live events yet</div>
-      <div style="font-size:13px;line-height:1.5;max-width:340px;margin-left:auto;margin-right:auto;">Your admin hasn't created a live event yet. Check back once they've set one up.</div>`;
-  return `<div style="padding:60px 24px;text-align:center;color:var(--t2);">${isAdmin() ? adminPrompt : userPrompt}</div>`;
+      <div class="empty-state-title">No live events yet</div>
+      <div class="empty-state-body">Your admin hasn't created a live event yet. Check back once they've set one up.</div>`;
+  return `<div class="no-live-event-empty">${isAdmin() ? adminPrompt : userPrompt}</div>`;
 }
 
 function renderEventSwitcher() {
@@ -3903,12 +3981,10 @@ function renderToday() {
   const openExt = document.getElementById('scheduleOpenExternal');
   const blockedLink = document.getElementById('scheduleBlockedLink');
 
-  // No live event → take over the page-today body with the shared empty state.
-  if (!hasAnyLiveEvent()) {
-    const page = document.getElementById('page-today');
-    if (page) page.innerHTML = renderNoLiveEventEmptyHTML();
-    return;
-  }
+  // Schedule page is just a thin shell around an embedded iframe — it
+  // doesn't own event-specific data, so the existing scheduleEmbedEmpty
+  // state covers "nothing to show" without clobbering the iframe DOM.
+  // No special no-live-event takeover here.
   const url = (config.scheduleEmbedUrl || '').trim();
 
   if (!url) {
@@ -5479,15 +5555,22 @@ function renderVmixCards() {
   var el = document.getElementById('vmix-cards');
   if (!el) return;
 
+  // Track which auxiliary elements we toggled so we can restore them when
+  // we transition back to a live-event view (otherwise they'd stay
+  // display:none even after an event was created).
+  var EMPTY_HIDE_IDS = ['vmix-filter-row', 'vmix-all-row', 'vmix-commander-banner', 'vmix-identity-chip', 'vmix-https-warn', 'vmix-runofshow-panel', 'vmix-operator-empty', 'vmix-operator-mismatch'];
+
   // No live event → take over with the shared empty state and bail. Hide
   // the filter row, master row, banner, identity chip — none of them are
   // meaningful without an active event to control.
   if (!hasAnyLiveEvent()) {
     el.innerHTML = renderNoLiveEventEmptyHTML();
-    var hideIds = ['vmix-filter-row', 'vmix-all-row', 'vmix-commander-banner', 'vmix-identity-chip', 'vmix-https-warn', 'vmix-runofshow-panel', 'vmix-operator-empty', 'vmix-operator-mismatch'];
-    hideIds.forEach(function (id) { var n = document.getElementById(id); if (n) n.style.display = 'none'; });
+    EMPTY_HIDE_IDS.forEach(function (id) { var n = document.getElementById(id); if (n) n.style.display = 'none'; });
     return;
   }
+  // Live event present — clear the inline display:none we set above so the
+  // downstream rendering can put each element in its proper visibility state.
+  EMPTY_HIDE_IDS.forEach(function (id) { var n = document.getElementById(id); if (n && n.style.display === 'none') n.style.display = ''; });
 
   // Capture which IP input has focus + cursor position before we tear down
   // and rebuild every card. We restore it after — without this, every
