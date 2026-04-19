@@ -3211,31 +3211,53 @@ function updateNoLiveEventOverlay() {
     return;
   }
   // Re-render content each time so template buttons reflect the current
-  // template list (e.g. an admin just added a second template).
-  overlay.innerHTML = renderNoLiveEventEmptyHTML();
+  // template list AND the prompt copy adapts to whichever tab is active.
+  overlay.innerHTML = renderNoLiveEventEmptyHTML(currentPage);
   overlay.classList.add('show');
 }
 
+// Tab-specific copy for the no-live-event empty state. The action buttons
+// stay identical across pages — only the title + body change to give the
+// user context for "what could I be doing here once I have an event?"
+const NO_EVENT_PAGE_COPY = {
+  setup:    { title: 'Setup — no live event yet',     body: 'Create or restore an event to configure crews, rooms, days, and checklist steps.' },
+  overview: { title: 'Overview — no live event yet',  body: 'Create or restore an event to track per-room setup progress across days.' },
+  today:    { title: 'Schedule — no live event yet',  body: 'Create or restore an event to embed your conference schedule for crew to reference.' },
+  rooms:    { title: 'Recording — no live event yet', body: 'Create or restore an event to control vMix — start, stop, and monitor REC / STREAM / MULTI per room.' }
+};
+
 // Shared empty-state markup. Returns the inner content used by both the
 // body-level overlay above and any inline/test contexts.
-function renderNoLiveEventEmptyHTML() {
+function renderNoLiveEventEmptyHTML(pageKey) {
   const templates = Object.values(appData.events).filter(isTemplateEvent);
+  // Per-tab title/body. Falls back to the generic copy when the tab key
+  // isn't recognized (or when called from an inline/test context).
+  const ctx = NO_EVENT_PAGE_COPY[pageKey] || null;
+  const adminTitle = ctx ? ctx.title : (templates.length ? 'No live events yet' : 'No events yet');
+  const adminBody = ctx
+    ? ctx.body + (templates.length ? ' Duplicate the template to start in one click, or create a blank event.' : '')
+    : (templates.length
+        ? 'You have a template ready. Duplicate it to start a new live event, or create one from scratch.'
+        : 'Create your first event to start tracking setup progress. You can configure crews, rooms, days and checklist steps in Settings.');
+  const userTitle = ctx ? ctx.title : 'No live events yet';
+  const userBody = (ctx ? ctx.body : '') + (ctx ? ' ' : '') + "Your admin hasn't created a live event yet. Check back once they've set one up.";
+
   const templateButtons = templates.map(t =>
     `<button class="empty-state-btn empty-state-btn-primary" data-duplicate-event="${escapeHtml(t.id)}">Start from "${escapeHtml(t.name || 'Template')}"</button>`
   ).join('');
   const adminPrompt = templates.length
     ? `
-      <div class="empty-state-title">No live events yet</div>
-      <div class="empty-state-body">You have a template ready. Duplicate it to start a new live event, or create one from scratch.</div>
+      <div class="empty-state-title">${escapeHtml(adminTitle)}</div>
+      <div class="empty-state-body">${escapeHtml(adminBody)}</div>
       <div class="empty-state-actions">${templateButtons}</div>
       <button class="empty-state-btn empty-state-btn-secondary" data-create-event="true">+ Create blank event</button>`
     : `
-      <div class="empty-state-title">No events yet</div>
-      <div class="empty-state-body">Create your first event to start tracking setup progress. You can configure crews, rooms, days and checklist steps in Settings.</div>
+      <div class="empty-state-title">${escapeHtml(adminTitle)}</div>
+      <div class="empty-state-body">${escapeHtml(adminBody)}</div>
       <button class="empty-state-btn empty-state-btn-primary" data-create-event="true">+ Create your first event</button>`;
   const userPrompt = `
-      <div class="empty-state-title">No live events yet</div>
-      <div class="empty-state-body">Your admin hasn't created a live event yet. Check back once they've set one up.</div>`;
+      <div class="empty-state-title">${escapeHtml(userTitle)}</div>
+      <div class="empty-state-body">${escapeHtml(userBody.trim())}</div>`;
   return `<div class="no-live-event-empty">${isAdmin() ? adminPrompt : userPrompt}</div>`;
 }
 
