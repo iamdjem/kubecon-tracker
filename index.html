@@ -1073,43 +1073,67 @@ body.role-user .admin-only-input { pointer-events: none; opacity: 0.55; }
 }
 
 /* ─── No-live-event empty state ─── */
-/* Self-centering shell — works regardless of parent container shape.
- * min-height pushes the content roughly to viewport center on every page;
- * flex centering aligns the inner block consistently. */
+/* Body-level overlay — fixed positioning so the empty state lands at
+ * exactly the same screen coordinates regardless of which page is
+ * currently showing. Each page's renderer handles its own visibility
+ * (hide normal content) and this overlay shows on top. */
+.no-live-event-overlay {
+  position: fixed;
+  top: 0;
+  bottom: 58px;          /* clears bottom nav (.bottom-nav height: 58px) */
+  left: 0;
+  right: 0;
+  z-index: 120;          /* above pages, below modals */
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  box-sizing: border-box;
+  background: var(--bg, #0c0c0c);
+  color: var(--t2);
+  text-align: center;
+}
+.no-live-event-overlay.show { display: flex; flex-direction: column; }
+
+/* Inline empty-state markup (.no-live-event-empty) — kept for callers that
+ * inject inline (e.g. unit-test harness) but no longer used for live UI.
+ * Identical inner sizing classes so the overlay and any inline use match. */
 .no-live-event-empty {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   width: 100%;
-  min-height: 60vh;
   padding: 40px 24px;
   text-align: center;
   color: var(--t2);
   box-sizing: border-box;
-  flex: 1 1 auto;
 }
-.no-live-event-empty .empty-state-title {
+.no-live-event-overlay .empty-state-title,
+.no-live-event-empty   .empty-state-title {
   font-size: 18px;
   font-weight: 700;
   color: var(--t1);
   margin-bottom: 10px;
   line-height: 1.3;
 }
-.no-live-event-empty .empty-state-body {
+.no-live-event-overlay .empty-state-body,
+.no-live-event-empty   .empty-state-body {
   font-size: 13px;
   line-height: 1.5;
   margin-bottom: 24px;
   max-width: 380px;
 }
-.no-live-event-empty .empty-state-actions {
+.no-live-event-overlay .empty-state-actions,
+.no-live-event-empty   .empty-state-actions {
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
   gap: 8px;
   margin-bottom: 14px;
 }
-.no-live-event-empty .empty-state-btn {
+.no-live-event-overlay .empty-state-btn,
+.no-live-event-empty   .empty-state-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -1122,16 +1146,20 @@ body.role-user .admin-only-input { pointer-events: none; opacity: 0.55; }
   white-space: nowrap;
   transition: opacity 0.15s ease, transform 0.15s ease;
 }
-.no-live-event-empty .empty-state-btn:active { transform: scale(0.97); }
-.no-live-event-empty .empty-state-btn-primary {
+.no-live-event-overlay .empty-state-btn:active,
+.no-live-event-empty   .empty-state-btn:active { transform: scale(0.97); }
+.no-live-event-overlay .empty-state-btn-primary,
+.no-live-event-empty   .empty-state-btn-primary {
   background: var(--accent);
   color: #000;
   font-size: 13px;
   padding: 12px 22px;
   margin: 4px;
 }
-.no-live-event-empty .empty-state-btn-primary:hover { opacity: 0.92; }
-.no-live-event-empty .empty-state-btn-secondary {
+.no-live-event-overlay .empty-state-btn-primary:hover,
+.no-live-event-empty   .empty-state-btn-primary:hover { opacity: 0.92; }
+.no-live-event-overlay .empty-state-btn-secondary,
+.no-live-event-empty   .empty-state-btn-secondary {
   background: var(--s3);
   border: 1px solid var(--line2);
   color: var(--t1);
@@ -1139,7 +1167,8 @@ body.role-user .admin-only-input { pointer-events: none; opacity: 0.55; }
   font-weight: 600;
   padding: 10px 20px;
 }
-.no-live-event-empty .empty-state-btn-secondary:hover { background: var(--s4); border-color: var(--accent); color: var(--accent); }
+.no-live-event-overlay .empty-state-btn-secondary:hover,
+.no-live-event-empty   .empty-state-btn-secondary:hover { background: var(--s4); border-color: var(--accent); color: var(--accent); }
 </style>
 </head>
 <body>
@@ -1260,6 +1289,12 @@ body.role-user .admin-only-input { pointer-events: none; opacity: 0.55; }
 
 
 <div class="toast" id="toast"></div>
+
+<!-- Single body-level empty-state overlay. Shown when no live event exists,
+     so the empty state lands at exactly the same screen position regardless
+     of which page (page-setup / page-overview / page-rooms / page-today) is
+     underneath. updateNoLiveEventOverlay() in JS toggles it. -->
+<div id="no-live-event-overlay" class="no-live-event-overlay"></div>
 
 <!-- BOTTOM NAV -->
 <nav class="bottom-nav">
@@ -2527,12 +2562,12 @@ function saveConfig(push=true) { saveAppData(); if (push) pushEventData(); }
 function saveState(push=true)  { saveAppData(); if (push) pushEventData(); }
 function isSettingsOpen() { return document.getElementById('sheet')?.classList.contains('open'); }
 function renderAll() {
+  // Body-level overlay handles all "no live event" UI uniformly across
+  // every page. Toggle it first so subsequent page renders see the
+  // visibility state they expect.
+  updateNoLiveEventOverlay();
   render();
   renderOverview();
-  // Always re-render schedule + rooms so empty-state buttons on a hidden
-  // page disappear after an event is created elsewhere — without this, a
-  // Director who creates the first event from Setup still sees stale
-  // "Start from <template>" buttons when they navigate to Recording.
   renderToday();
   if (currentPage === 'record') renderRecord();
   if (typeof renderVmixCards === 'function') renderVmixCards();
@@ -3160,11 +3195,28 @@ function hideSignInScreen() {
 
 // Render
 
-// Shared empty-state markup used on every page when no live event exists.
-// Returns a self-centering container — uses min-height:60vh + flex centering
-// so it lands in the same visual position whether the parent is a scrolling
-// page (page-rooms), a flex column (page-today), or a grid container
-// (ovGrid). Inner content uses identical sizing across all pages.
+// Toggles the body-level overlay (#no-live-event-overlay). Called from any
+// render path that might change "is there a live event?" — including
+// renderAll (event mutations), switchPage (navigation), and the events-tree
+// snapshot listener. A single fixed-positioned element means the empty
+// state lands at the exact same coordinates on every page — fixes the
+// "Setup is roughly centered, Overview is in the top-left" alignment drift.
+function updateNoLiveEventOverlay() {
+  const overlay = document.getElementById('no-live-event-overlay');
+  if (!overlay) return;
+  if (hasAnyLiveEvent()) {
+    overlay.classList.remove('show');
+    overlay.innerHTML = '';
+    return;
+  }
+  // Re-render content each time so template buttons reflect the current
+  // template list (e.g. an admin just added a second template).
+  overlay.innerHTML = renderNoLiveEventEmptyHTML();
+  overlay.classList.add('show');
+}
+
+// Shared empty-state markup. Returns the inner content used by both the
+// body-level overlay above and any inline/test contexts.
 function renderNoLiveEventEmptyHTML() {
   const templates = Object.values(appData.events).filter(isTemplateEvent);
   const templateButtons = templates.map(t =>
@@ -3215,7 +3267,9 @@ function render() {
 
   const tracker = document.getElementById('tracker');
   if (!hasLiveEvents) {
-    tracker.innerHTML = renderNoLiveEventEmptyHTML();
+    // Empty state lives in the body-level overlay (#no-live-event-overlay).
+    // Just clear the page surface so nothing peeks out behind the overlay.
+    tracker.innerHTML = '';
     // Clear chip rows / day tabs
     const dayTabsEl = document.getElementById('setupDayTabs');
     if (dayTabsEl) dayTabsEl.innerHTML = '';
@@ -3904,6 +3958,9 @@ function switchPage(page) {
   document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('on'));
   document.getElementById('page-' + page).classList.add('active');
   document.getElementById('nav-' + page).classList.add('on');
+  // Body-level overlay handles "no live event" identically across pages —
+  // refresh it on every navigation so it shows/hides without flicker.
+  updateNoLiveEventOverlay();
   if (page === 'overview') renderOverview();
   if (page === 'today') renderToday();
   if (page === 'record') renderRecord();
@@ -3912,7 +3969,8 @@ function switchPage(page) {
 function renderOverview() {
   const grid = document.getElementById('ovGrid');
   if (!hasAnyLiveEvent()) {
-    if (grid) grid.innerHTML = renderNoLiveEventEmptyHTML();
+    // Body-level overlay covers this — just clear so nothing leaks through.
+    if (grid) grid.innerHTML = '';
     const ovTabs = document.getElementById('ovDayTabs');
     if (ovTabs) ovTabs.innerHTML = '';
     return;
@@ -5560,11 +5618,10 @@ function renderVmixCards() {
   // display:none even after an event was created).
   var EMPTY_HIDE_IDS = ['vmix-filter-row', 'vmix-all-row', 'vmix-commander-banner', 'vmix-identity-chip', 'vmix-https-warn', 'vmix-runofshow-panel', 'vmix-operator-empty', 'vmix-operator-mismatch'];
 
-  // No live event → take over with the shared empty state and bail. Hide
-  // the filter row, master row, banner, identity chip — none of them are
-  // meaningful without an active event to control.
+  // No live event → body-level overlay handles the empty state. Just clear
+  // the cards container and hide auxiliary chrome so nothing peeks out.
   if (!hasAnyLiveEvent()) {
-    el.innerHTML = renderNoLiveEventEmptyHTML();
+    el.innerHTML = '';
     EMPTY_HIDE_IDS.forEach(function (id) { var n = document.getElementById(id); if (n) n.style.display = 'none'; });
     return;
   }
@@ -6002,6 +6059,8 @@ window.switchPage = function(page) {
     document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('on'));
     document.getElementById('page-rooms').classList.add('active');
     document.getElementById('nav-rooms').classList.add('on');
+    // Body-level overlay handles "no live event" identically across pages.
+    if (typeof updateNoLiveEventOverlay === 'function') updateNoLiveEventOverlay();
     vmixRefreshRooms();
     vmixSubscribeStatus();
     vmixStartTick();
