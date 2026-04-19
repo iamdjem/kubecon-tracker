@@ -4046,13 +4046,18 @@ function renderOverview() {
       <div style="width:8px;height:8px;border-radius:50%;background:${crewColor};flex-shrink:0;"></div>
       <span style="font-size:9px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:0.5px;">${c.name}</span>
     </div>`;
+    // Steps displayed (and counted toward "done") must be filtered by the
+    // currently-selected day. activeSteps() returns only steps whose
+    // `days` array is empty (applies everywhere) or includes currentDay —
+    // same semantics Setup uses so both pages show the same icon set.
+    const daySteps = activeSteps();
     c.rooms.forEach(room => {
-      const done = countDone(room.id);
-      const total = config.steps.length;
+      const done = countDone(room.id);      // already day-aware via activeSteps
+      const total = daySteps.length;
       const pct = total ? Math.round(done/total*100) : 0;
-      const complete = pct === 100;
+      const complete = total > 0 && pct === 100;
       const color = complete ? 'var(--green)' : pct>0 ? 'var(--accent)' : 'var(--line2)';
-      const stepsIcons = config.steps.map(s =>
+      const stepsIcons = daySteps.map(s =>
         `<span class="ov-step${getVal(room.id,s.key)?' on':''}">${s.icon}</span>`
       ).join('');
       html += `<div class="ov-card${complete?' complete':''}" onclick="openRoomDetail('${room.id}')">
@@ -4842,13 +4847,12 @@ function trackerRenderIdentityChip() {
   const chip = document.getElementById('vmix-identity-chip');
   if (!chip) return;
   if (!trackerIdentity) { chip.style.display = 'none'; return; }
-  // One role badge only — the Firebase auth role (ADMIN / CREW) is the
-  // only one that actually gates write permissions, so the UI shows
-  // exactly that. The app-level identity role (Director / Operator /
-  // Observer) is still used internally for filtering and action gating,
-  // but it doesn't need to be on the chip where it reads as duplicate.
-  // Operators get their assigned-rooms list appended so they can see
-  // their scope at a glance.
+  // Single-line chip: just the Firebase auth role (ADMIN / CREW). That's
+  // what gates write permissions — the only thing actually meaningful to
+  // surface. Identity name + app-level role (Director / Operator /
+  // Observer) are still used internally for filtering + action gating,
+  // and the full identity is editable via the chip's click handler.
+  // Operators get their assigned-rooms list appended inline.
   const authRole = currentRole === 'admin' ? 'ADMIN' : currentRole === 'user' ? 'CREW' : 'OFFLINE';
   const authHue = currentRole === 'admin' ? 'var(--accent)' : currentRole === 'user' ? '#47e8a0' : 'var(--t3)';
   let assigned = '';
@@ -4858,11 +4862,12 @@ function trackerRenderIdentityChip() {
   }
   chip.style.display = 'block';
   const rematchBtn = trackerIdentity.crewId
-    ? '<button onclick="event.stopPropagation(); trackerRematchAssignedRooms();" style="margin-top:6px;background:var(--s3);border:1px solid var(--line2);color:var(--t2);font-size:10px;font-weight:600;padding:3px 8px;border-radius:5px;cursor:pointer;font-family:inherit;">↻ Re-match rooms</button>'
+    ? '<button onclick="event.stopPropagation(); trackerRematchAssignedRooms();" style="margin-left:6px;background:var(--s3);border:1px solid var(--line2);color:var(--t2);font-size:10px;font-weight:600;padding:2px 6px;border-radius:4px;cursor:pointer;font-family:inherit;vertical-align:middle;">↻</button>'
     : '';
+  chip.title = 'Signed in as ' + escapeHtml(trackerIdentity.name) + ' (' + escapeHtml(trackerIdentity.role) + ')';
   chip.innerHTML =
-    '<div style="font-weight:700;color:var(--t1);">' + escapeHtml(trackerIdentity.name) + '</div>' +
-    '<div style="color:' + authHue + ';font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;">' + authRole + (assigned ? ' <span style="color:var(--t3);opacity:0.75;font-weight:600;">· ' + escapeHtml(assigned) + '</span>' : '') + '</div>' +
+    '<span style="color:' + authHue + ';font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;">' + authRole + '</span>' +
+    (assigned ? '<span style="color:var(--t3);font-weight:600;font-size:10px;margin-left:6px;">· ' + escapeHtml(assigned) + '</span>' : '') +
     rematchBtn;
 }
 
