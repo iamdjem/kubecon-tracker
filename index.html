@@ -3080,6 +3080,34 @@ function hideSignInScreen() {
 }
 
 // Render
+
+// Shared empty-state markup used on every page when no live event exists.
+// Different copy + actions depending on:
+//   - admin with templates available  → "Start from <template>" buttons + create blank
+//   - admin with no templates          → "+ Create your first event"
+//   - non-admin                        → "Your admin hasn't created a live event yet"
+// Returns inner HTML for an empty-state container; callers wrap as needed.
+function renderNoLiveEventEmptyHTML() {
+  const templates = Object.values(appData.events).filter(isTemplateEvent);
+  const templateButtons = templates.map(t =>
+    `<button class="save-btn" style="display:inline-block;padding:12px 20px;width:auto;font-size:13px;margin:4px;" data-duplicate-event="${escapeHtml(t.id)}">Start from "${escapeHtml(t.name || 'Template')}"</button>`
+  ).join('');
+  const adminPrompt = templates.length
+    ? `
+      <div style="font-size:18px;font-weight:700;color:var(--t1);margin-bottom:10px;">No live events yet</div>
+      <div style="font-size:13px;line-height:1.5;margin-bottom:24px;max-width:380px;margin-left:auto;margin-right:auto;">You have a template ready. Duplicate it to start a new live event, or create one from scratch.</div>
+      <div style="display:flex;flex-wrap:wrap;justify-content:center;gap:8px;margin-bottom:14px;">${templateButtons}</div>
+      <button class="rst-btn" style="display:inline-block;padding:10px 20px;width:auto;font-size:13px;" data-create-event="true">+ Create blank event</button>`
+    : `
+      <div style="font-size:18px;font-weight:700;color:var(--t1);margin-bottom:10px;">No events yet</div>
+      <div style="font-size:13px;line-height:1.5;margin-bottom:24px;max-width:340px;margin-left:auto;margin-right:auto;">Create your first event to start tracking setup progress. You can configure crews, rooms, days and checklist steps in Settings.</div>
+      <button class="save-btn" style="display:inline-block;padding:12px 24px;width:auto;font-size:14px;" data-create-event="true">+ Create your first event</button>`;
+  const userPrompt = `
+      <div style="font-size:18px;font-weight:700;color:var(--t1);margin-bottom:10px;">No live events yet</div>
+      <div style="font-size:13px;line-height:1.5;max-width:340px;margin-left:auto;margin-right:auto;">Your admin hasn't created a live event yet. Check back once they've set one up.</div>`;
+  return `<div style="padding:60px 24px;text-align:center;color:var(--t2);">${isAdmin() ? adminPrompt : userPrompt}</div>`;
+}
+
 function renderEventSwitcher() {
   const wrap = document.getElementById('eventSwitcherWrap');
   if (!wrap) return;
@@ -3109,30 +3137,7 @@ function render() {
 
   const tracker = document.getElementById('tracker');
   if (!hasLiveEvents) {
-    // Empty state — different copy depending on whether templates exist:
-    //   • templates available → admin can duplicate one to get going
-    //   • no templates       → admin starts from scratch
-    //   • non-admin           → wait for admin
-    const templateButtons = templates.map(t =>
-      `<button class="save-btn" style="display:inline-block;padding:12px 20px;width:auto;font-size:13px;margin:4px;" data-duplicate-event="${escapeHtml(t.id)}">Start from "${escapeHtml(t.name || 'Template')}"</button>`
-    ).join('');
-    const adminPrompt = templates.length
-      ? `
-        <div style="font-size:18px;font-weight:700;color:var(--t1);margin-bottom:10px;">No live events yet</div>
-        <div style="font-size:13px;line-height:1.5;margin-bottom:24px;max-width:380px;margin-left:auto;margin-right:auto;">You have a template ready. Duplicate it to start a new live event, or create one from scratch.</div>
-        <div style="display:flex;flex-wrap:wrap;justify-content:center;gap:8px;margin-bottom:14px;">${templateButtons}</div>
-        <button class="rst-btn" style="display:inline-block;padding:10px 20px;width:auto;font-size:13px;" data-create-event="true">+ Create blank event</button>`
-      : `
-        <div style="font-size:18px;font-weight:700;color:var(--t1);margin-bottom:10px;">No events yet</div>
-        <div style="font-size:13px;line-height:1.5;margin-bottom:24px;max-width:340px;margin-left:auto;margin-right:auto;">Create your first event to start tracking setup progress. You can configure crews, rooms, days and checklist steps in Settings.</div>
-        <button class="save-btn" style="display:inline-block;padding:12px 24px;width:auto;font-size:14px;" data-create-event="true">+ Create your first event</button>`;
-    const userPrompt = `
-        <div style="font-size:18px;font-weight:700;color:var(--t1);margin-bottom:10px;">No live events yet</div>
-        <div style="font-size:13px;line-height:1.5;max-width:340px;margin-left:auto;margin-right:auto;">Your admin hasn't created a live event yet. Check back once they've set one up.</div>`;
-    tracker.innerHTML = `
-      <div style="padding:60px 24px;text-align:center;color:var(--t2);">
-        ${isAdmin() ? adminPrompt : userPrompt}
-      </div>`;
+    tracker.innerHTML = renderNoLiveEventEmptyHTML();
     // Clear chip rows / day tabs
     const dayTabsEl = document.getElementById('setupDayTabs');
     if (dayTabsEl) dayTabsEl.innerHTML = '';
@@ -3827,13 +3832,19 @@ function switchPage(page) {
 }
 
 function renderOverview() {
+  const grid = document.getElementById('ovGrid');
+  if (!hasAnyLiveEvent()) {
+    if (grid) grid.innerHTML = renderNoLiveEventEmptyHTML();
+    const ovTabs = document.getElementById('ovDayTabs');
+    if (ovTabs) ovTabs.innerHTML = '';
+    return;
+  }
   const ovTabs = document.getElementById('ovDayTabs');
   if (ovTabs) {
     ovTabs.innerHTML = (config.days||[]).map(d =>
       `<div class="day-tab${d.key===currentDay?' on':''}" onclick="switchDay('${d.key}');renderOverview();">${d.label}</div>`
     ).join('');
   }
-  const grid = document.getElementById('ovGrid');
   let html = '';
   config.crew.forEach((c, ci) => {
     const crewColor = avatarColor(c.name);
@@ -3891,6 +3902,13 @@ function renderToday() {
   const hint = document.getElementById('scheduleEmbedHint');
   const openExt = document.getElementById('scheduleOpenExternal');
   const blockedLink = document.getElementById('scheduleBlockedLink');
+
+  // No live event → take over the page-today body with the shared empty state.
+  if (!hasAnyLiveEvent()) {
+    const page = document.getElementById('page-today');
+    if (page) page.innerHTML = renderNoLiveEventEmptyHTML();
+    return;
+  }
   const url = (config.scheduleEmbedUrl || '').trim();
 
   if (!url) {
@@ -4633,25 +4651,28 @@ function trackerRenderIdentityChip() {
   const chip = document.getElementById('vmix-identity-chip');
   if (!chip) return;
   if (!trackerIdentity) { chip.style.display = 'none'; return; }
-  const roleHue = trackerIdentity.role === 'Director' ? 'var(--accent)'
+  // The big badge shows the Firebase auth role (ADMIN / CREW) — that's
+  // what actually gates write permissions, so it's the most important
+  // thing to surface. The app-level identity role (Director / Operator /
+  // Observer) appears below as smaller secondary context.
+  const authRole = currentRole === 'admin' ? 'ADMIN' : currentRole === 'user' ? 'CREW' : 'OFFLINE';
+  const authHue = currentRole === 'admin' ? 'var(--accent)' : currentRole === 'user' ? '#47e8a0' : 'var(--t3)';
+  const idHue = trackerIdentity.role === 'Director' ? 'var(--accent)'
     : trackerIdentity.role === 'Operator' ? '#47e8a0'
     : 'var(--t3)';
   let assigned = '';
   if (trackerIdentity.role === 'Operator') {
-    // Live-resolved (re-derived from config.crew when bound to a crewId)
-    // so renamed crew rooms show up in the chip without a re-pick.
     const names = trackerEffectiveAssignedRooms(trackerIdentity);
     assigned = names.length ? names.join(', ') : '(unassigned)';
   }
   chip.style.display = 'block';
-  // Re-match button only appears when bound to a crew member (otherwise
-  // there's no live source to re-derive from).
   const rematchBtn = trackerIdentity.crewId
     ? '<button onclick="event.stopPropagation(); trackerRematchAssignedRooms();" style="margin-top:6px;background:var(--s3);border:1px solid var(--line2);color:var(--t2);font-size:10px;font-weight:600;padding:3px 8px;border-radius:5px;cursor:pointer;font-family:inherit;">↻ Re-match rooms</button>'
     : '';
   chip.innerHTML =
     '<div style="font-weight:700;color:var(--t1);">' + escapeHtml(trackerIdentity.name) + '</div>' +
-    '<div style="color:' + roleHue + ';font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;">' + escapeHtml(trackerIdentity.role) + (assigned ? ' · ' + escapeHtml(assigned) : '') + '</div>' +
+    '<div style="color:' + authHue + ';font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;">' + authRole + '</div>' +
+    '<div style="color:' + idHue + ';font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:0.4px;opacity:0.75;">' + escapeHtml(trackerIdentity.role) + (assigned ? ' · ' + escapeHtml(assigned) : '') + '</div>' +
     rematchBtn;
 }
 
@@ -5457,6 +5478,16 @@ function trackerRematchAssignedRooms() {
 function renderVmixCards() {
   var el = document.getElementById('vmix-cards');
   if (!el) return;
+
+  // No live event → take over with the shared empty state and bail. Hide
+  // the filter row, master row, banner, identity chip — none of them are
+  // meaningful without an active event to control.
+  if (!hasAnyLiveEvent()) {
+    el.innerHTML = renderNoLiveEventEmptyHTML();
+    var hideIds = ['vmix-filter-row', 'vmix-all-row', 'vmix-commander-banner', 'vmix-identity-chip', 'vmix-https-warn', 'vmix-runofshow-panel', 'vmix-operator-empty', 'vmix-operator-mismatch'];
+    hideIds.forEach(function (id) { var n = document.getElementById(id); if (n) n.style.display = 'none'; });
+    return;
+  }
 
   // Capture which IP input has focus + cursor position before we tear down
   // and rebuild every card. We restore it after — without this, every
