@@ -4500,14 +4500,13 @@ function toggleSchedStep(crewId, roomId, day, idx, stepKey) {
 }
 
 // ─── vMix Room Control ────────────────────────────────────────────────────
-// Rooms are loaded from the current event's config.vmixRooms (pushed by vMix Commander).
-// Fallback to a legacy hardcoded list if no event-scoped rooms are defined.
-const VMIX_LEGACY_ROOMS = [
-  { key: 'auditorium', name: 'Auditorium', ip: '' },
-  { key: 'e103',       name: 'E103-105',   ip: '' },
-  { key: 'e106',       name: 'E106-108',   ip: '' },
-];
-let VMIX_ROOMS = [...VMIX_LEGACY_ROOMS];
+// Rooms are loaded from the current event's config.vmixRooms (pushed by vMix
+// Commander). When the event has no rooms configured, show an empty list
+// rather than falling back to hardcoded defaults — the old legacy fallback
+// (Auditorium / E103-105 / E106-108) confused users who'd deliberately
+// cleared rooms expecting them to stay gone.
+const VMIX_LEGACY_ROOMS = [];
+let VMIX_ROOMS = [];
 const VMIX_STORE_KEY = 'kc_vmix_ips';
 
 // ─── Tracker Identity (Director / Operator / Observer) ─────────────────────
@@ -5805,6 +5804,17 @@ function renderVmixCards() {
     }
     diag.innerHTML = title + body;
     el.appendChild(diag);
+  }
+
+  // Live event but zero rooms configured — nudge the admin to set some up
+  // in Commander (or adopt from the crew list) instead of leaving the
+  // Recording page silent.
+  if (!directorFilterEmpty && rooms.length === 0 && !operatorEmpty) {
+    var noRooms = document.createElement('div');
+    noRooms.style.cssText = 'background:var(--s2);border:1px solid var(--line2);border-radius:14px;padding:20px;color:var(--t2);font-size:13px;line-height:1.55;text-align:center;';
+    noRooms.innerHTML = '<div style="color:var(--t1);font-weight:700;margin-bottom:8px;font-size:14px;">No rooms configured</div>' +
+      'This event has no vMix rooms set up yet. Open vMix Commander → Settings → Rooms to add one, or duplicate from a template that has rooms pre-configured.';
+    el.appendChild(noRooms);
   }
 
   rooms.forEach(function (r) { el.appendChild(vmixMakeCard(r)); });
