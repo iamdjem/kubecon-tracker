@@ -1083,7 +1083,8 @@ body.role-user .admin-only-input { pointer-events: none; opacity: 0.55; }
   bottom: 58px;          /* clears bottom nav (.bottom-nav height: 58px) */
   left: 0;
   right: 0;
-  z-index: 120;          /* above pages, below modals */
+  z-index: 90;           /* above pages (z 0-2), below settings sheet (101),
+                            schedule sheet (200), bottom nav (150), modals */
   display: none;
   align-items: center;
   justify-content: center;
