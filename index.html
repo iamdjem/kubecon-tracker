@@ -2530,8 +2530,11 @@ function openEventModal(mode = 'create', eventId = currentEventId) {
   document.getElementById('event-modal-name').value = isDuplicate ? `${source?.name || 'New Event'} copy` : '';
   document.getElementById('event-modal-location').value = source?.location || '';
   document.getElementById('event-modal-date').value = source?.dateLabel || '';
+  // Off by default — almost every duplicate is meant to be a fresh start
+  // (especially template duplicates). User can opt in if they really want
+  // to carry the source event's checklist progress over.
   document.getElementById('event-modal-copy-state-wrap').style.display = isDuplicate ? 'flex' : 'none';
-  document.getElementById('event-modal-copy-state').checked = isDuplicate;
+  document.getElementById('event-modal-copy-state').checked = false;
   modal.style.display = 'flex';
   modal.setAttribute('aria-hidden', 'false');
   setTimeout(() => document.getElementById('event-modal-name')?.focus(), 0);
