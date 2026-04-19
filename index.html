@@ -5102,6 +5102,40 @@ function trackerReconcileProxy() {
 }
 
 
+// One-click recovery: flatten config.crew[].rooms into config.vmixRooms so
+// Recording page lights up immediately. Used by events that were duplicated
+// from a template before the duplicate flow was patched to auto-derive
+// vmixRooms. Admin-only; writes to events/<id>/config/vmixRooms which both
+// this tracker and Commander subscribe to.
+function vmixAdoptCrewRooms() {
+  if (!trackerRoleIsDirector()) { showToast('Director only.'); return; }
+  if (!currentEventId) { showToast('No live event'); return; }
+  const ev = currentEvent();
+  if (!ev || !ev.config) { showToast('Event not ready'); return; }
+  const rooms = [];
+  const seen = new Set();
+  (ev.config.crew || []).forEach(c => {
+    (c.rooms || []).forEach(r => {
+      const name = (r && r.name) ? String(r.name).trim() : '';
+      if (!name || seen.has(name.toLowerCase())) return;
+      seen.add(name.toLowerCase());
+      rooms.push({
+        key: 'room_' + Math.random().toString(36).slice(2, 10),
+        name,
+        ip: ''
+      });
+    });
+  });
+  if (!rooms.length) { showToast('No crew rooms to import'); return; }
+  ev.config.vmixRooms = rooms;
+  touchEvent(ev);
+  saveAppData();
+  pushEventData();
+  vmixRefreshRooms();
+  if (currentPage === 'rooms') renderVmixCards();
+  showToast('Imported ' + rooms.length + ' rooms from crew assignments');
+}
+
 // Refresh room list from current event (called when event switches or config updates)
 function vmixRefreshRooms() {
   const ev = (typeof currentEvent === 'function') ? currentEvent() : null;
@@ -5830,15 +5864,43 @@ function renderVmixCards() {
     el.appendChild(diag);
   }
 
-  // Live event but zero rooms configured — nudge the admin to set some up
-  // in Commander (or adopt from the crew list) instead of leaving the
-  // Recording page silent.
+  // Live event but zero rooms configured. If the event has crew rooms
+  // defined (common case after a template duplicate made before the
+  // duplicate-flow fix landed), offer admins a one-click recovery that
+  // flattens crew rooms into vmixRooms. Otherwise just nudge toward
+  // Commander or a fresh template duplicate.
   if (!directorFilterEmpty && rooms.length === 0 && !operatorEmpty) {
+    var crewRoomNames = [];
+    try {
+      if (config && Array.isArray(config.crew)) {
+        var seen = {};
+        config.crew.forEach(function (c) {
+          (c.rooms || []).forEach(function (r) {
+            var n = (r && r.name) ? String(r.name).trim() : '';
+            if (!n || seen[n.toLowerCase()]) return;
+            seen[n.toLowerCase()] = true;
+            crewRoomNames.push(n);
+          });
+        });
+      }
+    } catch (_) { /* ignore */ }
+
     var noRooms = document.createElement('div');
     noRooms.style.cssText = 'background:var(--s2);border:1px solid var(--line2);border-radius:14px;padding:20px;color:var(--t2);font-size:13px;line-height:1.55;text-align:center;';
-    noRooms.innerHTML = '<div style="color:var(--t1);font-weight:700;margin-bottom:8px;font-size:14px;">No rooms configured</div>' +
-      'This event has no vMix rooms set up yet. Open vMix Commander → Settings → Rooms to add one, or duplicate from a template that has rooms pre-configured.';
-    el.appendChild(noRooms);
+    if (crewRoomNames.length && trackerRoleIsDirector()) {
+      noRooms.innerHTML =
+        '<div style="color:var(--t1);font-weight:700;margin-bottom:8px;font-size:14px;">No vMix rooms configured</div>' +
+        'This event has crew rooms defined but no vMix rooms. Import them in one click to keep Setup and Recording in sync.' +
+        '<div style="margin-top:16px;"><button type="button" id="vmix-adopt-crew-rooms" style="background:var(--accent);border:none;color:#000;font-weight:700;padding:10px 18px;border-radius:8px;cursor:pointer;font-family:inherit;font-size:13px;">Use rooms from crew assignments (' + crewRoomNames.length + ')</button></div>' +
+        '<div style="margin-top:8px;font-size:11px;color:var(--t3);">' + crewRoomNames.map(function (n) { return escapeHtml(n); }).join(' · ') + '</div>';
+      el.appendChild(noRooms);
+      var btn = document.getElementById('vmix-adopt-crew-rooms');
+      if (btn) btn.onclick = function () { vmixAdoptCrewRooms(); };
+    } else {
+      noRooms.innerHTML = '<div style="color:var(--t1);font-weight:700;margin-bottom:8px;font-size:14px;">No rooms configured</div>' +
+        'This event has no vMix rooms set up yet. Open vMix Commander → Settings → Rooms to add one, or duplicate from a template that has rooms pre-configured.';
+      el.appendChild(noRooms);
+    }
   }
 
   rooms.forEach(function (r) { el.appendChild(vmixMakeCard(r)); });
