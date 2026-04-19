@@ -3769,8 +3769,48 @@ function toggleExp(ci) {
     if (btn) btn.style.transform = el.classList.contains('exp') ? 'rotate(90deg)' : '';
   }
 }
-function renameCrew(ci,v){ config.crew[ci].name=v.trim(); saveConfig(); render(); }
-function renameRoom(ci,ri,v){ config.crew[ci].rooms[ri].name=v.trim(); saveConfig(); render(); }
+// Normalize for uniqueness comparison — case-insensitive + whitespace-
+// trimmed, matching the matching rules used by the cross-app crew/room
+// scoping. Two names are considered "the same" if their normalized forms
+// match.
+function _normNameCompare(s) { return String(s == null ? '' : s).trim().toLowerCase(); }
+
+function renameCrew(ci, v) {
+  const trimmed = String(v || '').trim();
+  if (trimmed) {
+    const norm = _normNameCompare(trimmed);
+    const clash = (config.crew || []).some((c, i) => i !== ci && _normNameCompare(c.name) === norm);
+    if (clash) {
+      showToast(`Crew name "${trimmed}" is already used — names must be unique`);
+      render();  // reset the input to the previous value
+      return;
+    }
+  }
+  config.crew[ci].name = trimmed;
+  saveConfig();
+  render();
+}
+
+function renameRoom(ci, ri, v) {
+  const trimmed = String(v || '').trim();
+  if (trimmed) {
+    const norm = _normNameCompare(trimmed);
+    // Room names must be unique across the whole event — two operators
+    // can't both claim the same physical room. Check every crew's rooms
+    // except this exact entry.
+    const clash = (config.crew || []).some((c, cj) =>
+      (c.rooms || []).some((r, rj) => (cj !== ci || rj !== ri) && _normNameCompare(r.name) === norm)
+    );
+    if (clash) {
+      showToast(`Room "${trimmed}" is already assigned — room names must be unique`);
+      render();
+      return;
+    }
+  }
+  config.crew[ci].rooms[ri].name = trimmed;
+  saveConfig();
+  render();
+}
 function delCrew(ci){ if(!confirm(`Remove ${config.crew[ci].name}?`))return; config.crew.splice(ci,1); saveConfig(); renderAllIncludingSettings(); }
 function delRoom(ci,ri){ config.crew[ci].rooms.splice(ri,1); saveConfig(); renderAllIncludingSettings(); }
 function addRoom(ci){ config.crew[ci].rooms.push({id:'r_'+Date.now(),name:''}); saveConfig(); renderAllIncludingSettings(); setTimeout(()=>{document.getElementById('ci_'+ci)?.classList.add('exp'); const inputs=document.querySelectorAll('#roomList_'+ci+' .rn-input'); if(inputs.length) inputs[inputs.length-1].focus();},10); }
