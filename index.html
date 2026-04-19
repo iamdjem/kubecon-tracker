@@ -2238,9 +2238,20 @@ function syncEventConfigMetadata(ev) {
   if (!ev) return;
   ev.name = ev.name || ev.config?.title || 'Untitled Event';
 }
-function getOrderedEvents(includeArchived = true) {
+// Template events (e.g. "E3 Tracker Template") are stencils that crews
+// duplicate from when starting a new event. They shouldn't show up in the
+// live-events list or trigger archive flows. Identify by name OR an
+// explicit `template: true` flag, so renaming or annotation both work.
+const TEMPLATE_EVENT_NAME = 'E3 Tracker Template';
+function isTemplateEvent(ev) {
+  if (!ev) return false;
+  if (ev.template === true) return true;
+  return String(ev.name || '').trim().toLowerCase() === TEMPLATE_EVENT_NAME.toLowerCase();
+}
+
+function getOrderedEvents(includeArchived = true, includeTemplates = false) {
   return Object.values(appData.events)
-    .filter(ev => includeArchived || !ev.archived)
+    .filter(ev => (includeTemplates || !isTemplateEvent(ev)) && (includeArchived || !ev.archived))
     .sort((a, b) => (a.archived === b.archived) ? ((b.updatedAt||0) - (a.updatedAt||0)) : (a.archived ? 1 : -1));
 }
 function getNextLiveEventId(excludeId = null) {
@@ -3336,9 +3347,11 @@ function renderSettings() {
       </div>
     </div>`).join('')}</div>`;
 
-  const orderedEvents = getOrderedEvents(true);
-  const liveEvents = orderedEvents.filter(ev => !ev.archived);
-  const archivedEvents = orderedEvents.filter(ev => ev.archived);
+  // Admin Setup page includes templates so admins can manage them.
+  const orderedEvents = getOrderedEvents(true, true);
+  const liveEvents = orderedEvents.filter(ev => !ev.archived && !isTemplateEvent(ev));
+  const archivedEvents = orderedEvents.filter(ev => ev.archived && !isTemplateEvent(ev));
+  const templateEvents = orderedEvents.filter(ev => isTemplateEvent(ev));
 
   const renderEventCard = ev => {
     const readonlyAttr = isAdmin() ? '' : 'readonly';
@@ -3350,7 +3363,9 @@ function renderSettings() {
             <input class="si" value="${escapeHtml(ev.dateLabel || '')}" onchange="updateEventField('${ev.id}', 'dateLabel', this.value)" placeholder="Dates" ${readonlyAttr}>
           </div>
           <div class="event-admin-row">
-            <span class="event-pill ${ev.archived ? 'archived' : 'live'}">${ev.archived ? 'ARCHIVED' : 'LIVE'}</span>
+            ${isTemplateEvent(ev)
+              ? '<span class="event-pill" style="color:#67c8e8;border-color:rgba(103,200,232,0.4);background:rgba(103,200,232,0.1);">TEMPLATE</span>'
+              : `<span class="event-pill ${ev.archived ? 'archived' : 'live'}">${ev.archived ? 'ARCHIVED' : 'LIVE'}</span>`}
             ${ev.id === currentEventId ? '<span class="event-pill live">CURRENT</span>' : ''}
             ${eventMetaLine(ev) ? `<span class="event-pill">${escapeHtml(eventMetaLine(ev))}</span>` : ''}
           </div>
@@ -3374,6 +3389,14 @@ function renderSettings() {
         Add event
       </button>
     </div>
+    ${templateEvents.length ? `
+    <div class="sg admin-only admin-only-block">
+      <div class="sg-lbl">Templates</div>
+      <div style="font-size:11px;color:var(--t3);margin-top:-4px;margin-bottom:8px;">Stencils for new events. Hidden from the live event picker. Duplicate one to start a new event.</div>
+      <div class="event-admin-section">
+        ${templateEvents.map(renderEventCard).join('')}
+      </div>
+    </div>` : ''}
     <div class="sg admin-only admin-only-block">
       <div class="sg-lbl">Setup Steps</div>
       ${stepsHtml}
