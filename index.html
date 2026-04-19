@@ -1225,9 +1225,9 @@ body.role-user .admin-only-input { pointer-events: none; opacity: 0.55; }
     <div id="vmix-identity-chip" style="display:none;flex-shrink:0;font-size:11px;color:var(--t2);background:var(--s2);border:1px solid var(--line2);border-radius:8px;padding:6px 10px;line-height:1.35;cursor:pointer;" onclick="trackerOpenIdentityModal()" title="Change identity"></div>
   </div>
   <div id="vmix-https-warn" style="display:none;background:#3d2a00;border:1px solid #996600;border-radius:8px;padding:10px 12px;margin-bottom:14px;font-size:11px;color:#ffb74d;line-height:1.5;">
-    ⚠️ <strong>HTTPS blocks vMix (HTTP)</strong> — buttons won't work here.<br>
-    Open on your laptop instead: <strong>http://localhost:8765</strong> → Rooms tab.<br>
-    Or in Chrome: tap the 🔒 lock → <em>Site settings</em> → allow <em>Insecure content</em>.
+    ⚠️ <strong>No vMix proxy connected</strong> — buttons won't reach vMix from this HTTPS page.<br>
+    The operator's vMix Commander app needs to be running with <em>Sync with Crew Tracker</em> enabled and linked to this event. Commander publishes its Cloudflare tunnel URL to Firebase; the tracker picks it up automatically.<br>
+    If Commander is already running, check Commander → Tunnel tab to confirm the tunnel is up.
   </div>
   <div id="vmix-commander-banner" style="display:none;margin-bottom:12px;padding:10px 12px;border-radius:8px;font-size:11px;line-height:1.5;"></div>
   <div id="vmix-ros-panel" style="display:none;margin-bottom:12px;background:var(--s2);border:1px solid var(--line2);border-radius:10px;overflow:hidden;">
@@ -4831,15 +4831,15 @@ function trackerRenderIdentityChip() {
   const chip = document.getElementById('vmix-identity-chip');
   if (!chip) return;
   if (!trackerIdentity) { chip.style.display = 'none'; return; }
-  // The big badge shows the Firebase auth role (ADMIN / CREW) — that's
-  // what actually gates write permissions, so it's the most important
-  // thing to surface. The app-level identity role (Director / Operator /
-  // Observer) appears below as smaller secondary context.
+  // One role badge only — the Firebase auth role (ADMIN / CREW) is the
+  // only one that actually gates write permissions, so the UI shows
+  // exactly that. The app-level identity role (Director / Operator /
+  // Observer) is still used internally for filtering and action gating,
+  // but it doesn't need to be on the chip where it reads as duplicate.
+  // Operators get their assigned-rooms list appended so they can see
+  // their scope at a glance.
   const authRole = currentRole === 'admin' ? 'ADMIN' : currentRole === 'user' ? 'CREW' : 'OFFLINE';
   const authHue = currentRole === 'admin' ? 'var(--accent)' : currentRole === 'user' ? '#47e8a0' : 'var(--t3)';
-  const idHue = trackerIdentity.role === 'Director' ? 'var(--accent)'
-    : trackerIdentity.role === 'Operator' ? '#47e8a0'
-    : 'var(--t3)';
   let assigned = '';
   if (trackerIdentity.role === 'Operator') {
     const names = trackerEffectiveAssignedRooms(trackerIdentity);
@@ -4851,8 +4851,7 @@ function trackerRenderIdentityChip() {
     : '';
   chip.innerHTML =
     '<div style="font-weight:700;color:var(--t1);">' + escapeHtml(trackerIdentity.name) + '</div>' +
-    '<div style="color:' + authHue + ';font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;">' + authRole + '</div>' +
-    '<div style="color:' + idHue + ';font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:0.4px;opacity:0.75;">' + escapeHtml(trackerIdentity.role) + (assigned ? ' · ' + escapeHtml(assigned) : '') + '</div>' +
+    '<div style="color:' + authHue + ';font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;">' + authRole + (assigned ? ' <span style="color:var(--t3);opacity:0.75;font-weight:600;">· ' + escapeHtml(assigned) + '</span>' : '') + '</div>' +
     rematchBtn;
 }
 
