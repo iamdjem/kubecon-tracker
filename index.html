@@ -2351,13 +2351,15 @@ let fbInitStarted = false;
 
 function currentEvent() { return appData.events[currentEventId]; }
 function hasAnyEvent() { return Object.keys(appData.events).length > 0; }
-// Templates are stencils, not bookable events — treat them as "no live event"
-// for routing purposes so the user never accidentally lands inside a template.
+// "Live" means: not a template AND not archived. Templates are stencils;
+// archived events are historical. Both should be excluded from active-event
+// fallback / empty-state checks so the tracker never lands on a non-bookable
+// event after a refresh.
 function hasAnyLiveEvent() {
-  return Object.values(appData.events).some(ev => !isTemplateEvent(ev));
+  return Object.values(appData.events).some(ev => !isTemplateEvent(ev) && !ev.archived);
 }
 function firstLiveEventId() {
-  const ev = Object.values(appData.events).find(e => !isTemplateEvent(e));
+  const ev = Object.values(appData.events).find(e => !isTemplateEvent(e) && !e.archived);
   return ev ? ev.id : null;
 }
 function syncActiveEvent() {
@@ -2369,11 +2371,11 @@ function syncActiveEvent() {
     state = {};
     return;
   }
-  // If currentEventId is missing OR points to a template, fall back to a
-  // non-template. If only templates exist, leave currentEventId null and
-  // let the empty-state UI guide the user to duplicate one.
+  // Bail off the current event when it's missing, archived, or a template.
+  // Falls back to the first live event; if none exists, leaves
+  // currentEventId null so the empty-state UI takes over.
   const candidate = appData.events[currentEventId];
-  if (!candidate || isTemplateEvent(candidate)) {
+  if (!candidate || isTemplateEvent(candidate) || candidate.archived) {
     currentEventId = firstLiveEventId();
     if (!currentEventId) {
       appData.currentEventId = null;
