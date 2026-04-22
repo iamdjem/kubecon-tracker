@@ -916,6 +916,67 @@ body { padding-bottom: 58px; }
 }
 .signin-crew-option-observer .signin-crew-option-name { color: var(--t2); font-weight: 500; }
 
+/* ── Identity chip + dropdown (mirrors Commander's header chip) ── */
+.header-identity { position: relative; }
+.header-identity-btn {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 1px;
+  background: var(--s2);
+  border: 1px solid var(--line2);
+  border-radius: 8px;
+  color: var(--t1);
+  cursor: pointer;
+  padding: 6px 10px;
+  font-family: inherit;
+  line-height: 1.15;
+}
+.header-identity-btn:hover { border-color: var(--accent); }
+.header-identity-role {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.7px;
+  color: var(--accent);
+  text-transform: uppercase;
+}
+.header-identity.role-crew .header-identity-role { color: #47e8a0; }
+.header-identity.role-offline .header-identity-role { color: var(--t3); }
+.header-identity-sub {
+  font-size: 11px;
+  color: var(--t3);
+  font-weight: 500;
+  max-width: 180px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.header-identity-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  background: var(--s2);
+  border: 1px solid var(--line2);
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+  min-width: 180px;
+  z-index: 500;
+  overflow: hidden;
+}
+.header-identity-menu-item {
+  display: block;
+  width: 100%;
+  background: none;
+  border: none;
+  color: var(--t1);
+  font-family: inherit;
+  font-size: 13px;
+  text-align: left;
+  padding: 10px 12px;
+  cursor: pointer;
+}
+.header-identity-menu-item:hover { background: rgba(255,255,255,0.04); color: var(--accent); }
+
 /* ── Role-based visibility ── */
 /* admin-only elements are hidden by default (not signed in) and shown when body has .role-admin */
 .admin-only { display: none !important; }
@@ -1280,7 +1341,19 @@ body.role-user .admin-only-input { pointer-events: none; opacity: 0.55; }
       <div style="font-size:16px;font-weight:700;color:var(--t1);margin-bottom:4px;">Room Control</div>
       <div style="font-size:11px;color:var(--t3);">vMix · Record + Stream + MultiCorder</div>
     </div>
-    <div id="vmix-identity-chip" style="display:none;flex-shrink:0;font-size:11px;color:var(--t2);background:var(--s2);border:1px solid var(--line2);border-radius:8px;padding:6px 10px;line-height:1.35;cursor:pointer;" onclick="signInReopenForChangeIdentity()" title="Change identity"></div>
+    <!-- Identity chip + dropdown menu — mirrors Commander's header chip.
+         Two-line button (role label + identity name); clicking opens a
+         menu with Change identity / Sign out. -->
+    <div id="vmix-identity-chip" class="header-identity" style="display:none;flex-shrink:0;">
+      <button type="button" id="header-identity-btn" class="header-identity-btn" aria-haspopup="menu" aria-expanded="false" title="Change identity / Sign out">
+        <span id="header-identity-role" class="header-identity-role">—</span>
+        <span id="header-identity-sub" class="header-identity-sub"></span>
+      </button>
+      <div id="header-identity-menu" class="header-identity-menu" role="menu" style="display:none;">
+        <button type="button" class="header-identity-menu-item" data-action="change-identity" role="menuitem">Change identity</button>
+        <button type="button" class="header-identity-menu-item" data-action="sign-out" role="menuitem">Sign out</button>
+      </div>
+    </div>
   </div>
   <details id="vmix-https-warn" style="display:none;background:#3d2a00;border:1px solid #996600;border-radius:8px;margin-bottom:14px;font-size:11px;color:#ffb74d;line-height:1.5;">
     <summary style="padding:8px 12px;cursor:pointer;list-style:none;display:flex;align-items:center;gap:8px;user-select:none;">
@@ -5207,32 +5280,61 @@ function trackerRoleIsDirector()  { return !!trackerIdentity && trackerIdentity.
 function trackerRoleIsOperator()  { return !!trackerIdentity && trackerIdentity.role === 'Operator'; }
 function trackerRoleIsObserver()  { return !!trackerIdentity && trackerIdentity.role === 'Observer'; }
 
+// Mirrors Commander's header chip exactly: two-line button (role label +
+// identity name). Clicking opens a dropdown menu (Change identity / Sign
+// out), wired once by _trackerWireIdentityMenu on first render.
 function trackerRenderIdentityChip() {
   const chip = document.getElementById('vmix-identity-chip');
-  if (!chip) return;
+  const roleEl = document.getElementById('header-identity-role');
+  const subEl = document.getElementById('header-identity-sub');
+  if (!chip || !roleEl || !subEl) return;
   if (!trackerIdentity) { chip.style.display = 'none'; return; }
-  // Single-line chip: just the Firebase auth role (ADMIN / CREW). That's
-  // what gates write permissions — the only thing actually meaningful to
-  // surface. Identity name + app-level role (Director / Operator /
-  // Observer) are still used internally for filtering + action gating,
-  // and the full identity is editable via the chip's click handler.
-  // Operators get their assigned-rooms list appended inline.
-  const authRole = currentRole === 'admin' ? 'ADMIN' : currentRole === 'user' ? 'CREW' : 'OFFLINE';
-  const authHue = currentRole === 'admin' ? 'var(--accent)' : currentRole === 'user' ? '#47e8a0' : 'var(--t3)';
-  let assigned = '';
-  if (trackerIdentity.role === 'Operator') {
-    const names = trackerEffectiveAssignedRooms(trackerIdentity);
-    assigned = names.length ? names.join(', ') : '(unassigned)';
+  chip.style.display = '';
+  chip.classList.remove('role-admin', 'role-crew', 'role-offline');
+  if (currentRole === 'admin') {
+    roleEl.textContent = 'ADMIN';
+    chip.classList.add('role-admin');
+  } else if (currentRole === 'user') {
+    roleEl.textContent = 'CREW';
+    chip.classList.add('role-crew');
+  } else {
+    roleEl.textContent = 'OFFLINE';
+    chip.classList.add('role-offline');
   }
-  chip.style.display = 'block';
-  const rematchBtn = trackerIdentity.crewId
-    ? '<button onclick="event.stopPropagation(); trackerRematchAssignedRooms();" style="margin-left:6px;background:var(--s3);border:1px solid var(--line2);color:var(--t2);font-size:10px;font-weight:600;padding:2px 6px;border-radius:4px;cursor:pointer;font-family:inherit;vertical-align:middle;">↻</button>'
-    : '';
-  chip.title = 'Signed in as ' + escapeHtml(trackerIdentity.name) + ' (' + escapeHtml(trackerIdentity.role) + ')';
-  chip.innerHTML =
-    '<span style="color:' + authHue + ';font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;">' + authRole + '</span>' +
-    (assigned ? '<span style="color:var(--t3);font-weight:600;font-size:10px;margin-left:6px;">· ' + escapeHtml(assigned) + '</span>' : '') +
-    rematchBtn;
+  subEl.textContent = trackerIdentity.name || '';
+  _trackerWireIdentityMenu();
+}
+
+// Wire the chip button + menu items + outside-click once. HTML elements
+// exist from page load, so calling this lazily is safe.
+let _trackerIdentityMenuWired = false;
+function _trackerWireIdentityMenu() {
+  if (_trackerIdentityMenuWired) return;
+  _trackerIdentityMenuWired = true;
+  const btn = document.getElementById('header-identity-btn');
+  const menu = document.getElementById('header-identity-menu');
+  if (!btn || !menu) return;
+  btn.addEventListener('click', function (e) {
+    e.stopPropagation();
+    const open = menu.style.display === 'block';
+    menu.style.display = open ? 'none' : 'block';
+    btn.setAttribute('aria-expanded', open ? 'false' : 'true');
+  });
+  document.addEventListener('click', function (e) {
+    if (!btn.contains(e.target) && !menu.contains(e.target)) {
+      menu.style.display = 'none';
+      btn.setAttribute('aria-expanded', 'false');
+    }
+  });
+  menu.querySelectorAll('.header-identity-menu-item').forEach(function (item) {
+    item.addEventListener('click', function () {
+      menu.style.display = 'none';
+      btn.setAttribute('aria-expanded', 'false');
+      const action = item.dataset.action;
+      if (action === 'change-identity') signInReopenForChangeIdentity();
+      else if (action === 'sign-out') signOut();
+    });
+  });
 }
 
 // Ensure identity exists before showing Rooms page. If not, reopen the gate
