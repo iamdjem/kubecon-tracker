@@ -826,43 +826,95 @@ body { padding-bottom: 58px; }
   .event-admin-grid { grid-template-columns: 1fr; }
 }
 
-/* ── Sign-in screen ── */
-#signin-screen {
+/* ── Unified sign-in gate (role → password → admin name | crew picker) ── */
+#signin-gate {
   display: none;
   position: fixed; inset: 0; z-index: 20000;
   background: var(--bg);
   align-items: center; justify-content: center;
-  padding: 20px;
+  padding: 20px; overflow-y: auto;
 }
-.signin-card {
-  width: min(100%, 340px);
+.signin-gate-inner {
+  width: min(100%, 380px);
+  display: flex; flex-direction: column; gap: 16px;
   background: var(--s2); border: 1px solid var(--line2);
   border-radius: 16px; padding: 28px 24px;
 }
+.signin-brand { text-align: center; margin-bottom: 4px; }
 .signin-title { font-size: 22px; font-weight: 800; color: var(--t1); letter-spacing: -0.3px; }
-.signin-sub { font-size: 13px; color: var(--t3); margin-top: 4px; margin-bottom: 20px; }
-.signin-card input[type="password"] {
+.signin-version { font-size: 11px; color: var(--t3); margin-top: 2px; }
+.signin-subtitle {
+  text-align: center; color: var(--t3);
+  font-size: 13px; margin-bottom: 4px;
+}
+.signin-step { display: flex; flex-direction: column; gap: 12px; }
+.signin-step-title { font-size: 14px; font-weight: 700; color: var(--t1); }
+.signin-step-hint { font-size: 12px; color: var(--t3); line-height: 1.5; }
+.signin-role-card {
+  background: var(--s3); border: 1px solid var(--line2);
+  border-radius: 10px; padding: 16px;
+  text-align: left; cursor: pointer;
+  font-family: inherit; color: var(--t1);
+  display: flex; flex-direction: column; gap: 4px;
+  transition: border-color 0.12s, background 0.12s;
+}
+.signin-role-card:hover { border-color: var(--accent); }
+.signin-role-card:active { opacity: 0.85; }
+.signin-role-name {
+  font-size: 13px; font-weight: 800;
+  letter-spacing: 1.2px; color: var(--accent);
+}
+.signin-role-desc { font-size: 12px; color: var(--t2); line-height: 1.5; }
+.signin-input {
   width: 100%; background: var(--s3); border: 1px solid var(--line2);
   border-radius: 8px; color: var(--t1);
   font-family: inherit; font-size: 16px; font-weight: 500;
   padding: 14px 16px; outline: none;
-  margin-bottom: 12px; min-height: 48px;
+  min-height: 48px; box-sizing: border-box;
   -webkit-appearance: none;
 }
-.signin-card input[type="password"]:focus { border-color: var(--accent); }
-.signin-card button {
-  width: 100%; background: var(--accent); color: #000;
-  font-family: inherit; font-size: 15px; font-weight: 700;
-  border: none; border-radius: 8px; padding: 14px;
-  cursor: pointer; min-height: 48px;
-  transition: opacity 0.15s;
+.signin-input:focus { border-color: var(--accent); }
+.signin-error { font-size: 12px; color: var(--red); min-height: 16px; }
+.signin-actions { display: flex; gap: 8px; justify-content: flex-end; }
+.signin-btn-primary {
+  flex: 1; padding: 12px; background: var(--accent); color: #000;
+  font-family: inherit; font-size: 14px; font-weight: 700;
+  border: none; border-radius: 8px; cursor: pointer;
+  min-height: 44px; transition: opacity 0.12s;
 }
-.signin-card button:disabled { opacity: 0.6; cursor: not-allowed; }
-.signin-card button:active:not(:disabled) { opacity: 0.85; }
-.signin-error {
-  margin-top: 12px; font-size: 12px; color: var(--red);
-  min-height: 16px; text-align: center;
+.signin-btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+.signin-btn-primary:active:not(:disabled) { opacity: 0.8; }
+.signin-btn-ghost {
+  padding: 12px 16px; background: transparent; color: var(--t2);
+  font-family: inherit; font-size: 14px; font-weight: 600;
+  border: 1px solid var(--line2); border-radius: 8px; cursor: pointer;
+  min-height: 44px;
 }
+.signin-btn-ghost:hover { color: var(--t1); border-color: var(--t3); }
+.signin-crew-list {
+  display: flex; flex-direction: column; gap: 8px;
+  max-height: 340px; overflow-y: auto; padding: 2px;
+}
+.signin-crew-option {
+  background: var(--s3); border: 1px solid var(--line2);
+  border-radius: 8px; padding: 12px;
+  text-align: left; cursor: pointer;
+  font-family: inherit; color: var(--t1); font-size: 13px;
+  display: flex; flex-direction: column; gap: 2px;
+  transition: border-color 0.12s, background 0.12s;
+}
+.signin-crew-option:hover { border-color: var(--accent); }
+.signin-crew-option.selected {
+  border-color: var(--accent);
+  background: rgba(244, 105, 42, 0.08);
+}
+.signin-crew-option-name { font-weight: 600; color: var(--t1); }
+.signin-crew-option-rooms { font-size: 11px; color: var(--t3); }
+.signin-crew-option-observer {
+  border-style: dashed;
+  border-color: rgba(255,255,255,0.12);
+}
+.signin-crew-option-observer .signin-crew-option-name { color: var(--t2); font-weight: 500; }
 
 /* ── Role-based visibility ── */
 /* admin-only elements are hidden by default (not signed in) and shown when body has .role-admin */
@@ -1228,7 +1280,7 @@ body.role-user .admin-only-input { pointer-events: none; opacity: 0.55; }
       <div style="font-size:16px;font-weight:700;color:var(--t1);margin-bottom:4px;">Room Control</div>
       <div style="font-size:11px;color:var(--t3);">vMix · Record + Stream + MultiCorder</div>
     </div>
-    <div id="vmix-identity-chip" style="display:none;flex-shrink:0;font-size:11px;color:var(--t2);background:var(--s2);border:1px solid var(--line2);border-radius:8px;padding:6px 10px;line-height:1.35;cursor:pointer;" onclick="trackerOpenIdentityModal()" title="Change identity"></div>
+    <div id="vmix-identity-chip" style="display:none;flex-shrink:0;font-size:11px;color:var(--t2);background:var(--s2);border:1px solid var(--line2);border-radius:8px;padding:6px 10px;line-height:1.35;cursor:pointer;" onclick="signInReopenForChangeIdentity()" title="Change identity"></div>
   </div>
   <details id="vmix-https-warn" style="display:none;background:#3d2a00;border:1px solid #996600;border-radius:8px;margin-bottom:14px;font-size:11px;color:#ffb74d;line-height:1.5;">
     <summary style="padding:8px 12px;cursor:pointer;list-style:none;display:flex;align-items:center;gap:8px;user-select:none;">
@@ -1251,7 +1303,7 @@ body.role-user .admin-only-input { pointer-events: none; opacity: 0.55; }
   <div id="vmix-operator-empty" style="display:none;background:var(--s2);border:1px solid var(--line2);border-radius:12px;padding:18px 16px;margin-bottom:12px;font-size:13px;color:var(--t2);line-height:1.5;text-align:center;">
     <div style="font-size:14px;font-weight:700;color:var(--t1);margin-bottom:6px;">No room assigned</div>
     <div id="vmix-operator-empty-msg" style="margin-bottom:12px;">Ask a Director to update your identity, or change your role below.</div>
-    <button type="button" onclick="trackerOpenIdentityModal()" style="background:var(--accent);border:none;color:#000;border-radius:8px;padding:9px 18px;font-size:12px;font-weight:700;cursor:pointer;">Change identity</button>
+    <button type="button" onclick="signInReopenForChangeIdentity()" style="background:var(--accent);border:none;color:#000;border-radius:8px;padding:9px 18px;font-size:12px;font-weight:700;cursor:pointer;">Change identity</button>
   </div>
   <div id="vmix-filter-row" style="display:none;gap:6px;margin-bottom:12px;overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:2px;"></div>
   <!-- All Rooms master card sits ABOVE individual room cards to mirror Commander's layout.
@@ -1380,30 +1432,59 @@ body.role-user .admin-only-input { pointer-events: none; opacity: 0.55; }
 </div>
 
 <!-- Tracker Identity Modal -->
-<div id="tracker-identity-modal" class="modal-shell" aria-hidden="true">
-  <div class="modal-backdrop" onclick="trackerCancelIdentity()"></div>
-  <div class="modal-card">
-    <div class="modal-title">Who are you?</div>
-    <div class="modal-copy">Your identity is used to log actions in the shared audit trail and to scope what you can control.</div>
-    <label style="display:block;font-size:11px;font-weight:700;color:var(--t2);text-transform:uppercase;letter-spacing:0.6px;margin-bottom:4px;">Crew member (optional)</label>
-    <select id="tracker-id-crew" class="si" onchange="trackerIdentityCrewChanged()" style="margin-bottom:4px;"></select>
-    <div id="tracker-id-crew-hint" style="display:none;font-size:10px;color:var(--t3);margin-bottom:10px;line-height:1.4;"></div>
-    <div id="tracker-id-crew-spacer" style="height:8px;"></div>
-    <label style="display:block;font-size:11px;font-weight:700;color:var(--t2);text-transform:uppercase;letter-spacing:0.6px;margin-bottom:4px;">Name <span id="tracker-id-name-hint" style="display:none;font-size:10px;color:var(--t3);font-weight:500;text-transform:none;letter-spacing:0;margin-left:6px;">— from crew list —</span></label>
-    <input id="tracker-id-name" class="si" placeholder="Your name" style="margin-bottom:12px;">
-    <label style="display:block;font-size:11px;font-weight:700;color:var(--t2);text-transform:uppercase;letter-spacing:0.6px;margin-bottom:4px;">Role <span id="tracker-id-role-hint" style="display:none;font-size:10px;color:var(--t3);font-weight:500;text-transform:none;letter-spacing:0;margin-left:6px;">— from crew list —</span></label>
-    <select id="tracker-id-role" class="si" onchange="trackerIdentityRoleChanged()" style="margin-bottom:12px;">
-      <option value="Director">Director — full access</option>
-      <option value="Operator">Operator — single room</option>
-      <option value="Observer">Observer — read-only</option>
-    </select>
-    <div id="tracker-id-room-wrap" style="display:none;margin-bottom:4px;">
-      <label style="display:block;font-size:11px;font-weight:700;color:var(--t2);text-transform:uppercase;letter-spacing:0.6px;margin-bottom:4px;">Assigned room</label>
-      <select id="tracker-id-room" class="si"></select>
+<!-- Unified sign-in gate — role → password → admin name | crew picker.
+     Mirrors the Commander app's flow so both surfaces share the same
+     identity-selection UX. -->
+<div id="signin-gate" aria-hidden="true">
+  <div class="signin-gate-inner">
+    <div class="signin-brand">
+      <div class="signin-title">E3 Tracker</div>
     </div>
-    <div class="modal-actions">
-      <button id="tracker-id-cancel-btn" class="rst-btn" type="button" onclick="trackerCancelIdentity()">Cancel</button>
-      <button class="save-btn" type="button" onclick="trackerSaveIdentity()" style="margin-top:0;">Save</button>
+    <div class="signin-subtitle">Sign in to continue</div>
+
+    <!-- Step 1: pick a role -->
+    <div id="signin-step-role" class="signin-step">
+      <button class="signin-role-card" data-role="admin" type="button">
+        <div class="signin-role-name">ADMIN</div>
+        <div class="signin-role-desc">Full access. Manage events, crew, rooms, and schedule.</div>
+      </button>
+      <button class="signin-role-card" data-role="user" type="button">
+        <div class="signin-role-name">CREW</div>
+        <div class="signin-role-desc">Operate your assigned rooms. Pick yourself from the event roster.</div>
+      </button>
+    </div>
+
+    <!-- Step 2: password prompt (shared for admin + crew) -->
+    <div id="signin-step-password" class="signin-step" style="display:none;">
+      <div class="signin-step-title" id="signin-pw-title">Password</div>
+      <input type="password" id="signin-pw-input" class="signin-input" placeholder="Password" autocomplete="current-password">
+      <div id="signin-pw-error" class="signin-error" style="display:none;"></div>
+      <div class="signin-actions">
+        <button id="signin-pw-back" class="signin-btn-ghost" type="button">Back</button>
+        <button id="signin-pw-next" class="signin-btn-primary" type="button">Continue</button>
+      </div>
+    </div>
+
+    <!-- Step 3a: admin identity (name only) -->
+    <div id="signin-step-admin-identity" class="signin-step" style="display:none;">
+      <div class="signin-step-title">Your name</div>
+      <div class="signin-step-hint">Attributed on every action in the shared audit log.</div>
+      <input type="text" id="signin-admin-name" class="signin-input" placeholder="e.g. Alex" autocomplete="off">
+      <div class="signin-actions">
+        <button id="signin-admin-back" class="signin-btn-ghost" type="button">Back</button>
+        <button id="signin-admin-done" class="signin-btn-primary" type="button">Sign in</button>
+      </div>
+    </div>
+
+    <!-- Step 3b: crew identity (pick from roster) -->
+    <div id="signin-step-crew-identity" class="signin-step" style="display:none;">
+      <div class="signin-step-title">Who are you?</div>
+      <div class="signin-step-hint" id="signin-crew-hint">Pick yourself from this event's crew list. Your rooms will be scoped automatically.</div>
+      <div id="signin-crew-list" class="signin-crew-list"></div>
+      <div class="signin-actions">
+        <button id="signin-crew-back" class="signin-btn-ghost" type="button">Back</button>
+        <button id="signin-crew-done" class="signin-btn-primary" type="button" disabled>Sign in</button>
+      </div>
     </div>
   </div>
 </div>
@@ -3009,12 +3090,17 @@ function initFirebase(url) {
             currentRole = (user.email === AUTH_ADMIN_EMAIL) ? 'admin' : 'user';
             document.body.classList.toggle('role-admin', isAdmin());
             document.body.classList.toggle('role-user', !isAdmin());
-            hideSignInScreen();
+            // If we have a persisted identity, close the gate and proceed.
+            // Otherwise keep the gate visible and jump to the identity step
+            // for the current role (the rooms-page first-visit gate no
+            // longer needs to open a separate identity modal).
+            if (trackerIdentity) hideSignInGate();
+            else showSignInGate({ identityOnly: true });
             onAuthenticated();
           } else {
             currentRole = null;
             document.body.classList.remove('role-admin', 'role-user');
-            showSignInScreen();
+            showSignInGate();
           }
         });
         fbDb = firebase.database(app).ref('e3-kc26-x7k9m');
@@ -3053,6 +3139,8 @@ function initFirebase(url) {
             renderAll();
             // Refresh vMix rooms in case current event's config.vmixRooms was updated
             if (typeof vmixRefreshRooms === 'function') vmixRefreshRooms();
+            // Refresh the sign-in crew picker if it's the current step.
+            if (typeof signInMaybeRefreshCrewList === 'function') signInMaybeRefreshCrewList();
           }
         }, fbErrorHandler('events'));
         fbDb.child('deletedEvents').on('value', s => {
@@ -3130,6 +3218,7 @@ function onAuthenticated() {
     syncActiveEvent();
     saveAppData();
     renderAllIncludingSettings();
+    if (typeof signInMaybeRefreshCrewList === 'function') signInMaybeRefreshCrewList();
     pushEventData();
     fbDb.child('events').child('ev_default').remove();
   }).catch(e => console.error('Firebase init read failed', e));
@@ -3184,49 +3273,318 @@ async function signInWithPassword(password) {
 
 async function signOut() {
   if (fbAuth) { await fbAuth.signOut(); }
+  try { localStorage.removeItem(TRACKER_IDENTITY_KEY); } catch (e) {}
+  try { localStorage.removeItem('kc_last_role'); } catch (e) {}
   location.reload();
 }
 
-function showSignInScreen() {
-  let el = document.getElementById('signin-screen');
-  if (!el) {
-    el = document.createElement('div');
-    el.id = 'signin-screen';
-    el.innerHTML = `
-      <div class="signin-card">
-        <div class="signin-title">E3 Tracker</div>
-        <div class="signin-sub">Sign in to continue</div>
-        <input id="signin-password" type="password" placeholder="Password" autocomplete="current-password">
-        <button id="signin-submit" type="button">Sign in</button>
-        <div id="signin-error" class="signin-error"></div>
-      </div>`;
-    document.body.appendChild(el);
-    const pwd = el.querySelector('#signin-password');
-    const btn = el.querySelector('#signin-submit');
-    const err = el.querySelector('#signin-error');
-    const submit = async () => {
-      err.textContent = '';
-      btn.disabled = true;
-      btn.textContent = 'Signing in...';
-      try {
-        await signInWithPassword(pwd.value);
-      } catch (e) {
-        err.textContent = e.message || 'Sign-in failed';
-        btn.disabled = false;
-        btn.textContent = 'Sign in';
-        pwd.select();
-      }
-    };
-    btn.addEventListener('click', submit);
-    pwd.addEventListener('keydown', e => { if (e.key === 'Enter') submit(); });
-    setTimeout(() => pwd.focus(), 50);
+// ─── Unified sign-in gate ────────────────────────────────────────────────
+// Mirrors Commander's flow: role → password → admin-name | crew-picker.
+// Replaces the legacy single-password screen + separate identity modal.
+// The gate runs in three entry modes:
+//   1. Fresh (no auth, no identity)         → role step
+//   2. Authed but no identity (first visit) → identity step (role from auth)
+//   3. "Change identity" button             → identity step (skip auth)
+let _signinChosenRole = null;   // 'admin' | 'user'
+let _signinChosenCrew = null;   // crew.id | '__observer__' | null
+let _signinGateWired = false;
+
+function showSignInGate(opts) {
+  opts = opts || {};
+  const gate = document.getElementById('signin-gate');
+  if (!gate) return;
+  _signinWireGate();
+  gate.style.display = 'flex';
+  gate.setAttribute('aria-hidden', 'false');
+  const pw = document.getElementById('signin-pw-input'); if (pw) pw.value = '';
+  const err = document.getElementById('signin-pw-error'); if (err) err.style.display = 'none';
+  _signinChosenCrew = null;
+
+  if (opts.identityOnly) {
+    // Already authed — jump straight to the identity step for the current role.
+    _signinChosenRole = currentRole === 'admin' ? 'admin' : 'user';
+    const nm = document.getElementById('signin-admin-name');
+    if (nm) nm.value = trackerIdentity ? trackerIdentity.name : '';
+    if (_signinChosenRole === 'admin') {
+      signInShowStep('adminIdentity');
+    } else {
+      signInRenderCrewList();
+      signInShowStep('crewIdentity');
+    }
+  } else {
+    _signinChosenRole = null;
+    signInShowStep('role');
   }
-  el.style.display = 'flex';
 }
 
-function hideSignInScreen() {
-  const el = document.getElementById('signin-screen');
-  if (el) el.style.display = 'none';
+function hideSignInGate() {
+  const gate = document.getElementById('signin-gate');
+  if (!gate) return;
+  gate.style.display = 'none';
+  gate.setAttribute('aria-hidden', 'true');
+}
+
+function signInShowStep(stepName) {
+  const steps = {
+    role:          document.getElementById('signin-step-role'),
+    password:      document.getElementById('signin-step-password'),
+    adminIdentity: document.getElementById('signin-step-admin-identity'),
+    crewIdentity:  document.getElementById('signin-step-crew-identity')
+  };
+  Object.entries(steps).forEach(function ([name, el]) {
+    if (el) el.style.display = name === stepName ? '' : 'none';
+  });
+  setTimeout(function () {
+    if (stepName === 'password') { const el = document.getElementById('signin-pw-input'); if (el) el.focus(); }
+    else if (stepName === 'adminIdentity') { const el = document.getElementById('signin-admin-name'); if (el) el.focus(); }
+  }, 30);
+}
+
+function signInSelectRole(role) {
+  _signinChosenRole = role === 'admin' ? 'admin' : 'user';
+  const title = document.getElementById('signin-pw-title');
+  if (title) title.textContent = _signinChosenRole === 'admin' ? 'Admin password' : 'Crew password';
+  signInShowStep('password');
+}
+
+async function signInVerifyPassword() {
+  const input = document.getElementById('signin-pw-input');
+  const err = document.getElementById('signin-pw-error');
+  const btn = document.getElementById('signin-pw-next');
+  if (!input || !err) return;
+  const pass = input.value;
+  if (!pass) { err.textContent = 'Enter a password.'; err.style.display = ''; return; }
+  err.style.display = 'none';
+  if (btn) { btn.disabled = true; btn.textContent = 'Signing in…'; }
+  try {
+    const email = _signinChosenRole === 'admin' ? AUTH_ADMIN_EMAIL : AUTH_USER_EMAIL;
+    // If a different session is still active, sign it out first.
+    if (fbAuth.currentUser && fbAuth.currentUser.email !== email) {
+      try { await fbAuth.signOut(); } catch (e) {}
+    }
+    if (!fbAuth.currentUser || fbAuth.currentUser.email !== email) {
+      await fbAuth.signInWithEmailAndPassword(email, pass);
+    }
+    localStorage.setItem('kc_last_role', _signinChosenRole);
+    // onAuthStateChanged will fire and set currentRole + body class + call
+    // onAuthenticated(). Wait for config.crew to load (crew step only).
+    if (_signinChosenRole === 'user') {
+      const waitStart = Date.now();
+      while (!(config && Array.isArray(config.crew) && config.crew.length) && Date.now() - waitStart < 1500) {
+        await new Promise(function (r) { setTimeout(r, 100); });
+      }
+    }
+  } catch (error) {
+    console.error('Sign-in failed:', error);
+    let message = error && error.message ? error.message : 'Sign-in failed';
+    const code = error && error.code;
+    if (['auth/wrong-password', 'auth/invalid-credential', 'auth/invalid-login-credentials'].includes(code)) {
+      message = 'Invalid password';
+    } else if (code === 'auth/too-many-requests') {
+      message = 'Too many failed attempts. Wait ~1 minute and try again.';
+    } else if (code === 'auth/network-request-failed') {
+      message = 'Network error. Check your connection.';
+    }
+    err.textContent = message;
+    err.style.display = '';
+    if (btn) { btn.disabled = false; btn.textContent = 'Continue'; }
+    return;
+  }
+  if (btn) { btn.disabled = false; btn.textContent = 'Continue'; }
+  if (_signinChosenRole === 'admin') {
+    const nm = document.getElementById('signin-admin-name');
+    if (nm && !nm.value) nm.value = trackerIdentity ? trackerIdentity.name : '';
+    signInShowStep('adminIdentity');
+  } else {
+    signInRenderCrewList();
+    signInShowStep('crewIdentity');
+  }
+}
+
+// Call when config.crew may have changed (e.g. remote update or late load)
+// to repopulate the crew picker only if it's the currently visible step.
+// Preserves the current selection if still valid.
+function signInMaybeRefreshCrewList() {
+  const gate = document.getElementById('signin-gate');
+  const step = document.getElementById('signin-step-crew-identity');
+  if (!gate || !step) return;
+  if (gate.style.display === 'none') return;
+  if (step.style.display === 'none') return;
+  const prev = _signinChosenCrew;
+  signInRenderCrewList();
+  if (prev) {
+    const match = document.querySelector('.signin-crew-option[data-crew-id="' + prev + '"]');
+    if (match) signInPickCrew(prev, match);
+  }
+}
+
+function signInRenderCrewList() {
+  const list = document.getElementById('signin-crew-list');
+  const hint = document.getElementById('signin-crew-hint');
+  const doneBtn = document.getElementById('signin-crew-done');
+  if (!list) return;
+  list.innerHTML = '';
+  const crew = (config && Array.isArray(config.crew)) ? config.crew.filter(function (c) { return c && c.name; }) : [];
+  if (hint) {
+    hint.textContent = crew.length
+      ? 'Pick yourself from this event\u2019s crew list. Your rooms will be scoped automatically.'
+      : 'No crew list for this event yet. Ask the admin to set one up, or continue as an Observer.';
+  }
+  crew.forEach(function (c) {
+    const opt = document.createElement('button');
+    opt.type = 'button';
+    opt.className = 'signin-crew-option';
+    opt.dataset.crewId = c.id;
+    const roomNames = Array.isArray(c.rooms) ? c.rooms.map(function (r) { return r && r.name; }).filter(Boolean) : [];
+    const label = roomNames.length ? roomNames.join(', ') : '(no rooms assigned)';
+    opt.innerHTML =
+      '<span class="signin-crew-option-name">' + escapeHtml(c.name) + '</span>' +
+      '<span class="signin-crew-option-rooms">' + escapeHtml(label) + '</span>';
+    opt.onclick = function () { signInPickCrew(c.id, opt); };
+    list.appendChild(opt);
+  });
+  const obs = document.createElement('button');
+  obs.type = 'button';
+  obs.className = 'signin-crew-option signin-crew-option-observer';
+  obs.dataset.crewId = '__observer__';
+  obs.innerHTML =
+    '<span class="signin-crew-option-name">I\u2019m not listed \u2014 observer only</span>' +
+    '<span class="signin-crew-option-rooms">Read-only access. No start/stop controls.</span>';
+  obs.onclick = function () { signInPickCrew('__observer__', obs); };
+  list.appendChild(obs);
+  if (doneBtn) doneBtn.disabled = true;
+  _signinChosenCrew = null;
+  // Preselect current identity if reopening for "Change identity".
+  if (trackerIdentity && trackerIdentity.crewId) {
+    const match = list.querySelector('.signin-crew-option[data-crew-id="' + trackerIdentity.crewId + '"]');
+    if (match) signInPickCrew(trackerIdentity.crewId, match);
+  }
+}
+
+function signInPickCrew(crewId, el) {
+  _signinChosenCrew = crewId;
+  const list = document.getElementById('signin-crew-list');
+  if (list) list.querySelectorAll('.signin-crew-option.selected').forEach(function (n) { n.classList.remove('selected'); });
+  if (el) el.classList.add('selected');
+  const doneBtn = document.getElementById('signin-crew-done');
+  if (doneBtn) doneBtn.disabled = false;
+}
+
+function signInFinishAdmin() {
+  const nameEl = document.getElementById('signin-admin-name');
+  const name = (nameEl && nameEl.value || '').trim();
+  if (!name) { if (nameEl) nameEl.focus(); return; }
+  trackerIdentity = {
+    name: name,
+    role: 'Director',
+    assignedRoom: null,
+    crewId: null,
+    assignedRooms: null
+  };
+  trackerSaveIdentityToStorage();
+  hideSignInGate();
+  // Reset the vMix filter default so the right crew is auto-focused on next render.
+  vmixFilterDefaultApplied = false;
+  try {
+    const savedFilter = localStorage.getItem(VMIX_FILTER_KEY);
+    vmixFilterUserOverride = !!savedFilter;
+    if (!savedFilter) vmixActiveCrewFilter = 'all';
+  } catch (e) { vmixFilterUserOverride = false; }
+  if (typeof trackerRenderIdentityChip === 'function') trackerRenderIdentityChip();
+  if (currentPage === 'rooms') {
+    if (typeof renderVmixCards === 'function') renderVmixCards();
+    if (typeof renderVmixBanner === 'function') renderVmixBanner();
+  }
+}
+
+function signInFinishCrew() {
+  if (!_signinChosenCrew) return;
+  const crewList = (config && Array.isArray(config.crew)) ? config.crew : [];
+  if (_signinChosenCrew === '__observer__') {
+    trackerIdentity = {
+      name: 'Observer',
+      role: 'Observer',
+      assignedRoom: null,
+      crewId: null,
+      assignedRooms: null
+    };
+  } else {
+    const crew = crewList.find(function (c) { return c && c.id === _signinChosenCrew; });
+    if (crew) {
+      const assignedRoomNames = Array.isArray(crew.rooms)
+        ? crew.rooms.map(function (r) { return r && r.name; }).filter(function (x) { return typeof x === 'string' && x.length; })
+        : [];
+      const firstMatch = (VMIX_ROOMS || []).find(function (r) { return assignedRoomNames.includes(r.name); });
+      trackerIdentity = {
+        name: crew.name,
+        role: 'Operator',
+        assignedRoom: firstMatch ? firstMatch.key : null,
+        crewId: crew.id,
+        assignedRooms: assignedRoomNames
+      };
+    } else {
+      trackerIdentity = {
+        name: 'Observer',
+        role: 'Observer',
+        assignedRoom: null,
+        crewId: null,
+        assignedRooms: null
+      };
+    }
+  }
+  trackerSaveIdentityToStorage();
+  hideSignInGate();
+  vmixFilterDefaultApplied = false;
+  try {
+    const savedFilter = localStorage.getItem(VMIX_FILTER_KEY);
+    vmixFilterUserOverride = !!savedFilter;
+    if (!savedFilter) vmixActiveCrewFilter = 'all';
+  } catch (e) { vmixFilterUserOverride = false; }
+  if (typeof trackerRenderIdentityChip === 'function') trackerRenderIdentityChip();
+  if (currentPage === 'rooms') {
+    if (typeof renderVmixCards === 'function') renderVmixCards();
+    if (typeof renderVmixBanner === 'function') renderVmixBanner();
+  }
+}
+
+// "Change identity" entry point — reuses the gate at the identity step
+// without asking for a password again (user is already authed).
+function signInReopenForChangeIdentity() {
+  if (!currentRole) { showSignInGate(); return; }
+  showSignInGate({ identityOnly: true });
+}
+
+// Wire gate button handlers once. Called lazily the first time the gate
+// is shown (HTML elements exist from page load, so this is safe).
+function _signinWireGate() {
+  if (_signinGateWired) return;
+  _signinGateWired = true;
+  document.querySelectorAll('.signin-role-card').forEach(function (btn) {
+    btn.addEventListener('click', function () { signInSelectRole(btn.dataset.role); });
+  });
+  const pwNext = document.getElementById('signin-pw-next');
+  const pwBack = document.getElementById('signin-pw-back');
+  const pwInput = document.getElementById('signin-pw-input');
+  if (pwNext) pwNext.addEventListener('click', signInVerifyPassword);
+  if (pwBack) pwBack.addEventListener('click', function () { signInShowStep('role'); });
+  if (pwInput) pwInput.addEventListener('keydown', function (e) { if (e.key === 'Enter') signInVerifyPassword(); });
+  const admDone = document.getElementById('signin-admin-done');
+  const admBack = document.getElementById('signin-admin-back');
+  const admInput = document.getElementById('signin-admin-name');
+  if (admDone) admDone.addEventListener('click', signInFinishAdmin);
+  if (admBack) admBack.addEventListener('click', function () {
+    // From identity-only reopen, "Back" closes the gate (auth still valid).
+    if (trackerIdentity) hideSignInGate();
+    else signInShowStep('password');
+  });
+  if (admInput) admInput.addEventListener('keydown', function (e) { if (e.key === 'Enter') signInFinishAdmin(); });
+  const crewDone = document.getElementById('signin-crew-done');
+  const crewBack = document.getElementById('signin-crew-back');
+  if (crewDone) crewDone.addEventListener('click', signInFinishCrew);
+  if (crewBack) crewBack.addEventListener('click', function () {
+    if (trackerIdentity) hideSignInGate();
+    else signInShowStep('password');
+  });
 }
 
 // Render
@@ -4025,13 +4383,13 @@ document.addEventListener('click', e => {
 document.addEventListener('keydown', e => {
   const eventModal = document.getElementById('event-modal');
   const confirmModal = document.getElementById('confirm-modal');
-  const identityModal = document.getElementById('tracker-identity-modal');
+  const gate = document.getElementById('signin-gate');
   if (e.key === 'Escape') {
     if (eventModal && eventModal.style.display === 'flex') closeEventModal();
     if (confirmModal && confirmModal.style.display === 'flex') confirmCancel();
-    // Identity modal: only dismissible once an identity is saved (first-time
-    // setup blocks ESC so the user must pick a role before using the app).
-    if (identityModal && identityModal.style.display === 'flex' && trackerIdentity) trackerCancelIdentity();
+    // Sign-in gate: only dismissible once an identity is saved (fresh
+    // sign-in blocks ESC so the user must finish the flow).
+    if (gate && gate.style.display === 'flex' && trackerIdentity) hideSignInGate();
   }
   if (e.key === 'Enter' && eventModal && eventModal.style.display === 'flex' && !e.shiftKey) {
     const tag = document.activeElement?.tagName;
@@ -4593,7 +4951,6 @@ const VMIX_STORE_KEY = 'kc_vmix_ips';
 // Persisted locally; used to scope rendering and to tag audit-log entries.
 const TRACKER_IDENTITY_KEY = 'kc_tracker_identity';
 let trackerIdentity = null;
-let trackerIdentityModalOpen = false;
 let trackerRosCollapsed = false;
 let trackerRunOfShow = [];
 let trackerRunOfShowRef = null;
@@ -4670,219 +5027,6 @@ function trackerRoleIsDirector()  { return !!trackerIdentity && trackerIdentity.
 function trackerRoleIsOperator()  { return !!trackerIdentity && trackerIdentity.role === 'Operator'; }
 function trackerRoleIsObserver()  { return !!trackerIdentity && trackerIdentity.role === 'Observer'; }
 
-function trackerOpenIdentityModal() {
-  trackerIdentityModalOpen = true;
-  const modal = document.getElementById('tracker-identity-modal');
-  if (!modal) return;
-  // Populate fields from current identity
-  const nameEl = document.getElementById('tracker-id-name');
-  const roleEl = document.getElementById('tracker-id-role');
-  if (nameEl) nameEl.value = trackerIdentity ? trackerIdentity.name : '';
-  if (roleEl) roleEl.value = trackerIdentity ? trackerIdentity.role : 'Director';
-  trackerPopulateIdentityCrew();
-  trackerPopulateIdentityRooms();
-  trackerIdentityCrewChanged();       // applies crew-mode side-effects
-  trackerIdentityRoleChanged();       // toggles room-wrap
-  // Hide the Cancel button on forced first-time identity setup
-  const cancelBtn = document.getElementById('tracker-id-cancel-btn');
-  if (cancelBtn) cancelBtn.style.display = trackerIdentity ? '' : 'none';
-  modal.style.display = 'flex';
-}
-
-function trackerPopulateIdentityCrew() {
-  const sel = document.getElementById('tracker-id-crew');
-  const hint = document.getElementById('tracker-id-crew-hint');
-  if (!sel) return;
-  const crewList = (config && Array.isArray(config.crew)) ? config.crew : [];
-  sel.innerHTML = '';
-  const custom = document.createElement('option');
-  custom.value = '__custom__';
-  custom.textContent = '— Custom identity —';
-  sel.appendChild(custom);
-  const director = document.createElement('option');
-  director.value = '__director__';
-  director.textContent = 'Director — All rooms';
-  sel.appendChild(director);
-  crewList.forEach(c => {
-    if (!c || !c.id) return;
-    const name = c.name || 'Unnamed crew';
-    const roomNames = Array.isArray(c.rooms) ? c.rooms.map(r => r && r.name).filter(Boolean) : [];
-    const label = roomNames.length ? (name + ' (' + roomNames.join(', ') + ')') : name;
-    const opt = document.createElement('option');
-    opt.value = c.id;
-    opt.textContent = label;
-    sel.appendChild(opt);
-  });
-  // Select the current crew if identity has one, else Custom by default.
-  const currentCrewId = trackerIdentity && trackerIdentity.crewId;
-  if (currentCrewId && crewList.some(c => c.id === currentCrewId)) {
-    sel.value = currentCrewId;
-  } else {
-    sel.value = '__custom__';
-  }
-  // Show a dim helper line when there's no crew list for the event.
-  if (hint) {
-    if (!crewList.length) {
-      hint.textContent = 'No crew list in this event.';
-      hint.style.display = 'block';
-    } else {
-      hint.textContent = '';
-      hint.style.display = 'none';
-    }
-  }
-}
-
-function trackerIdentityCrewChanged() {
-  const sel = document.getElementById('tracker-id-crew');
-  const nameEl = document.getElementById('tracker-id-name');
-  const roleEl = document.getElementById('tracker-id-role');
-  const nameHint = document.getElementById('tracker-id-name-hint');
-  const roleHint = document.getElementById('tracker-id-role-hint');
-  if (!sel || !nameEl || !roleEl) return;
-  const val = sel.value;
-  const crewList = (config && Array.isArray(config.crew)) ? config.crew : [];
-
-  // Default: fields editable.
-  nameEl.disabled = false;
-  roleEl.disabled = false;
-  if (nameHint) nameHint.style.display = 'none';
-  if (roleHint) roleHint.style.display = 'none';
-
-  if (val === '__custom__') {
-    // Don't touch Name / Role inputs — keep whatever the user had.
-    trackerIdentityRoleChanged();
-    return;
-  }
-  if (val === '__director__') {
-    roleEl.value = 'Director';
-    trackerIdentityRoleChanged();
-    return;
-  }
-  // Crew member chosen
-  const crew = crewList.find(c => c.id === val);
-  if (!crew) { trackerIdentityRoleChanged(); return; }
-  nameEl.value = crew.name || '';
-  roleEl.value = 'Operator';
-  nameEl.disabled = true;
-  roleEl.disabled = true;
-  if (nameHint) nameHint.style.display = 'inline';
-  if (roleHint) roleHint.style.display = 'inline';
-  trackerIdentityRoleChanged();
-}
-
-function trackerCancelIdentity() {
-  if (!trackerIdentity) return; // require identity on first load
-  const modal = document.getElementById('tracker-identity-modal');
-  if (modal) modal.style.display = 'none';
-  trackerIdentityModalOpen = false;
-}
-
-function trackerPopulateIdentityRooms() {
-  const sel = document.getElementById('tracker-id-room');
-  if (!sel) return;
-  const current = trackerIdentity ? trackerIdentity.assignedRoom : null;
-  sel.innerHTML = '';
-  const blank = document.createElement('option');
-  blank.value = '';
-  blank.textContent = '— select room —';
-  sel.appendChild(blank);
-  (VMIX_ROOMS || []).forEach(function (r) {
-    const opt = document.createElement('option');
-    opt.value = r.key;
-    opt.textContent = r.name;
-    if (current && current === r.key) opt.selected = true;
-    sel.appendChild(opt);
-  });
-}
-
-function trackerIdentityRoleChanged() {
-  const roleEl = document.getElementById('tracker-id-role');
-  const crewSel = document.getElementById('tracker-id-crew');
-  const wrap = document.getElementById('tracker-id-room-wrap');
-  if (!roleEl || !wrap) return;
-  // When a crew member is selected, rooms come from config.crew — hide the manual picker.
-  const crewPicked = crewSel && crewSel.value && crewSel.value !== '__custom__' && crewSel.value !== '__director__';
-  wrap.style.display = (roleEl.value === 'Operator' && !crewPicked) ? 'block' : 'none';
-}
-
-function trackerSaveIdentity() {
-  const crewSel = document.getElementById('tracker-id-crew');
-  const crewChoice = crewSel ? crewSel.value : '__custom__';
-  const crewList = (config && Array.isArray(config.crew)) ? config.crew : [];
-  const pickedCrew = (crewChoice && crewChoice !== '__custom__' && crewChoice !== '__director__')
-    ? crewList.find(c => c.id === crewChoice)
-    : null;
-
-  const name = (document.getElementById('tracker-id-name') || {}).value || '';
-  const role = (document.getElementById('tracker-id-role') || {}).value || 'Director';
-  const assignedRoom = (document.getElementById('tracker-id-room') || {}).value || '';
-  const n = name.trim();
-  if (!n) { showToast('Enter your name'); return; }
-
-  let crewId = null;
-  let assignedRooms = null;
-  let legacyAssignedRoom = null;
-
-  if (pickedCrew) {
-    crewId = pickedCrew.id;
-    assignedRooms = Array.isArray(pickedCrew.rooms)
-      ? pickedCrew.rooms.map(r => r && r.name).filter(x => typeof x === 'string' && x.length)
-      : [];
-    // Back-compat: pick the first matching VMIX_ROOMS key (if any) so older code paths that
-    // still reference trackerIdentity.assignedRoom continue to resolve a room.
-    const firstMatch = (VMIX_ROOMS || []).find(r => assignedRooms.includes(r.name));
-    legacyAssignedRoom = firstMatch ? firstMatch.key : null;
-  } else if (crewChoice === '__director__') {
-    // Director shortcut: clear crew / room assignment entirely.
-    crewId = null;
-    assignedRooms = null;
-    legacyAssignedRoom = null;
-  } else {
-    // Custom identity — Operator needs a manual assigned room (legacy single-room path).
-    if (role === 'Operator' && !assignedRoom) { showToast('Pick your assigned room'); return; }
-    if (role === 'Operator') {
-      const match = (VMIX_ROOMS || []).find(r => r.key === assignedRoom);
-      legacyAssignedRoom = assignedRoom;
-      assignedRooms = [match ? match.name : assignedRoom];
-    }
-  }
-
-  trackerIdentity = {
-    name: n,
-    role: pickedCrew ? 'Operator' : (crewChoice === '__director__' ? 'Director' : role),
-    assignedRoom: legacyAssignedRoom,
-    crewId: crewId,
-    assignedRooms: assignedRooms,
-  };
-  trackerSaveIdentityToStorage();
-
-  // Warn (but still save) if the chosen crew has zero matching vMix rooms.
-  if (pickedCrew && assignedRooms && assignedRooms.length) {
-    const matched = (VMIX_ROOMS || []).filter(r => assignedRooms.includes(r.name));
-    if (!matched.length) {
-      showToast("Crew member '" + pickedCrew.name + "' has no matching vMix rooms — check that Commander's room names match your Setup-page crew assignments.");
-    }
-  }
-
-  // Reset filter default when identity changes — smart default is reapplied on next render
-  // unless the user previously saved an explicit "All" preference in localStorage.
-  vmixFilterDefaultApplied = false;
-  try {
-    const savedFilter = localStorage.getItem(VMIX_FILTER_KEY);
-    vmixFilterUserOverride = !!savedFilter;
-    if (!savedFilter) vmixActiveCrewFilter = 'all';
-  } catch (e) { vmixFilterUserOverride = false; }
-
-  const modal = document.getElementById('tracker-identity-modal');
-  if (modal) modal.style.display = 'none';
-  trackerIdentityModalOpen = false;
-  trackerRenderIdentityChip();
-  if (currentPage === 'rooms') {
-    renderVmixCards();
-    renderVmixBanner();
-  }
-}
-
 function trackerRenderIdentityChip() {
   const chip = document.getElementById('vmix-identity-chip');
   if (!chip) return;
@@ -4911,10 +5055,12 @@ function trackerRenderIdentityChip() {
     rematchBtn;
 }
 
-// Ensure identity exists before showing Rooms page. If not, force-open the modal.
+// Ensure identity exists before showing Rooms page. If not, reopen the gate
+// at the identity step for the current auth role (no password re-entry).
 function trackerEnsureIdentity() {
   if (!trackerIdentity) {
-    trackerOpenIdentityModal();
+    if (currentRole) showSignInGate({ identityOnly: true });
+    else showSignInGate();
     return false;
   }
   return true;
@@ -6240,7 +6386,7 @@ window.switchPage = function(page) {
     vmixStartTick();
     vmixRefreshAll();  // fallback direct poll — no-op when Commander live
     // First-visit gate: require identity before showing the page
-    if (!trackerIdentity) trackerOpenIdentityModal();
+    if (!trackerIdentity) trackerEnsureIdentity();
   } else {
     vmixStopTick();
     _switchPageOrig(page);
@@ -6260,7 +6406,7 @@ if (currentPage === 'rooms') {
     renderVmixCards();
     vmixStartTick();
     // First-load identity gate
-    if (!trackerIdentity) trackerOpenIdentityModal();
+    if (!trackerIdentity) trackerEnsureIdentity();
   });
 }
 </script>
