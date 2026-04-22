@@ -3154,6 +3154,8 @@ function initFirebase(url) {
             // Refresh sign-in gate steps if visible (late roster / new event arrivals).
             if (typeof signInMaybeRefreshCrewList === 'function') signInMaybeRefreshCrewList();
             if (typeof signInMaybeRefreshEventList === 'function') signInMaybeRefreshEventList();
+            // Reconcile resumed Operator's rooms on remote crew/config updates.
+            if (typeof reconcileCurrentOperatorRoomsTracker === 'function') reconcileCurrentOperatorRoomsTracker();
           }
         }, fbErrorHandler('events'));
         fbDb.child('deletedEvents').on('value', s => {
@@ -3233,6 +3235,8 @@ function onAuthenticated() {
     renderAllIncludingSettings();
     if (typeof signInMaybeRefreshCrewList === 'function') signInMaybeRefreshCrewList();
     if (typeof signInMaybeRefreshEventList === 'function') signInMaybeRefreshEventList();
+    // Reconcile resumed Operator's rooms now that config is hydrated.
+    if (typeof reconcileCurrentOperatorRoomsTracker === 'function') reconcileCurrentOperatorRoomsTracker();
     pushEventData();
     fbDb.child('events').child('ev_default').remove();
   }).catch(e => console.error('Firebase init read failed', e));
@@ -3600,6 +3604,57 @@ function signInFinishAdmin() {
   }
 }
 
+// Re-reconcile the current Operator's rooms into config.vmixRooms on
+// resume / remote crew update. Mirrors Commander's reconcile helper so
+// a session signed in on an earlier version (or when crew config was
+// edited remotely) picks up room additions without requiring a re-pick.
+function reconcileCurrentOperatorRoomsTracker() {
+  if (!trackerIdentity || trackerIdentity.role !== 'Operator' || !trackerIdentity.crewId) return;
+  const crewList = (config && Array.isArray(config.crew)) ? config.crew : [];
+  if (!crewList.length) return;
+  const crew = crewList.find(function (c) { return c && c.id === trackerIdentity.crewId; });
+  if (!crew) return;
+  const names = vmixUpsertCrewRooms(crew);
+  trackerIdentity.assignedRooms = names;
+  trackerSaveIdentityToStorage();
+}
+
+// Upsert a crew member's rooms into the current event's config.vmixRooms.
+// Ensures Recording page can render even when Commander hasn't pushed a
+// vMix room list yet. Writes back to Firebase via pushEventData. Returns
+// the resulting list of room names so callers can map assignedRooms.
+function vmixUpsertCrewRooms(crew) {
+  if (!crew || !Array.isArray(crew.rooms)) return [];
+  const ev = (typeof currentEvent === 'function') ? currentEvent() : null;
+  if (!ev || !ev.config) return [];
+  if (!Array.isArray(ev.config.vmixRooms)) ev.config.vmixRooms = [];
+  const crewNames = crew.rooms
+    .map(function (r) { return r && r.name; })
+    .filter(function (n) { return typeof n === 'string' && n.trim(); })
+    .map(function (n) { return n.trim(); });
+  let mutated = false;
+  crewNames.forEach(function (name) {
+    const hit = ev.config.vmixRooms.find(function (r) {
+      return r && (r.name || '').trim().toLowerCase() === name.toLowerCase();
+    });
+    if (!hit) {
+      ev.config.vmixRooms.push({
+        key: 'room_' + Math.random().toString(36).slice(2, 10),
+        name: name,
+        ip: ''
+      });
+      mutated = true;
+    }
+  });
+  if (mutated) {
+    if (typeof touchEvent === 'function') touchEvent(ev);
+    if (typeof saveAppData === 'function') saveAppData();
+    if (typeof pushEventData === 'function') pushEventData();
+    if (typeof vmixRefreshRooms === 'function') vmixRefreshRooms();
+  }
+  return crewNames;
+}
+
 function signInFinishCrew() {
   if (!_signinChosenCrew) return;
   const crewList = (config && Array.isArray(config.crew)) ? config.crew : [];
@@ -3614,9 +3669,11 @@ function signInFinishCrew() {
   } else {
     const crew = crewList.find(function (c) { return c && c.id === _signinChosenCrew; });
     if (crew) {
-      const assignedRoomNames = Array.isArray(crew.rooms)
-        ? crew.rooms.map(function (r) { return r && r.name; }).filter(function (x) { return typeof x === 'string' && x.length; })
-        : [];
+      // Upsert the crew member's rooms into config.vmixRooms so Recording
+      // renders regardless of whether Commander has pushed them yet. Works
+      // for both admin + user auth because the rules allow authed writes
+      // to config. Same reconciliation Commander does on its side.
+      const assignedRoomNames = vmixUpsertCrewRooms(crew);
       const firstMatch = (VMIX_ROOMS || []).find(function (r) { return assignedRoomNames.includes(r.name); });
       trackerIdentity = {
         name: crew.name,
