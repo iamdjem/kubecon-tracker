@@ -1465,7 +1465,19 @@ body.role-user .admin-only-input { pointer-events: none; opacity: 0.55; }
       </div>
     </div>
 
-    <!-- Step 3a: admin identity (name only) -->
+    <!-- Step 3: event picker (only shown when 2+ live events exist).
+         Mounted between password and identity so the user can choose
+         which event they're operating in before picking their crew row. -->
+    <div id="signin-step-event" class="signin-step" style="display:none;">
+      <div class="signin-step-title">Which event?</div>
+      <div class="signin-step-hint">Pick the live event you're working on. You can switch events later from the app.</div>
+      <div id="signin-event-list" class="signin-crew-list"></div>
+      <div class="signin-actions">
+        <button id="signin-event-back" class="signin-btn-ghost" type="button">Back</button>
+      </div>
+    </div>
+
+    <!-- Step 4a: admin identity (name only) -->
     <div id="signin-step-admin-identity" class="signin-step" style="display:none;">
       <div class="signin-step-title">Your name</div>
       <div class="signin-step-hint">Attributed on every action in the shared audit log.</div>
@@ -1476,7 +1488,7 @@ body.role-user .admin-only-input { pointer-events: none; opacity: 0.55; }
       </div>
     </div>
 
-    <!-- Step 3b: crew identity (pick from roster) -->
+    <!-- Step 4b: crew identity (pick from the chosen event's roster) -->
     <div id="signin-step-crew-identity" class="signin-step" style="display:none;">
       <div class="signin-step-title">Who are you?</div>
       <div class="signin-step-hint" id="signin-crew-hint">Pick yourself from this event's crew list. Your rooms will be scoped automatically.</div>
@@ -3139,8 +3151,9 @@ function initFirebase(url) {
             renderAll();
             // Refresh vMix rooms in case current event's config.vmixRooms was updated
             if (typeof vmixRefreshRooms === 'function') vmixRefreshRooms();
-            // Refresh the sign-in crew picker if it's the current step.
+            // Refresh sign-in gate steps if visible (late roster / new event arrivals).
             if (typeof signInMaybeRefreshCrewList === 'function') signInMaybeRefreshCrewList();
+            if (typeof signInMaybeRefreshEventList === 'function') signInMaybeRefreshEventList();
           }
         }, fbErrorHandler('events'));
         fbDb.child('deletedEvents').on('value', s => {
@@ -3219,6 +3232,7 @@ function onAuthenticated() {
     saveAppData();
     renderAllIncludingSettings();
     if (typeof signInMaybeRefreshCrewList === 'function') signInMaybeRefreshCrewList();
+    if (typeof signInMaybeRefreshEventList === 'function') signInMaybeRefreshEventList();
     pushEventData();
     fbDb.child('events').child('ev_default').remove();
   }).catch(e => console.error('Firebase init read failed', e));
@@ -3301,11 +3315,16 @@ function showSignInGate(opts) {
   _signinChosenCrew = null;
 
   if (opts.identityOnly) {
-    // Already authed — jump straight to the identity step for the current role.
+    // Already authed — skip role + password. If multiple live events are
+    // running, offer the event picker first so the user can switch events
+    // as part of "Change identity". Otherwise jump to the identity step.
     _signinChosenRole = currentRole === 'admin' ? 'admin' : 'user';
     const nm = document.getElementById('signin-admin-name');
     if (nm) nm.value = trackerIdentity ? trackerIdentity.name : '';
-    if (_signinChosenRole === 'admin') {
+    if (signInLiveEvents().length > 1) {
+      signInRenderEventList();
+      signInShowStep('event');
+    } else if (_signinChosenRole === 'admin') {
       signInShowStep('adminIdentity');
     } else {
       signInRenderCrewList();
@@ -3328,6 +3347,7 @@ function signInShowStep(stepName) {
   const steps = {
     role:          document.getElementById('signin-step-role'),
     password:      document.getElementById('signin-step-password'),
+    event:         document.getElementById('signin-step-event'),
     adminIdentity: document.getElementById('signin-step-admin-identity'),
     crewIdentity:  document.getElementById('signin-step-crew-identity')
   };
@@ -3338,6 +3358,76 @@ function signInShowStep(stepName) {
     if (stepName === 'password') { const el = document.getElementById('signin-pw-input'); if (el) el.focus(); }
     else if (stepName === 'adminIdentity') { const el = document.getElementById('signin-admin-name'); if (el) el.focus(); }
   }, 30);
+}
+
+// Enumerate live (non-archived, non-template) events, newest-first.
+function signInLiveEvents() {
+  if (!appData || !appData.events) return [];
+  const deleted = (typeof getDeletedIds === 'function') ? getDeletedIds() : new Set();
+  return Object.values(appData.events)
+    .filter(function (ev) {
+      return ev && ev.id && !ev.archived && !isTemplateEvent(ev) && !deleted.has(ev.id);
+    })
+    .sort(function (a, b) { return (b.updatedAt || 0) - (a.updatedAt || 0); });
+}
+
+// Populate the event-picker list. Called before every `event` step show
+// and also when the events-tree snapshot updates while the step is visible.
+function signInRenderEventList() {
+  const list = document.getElementById('signin-event-list');
+  if (!list) return;
+  list.innerHTML = '';
+  const events = signInLiveEvents();
+  if (!events.length) {
+    const empty = document.createElement('div');
+    empty.className = 'signin-step-hint';
+    empty.style.padding = '8px 0';
+    empty.textContent = 'No live events yet. Ask an admin to create one.';
+    list.appendChild(empty);
+    return;
+  }
+  events.forEach(function (ev) {
+    const opt = document.createElement('button');
+    opt.type = 'button';
+    opt.className = 'signin-crew-option' + (ev.id === currentEventId ? ' selected' : '');
+    opt.dataset.eventId = ev.id;
+    const sub = [ev.location, ev.dateLabel].filter(Boolean).join(' \u00b7 ');
+    opt.innerHTML =
+      '<span class="signin-crew-option-name">' + escapeHtml(ev.name || 'Untitled event') + '</span>' +
+      (sub ? '<span class="signin-crew-option-rooms">' + escapeHtml(sub) + '</span>' : '');
+    opt.onclick = function () { signInPickEvent(ev.id); };
+    list.appendChild(opt);
+  });
+}
+
+// Switch the active event, then advance to the right identity step for the
+// current auth role. Event switching is a full tracker-wide action
+// (switchEvent saves config/state + triggers renders), but the sign-in
+// gate overlay stays visible on top so the user never sees the flash.
+function signInPickEvent(eventId) {
+  if (!eventId) return;
+  if (eventId !== currentEventId && typeof switchEvent === 'function') {
+    switchEvent(eventId, { toast: false });
+  }
+  if (_signinChosenRole === 'admin') {
+    const nm = document.getElementById('signin-admin-name');
+    if (nm && !nm.value) nm.value = trackerIdentity ? trackerIdentity.name : '';
+    signInShowStep('adminIdentity');
+  } else {
+    signInRenderCrewList();
+    signInShowStep('crewIdentity');
+  }
+}
+
+// Repopulate the event list if the events tree updates while that step
+// is visible (e.g. admin creates a new live event from another device).
+function signInMaybeRefreshEventList() {
+  const gate = document.getElementById('signin-gate');
+  const step = document.getElementById('signin-step-event');
+  if (!gate || !step) return;
+  if (gate.style.display === 'none') return;
+  if (step.style.display === 'none') return;
+  signInRenderEventList();
 }
 
 function signInSelectRole(role) {
@@ -3391,6 +3481,19 @@ async function signInVerifyPassword() {
     return;
   }
   if (btn) { btn.disabled = false; btn.textContent = 'Continue'; }
+  // Wait briefly for the events tree to hydrate (onAuthenticated reads it)
+  // so signInLiveEvents() sees real data, not an empty seed.
+  const eventsWaitStart = Date.now();
+  while (signInLiveEvents().length === 0 && Date.now() - eventsWaitStart < 1500) {
+    await new Promise(function (r) { setTimeout(r, 100); });
+  }
+  // Route through event picker when 2+ live events exist; otherwise jump
+  // straight to the identity step for the current role.
+  if (signInLiveEvents().length > 1) {
+    signInRenderEventList();
+    signInShowStep('event');
+    return;
+  }
   if (_signinChosenRole === 'admin') {
     const nm = document.getElementById('signin-admin-name');
     if (nm && !nm.value) nm.value = trackerIdentity ? trackerIdentity.name : '';
@@ -3573,15 +3676,35 @@ function _signinWireGate() {
   const admInput = document.getElementById('signin-admin-name');
   if (admDone) admDone.addEventListener('click', signInFinishAdmin);
   if (admBack) admBack.addEventListener('click', function () {
-    // From identity-only reopen, "Back" closes the gate (auth still valid).
-    if (trackerIdentity) hideSignInGate();
-    else signInShowStep('password');
+    // Back from identity step: prefer the event picker when it was the
+    // previous step; otherwise close (change-identity) or go to password.
+    if (signInLiveEvents().length > 1) {
+      signInRenderEventList();
+      signInShowStep('event');
+    } else if (trackerIdentity) {
+      hideSignInGate();
+    } else {
+      signInShowStep('password');
+    }
   });
   if (admInput) admInput.addEventListener('keydown', function (e) { if (e.key === 'Enter') signInFinishAdmin(); });
   const crewDone = document.getElementById('signin-crew-done');
   const crewBack = document.getElementById('signin-crew-back');
   if (crewDone) crewDone.addEventListener('click', signInFinishCrew);
   if (crewBack) crewBack.addEventListener('click', function () {
+    if (signInLiveEvents().length > 1) {
+      signInRenderEventList();
+      signInShowStep('event');
+    } else if (trackerIdentity) {
+      hideSignInGate();
+    } else {
+      signInShowStep('password');
+    }
+  });
+  const evtBack = document.getElementById('signin-event-back');
+  if (evtBack) evtBack.addEventListener('click', function () {
+    // Back from event step: close the gate on change-identity (already
+    // authed + has identity), or drop to password step on fresh flow.
     if (trackerIdentity) hideSignInGate();
     else signInShowStep('password');
   });
