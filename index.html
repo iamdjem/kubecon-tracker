@@ -4328,8 +4328,10 @@ function renderSettings() {
     </div>
     <div class="sg admin-only admin-only-block">
       <div class="sg-lbl">Schedule Embed</div>
-      <input class="si" id="s_sched_embed" value="${config.scheduleEmbedUrl||''}" placeholder="https://..." onchange="updateScheduleEmbed(this.value)">
-      <div style="font-size:11px;color:var(--t3);margin-top:-4px;">Paste the live schedule URL to show in the Schedule tab</div>
+      <input class="si" id="s_sched_embed" value="${config.scheduleEmbedUrl||''}" placeholder="https://kccnceu2026.sched.com/" onchange="updateScheduleEmbed(this.value)">
+      <div style="font-size:11px;color:var(--t3);margin-top:-4px;line-height:1.45;">
+        Must be a <strong>sched.com</strong> URL (e.g. <code style="color:var(--accent);font-size:11px;">https://kccnceu2026.sched.com/</code>). Pages on <code style="font-size:11px;">events.linuxfoundation.org</code> won't load — they refuse to be embedded.
+      </div>
     </div>
     <div class="sg">
       <div class="sg-lbl">Account</div>
