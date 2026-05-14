@@ -678,6 +678,13 @@ body { padding-bottom: 58px; }
   text-transform: uppercase; letter-spacing: 0.5px;
 }
 .day-tab.on { color: var(--accent); border-bottom-color: var(--accent); }
+@media (max-width: 640px) {
+  .day-tab {
+    flex: 0 0 auto;
+    min-width: 0;
+    padding: 10px 12px;
+  }
+}
 
 .sched-body { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; }
 @media (min-width: 640px) {
