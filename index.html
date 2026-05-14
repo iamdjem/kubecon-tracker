@@ -4309,6 +4309,12 @@ function renderSettings() {
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
         Add crew member
       </button>
+      <button class="rst-btn" type="button" onclick="vmixAdoptCrewRoomsWithConfirm()" style="margin-top:10px;display:block;width:100%;">
+        Reset vMix rooms from crew assignments
+      </button>
+      <div style="margin-top:6px;color:var(--t3);font-size:11px;line-height:1.45;">
+        Overwrites the event's vMix room list (used by Recording + Commander) with the rooms currently assigned to crew. Rooms not in any crew assignment will be removed.
+      </div>
     </div>
     <div class="sg">
       <div class="sg-lbl">Export</div>
@@ -5606,6 +5612,33 @@ function trackerReconcileProxy() {
   }
 }
 
+
+// Settings-page entry point: confirms with the admin before overwriting
+// vmixRooms, since rooms not assigned to any crew member will disappear
+// (which is the point — it's how we recover from drift between
+// Commander's pushed list and the tracker's crew assignments).
+function vmixAdoptCrewRoomsWithConfirm() {
+  if (!trackerRoleIsDirector()) { showToast('Director only.'); return; }
+  if (!currentEventId) { showToast('No live event'); return; }
+  const ev = currentEvent();
+  if (!ev || !ev.config) { showToast('Event not ready'); return; }
+  const seen = new Set();
+  const names = [];
+  (ev.config.crew || []).forEach(c => (c.rooms || []).forEach(r => {
+    const n = (r && r.name) ? String(r.name).trim() : '';
+    if (!n || seen.has(n.toLowerCase())) return;
+    seen.add(n.toLowerCase()); names.push(n);
+  }));
+  if (!names.length) { showToast('No crew rooms to import'); return; }
+  const existing = Array.isArray(ev.config.vmixRooms) ? ev.config.vmixRooms.length : 0;
+  showConfirm(
+    'Reset vMix rooms?',
+    'Overwrite ' + existing + ' current vMix room(s) with ' + names.length + ' room(s) from crew assignments. Commander will mirror the new list within a few seconds.\n\nRooms: ' + names.join(', '),
+    'Reset rooms',
+    'background:#2d4a7a;color:#6bb3ff;',
+    () => vmixAdoptCrewRooms()
+  );
+}
 
 // One-click recovery: flatten config.crew[].rooms into config.vmixRooms so
 // Recording page lights up immediately. Used by events that were duplicated
