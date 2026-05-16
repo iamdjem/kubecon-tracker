@@ -1614,6 +1614,11 @@ body.role-user .admin-only-input { pointer-events: none; opacity: 0.55; }
 </div>
 
 <script>
+// Bump on every deploy. Shown in Settings → About so you can confirm a
+// push actually reached the browser (past the service-worker cache).
+// Keep the sw.js CACHE constant in lockstep with this — same string.
+const APP_VERSION = '2026.05.16.1';
+
 const AVATAR_COLORS = ['#e8c547','#e87d47','#e84774','#a347e8','#478ce8','#47e8a0','#e8476b','#47e8d4','#c8e847','#e88347'];
 function avatarColor(name) {
   let h = 0; for (let i=0; i<name.length; i++) h = name.charCodeAt(i) + ((h<<5)-h);
@@ -4365,6 +4370,10 @@ function renderSettings() {
           `).join('')}
         </div>` : '<div class="event-empty" style="margin-top:8px;">No archived events yet</div>'}
       </details>
+    </div>
+    <div class="sg">
+      <div class="sg-lbl">About</div>
+      <div class="auth-row-info" style="color:var(--t3);font-size:12px;">Tracker version <span style="color:var(--t2);font-weight:600;">${APP_VERSION}</span></div>
     </div>
     <div style="height:8px"></div>`;
   // Sticky save button outside scroll area
