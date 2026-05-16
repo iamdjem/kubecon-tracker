@@ -3292,7 +3292,11 @@ function initFirebase(url) {
             }
           }
         }, fbErrorHandler('deletedEvents'));
-        fbDb.child('vmix_ips').on('value', s => { const v=s.val(); if(v){ VMIX_ROOMS.forEach(r => { if(v[r.key]) r.ip=v[r.key]; }); vmixSaveIps(); if(currentPage==='rooms') renderVmixCards(); } }, fbErrorHandler('vmix_ips'));
+        // Legacy vmix_ips node: now a NON-clobbering fallback. config.vmixRooms[].ip
+        // (synced both ways with Commander) is the source of truth — only fill
+        // from vmix_ips when a room has no IP there yet, so a stale legacy value
+        // can't overwrite a fresh Commander/tracker IP.
+        fbDb.child('vmix_ips').on('value', s => { const v=s.val(); if(v){ let ch=false; VMIX_ROOMS.forEach(r => { if(!r.ip && v[r.key]){ r.ip=v[r.key]; ch=true; } }); if(ch){ vmixSaveIps(); if(currentPage==='rooms') renderVmixCards(); } } }, fbErrorHandler('vmix_ips'));
         vmixListenProxyUrl();
         vmixSubscribeStatus();
       } catch(e) {
@@ -6536,7 +6540,26 @@ async function vmixSaveIp(key) {
   const inp = document.getElementById('vmix-ip-' + key);
   room.ip = inp ? inp.value.trim() : '';
   vmixSaveIps();
-  // Also save to Firebase so all devices get the IP
+  // Single source of truth for IPs is config.vmixRooms[].ip — the same
+  // per-event field Commander reads + writes. Write there and push so
+  // every Commander and the tracker on every device converge. An IP
+  // entered here is now visible in Commander (and vice-versa) without
+  // re-entering it per app.
+  try {
+    const ev = (typeof currentEvent === 'function') ? currentEvent() : null;
+    if (ev && ev.config && Array.isArray(ev.config.vmixRooms)) {
+      const slot = ev.config.vmixRooms.find(r => r && r.key === key);
+      if (slot) {
+        slot.ip = room.ip;
+        if (typeof touchEvent === 'function') touchEvent(ev);
+        if (typeof saveAppData === 'function') saveAppData();
+        if (typeof pushEventData === 'function') pushEventData();
+      }
+    }
+  } catch (_) { /* fall through to legacy path below */ }
+  // Legacy mirror: older tracker clients still read vmix_ips. Harmless to
+  // keep writing it during the transition; remove once all clients read
+  // config.vmixRooms[].ip.
   if (fbDb) fbDb.child('vmix_ips/' + key).set(room.ip);
   // Visual feedback — change button text immediately
   const btn = inp ? inp.nextElementSibling : null;
