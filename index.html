@@ -1617,7 +1617,7 @@ body.role-user .admin-only-input { pointer-events: none; opacity: 0.55; }
 // Bump on every deploy. Shown in Settings → About so you can confirm a
 // push actually reached the browser (past the service-worker cache).
 // Keep the sw.js CACHE constant in lockstep with this — same string.
-const APP_VERSION = '2026.05.17.1';
+const APP_VERSION = '2026.05.17.2';
 
 const AVATAR_COLORS = ['#e8c547','#e87d47','#e84774','#a347e8','#478ce8','#47e8a0','#e8476b','#47e8d4','#c8e847','#e88347'];
 function avatarColor(name) {
@@ -6683,7 +6683,14 @@ async function vmixCall(ip, fn) {
     if (vmixProxyUrl) {
       // Route through vMix Commander proxy (works over HTTPS)
       const r = await fetch(`${vmixProxyUrl}/vmix-proxy?ip=${encodeURIComponent(ip)}&fn=${encodeURIComponent(fn)}`);
-      return { ok: r.ok };
+      if (r.ok) return { ok: true };
+      // Surface the real reason instead of the old misleading "blocked?".
+      // A non-OK here almost always means the Commander running this
+      // tunnel can't reach <ip>:8088 (wrong IP / vMix Web Controller
+      // off / different subnet / firewall).
+      let detail = '';
+      try { detail = (await r.text()).trim().slice(0, 120); } catch (_) {}
+      return { ok: false, error: `proxy HTTP ${r.status}${detail ? ' — ' + detail : ''} — Commander may not reach ${ip}:8088` };
     } else {
       // Direct HTTP (only works on same network, not HTTPS)
       const r = await fetch(`http://${ip}:8088/api/?Function=${fn}`, { mode: 'no-cors' });
