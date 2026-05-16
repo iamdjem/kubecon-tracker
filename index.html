@@ -1617,7 +1617,7 @@ body.role-user .admin-only-input { pointer-events: none; opacity: 0.55; }
 // Bump on every deploy. Shown in Settings → About so you can confirm a
 // push actually reached the browser (past the service-worker cache).
 // Keep the sw.js CACHE constant in lockstep with this — same string.
-const APP_VERSION = '2026.05.16.1';
+const APP_VERSION = '2026.05.16.2';
 
 const AVATAR_COLORS = ['#e8c547','#e87d47','#e84774','#a347e8','#478ce8','#47e8a0','#e8476b','#47e8d4','#c8e847','#e88347'];
 function avatarColor(name) {
@@ -6549,20 +6549,32 @@ async function vmixSaveIp(key) {
   const inp = document.getElementById('vmix-ip-' + key);
   room.ip = inp ? inp.value.trim() : '';
   vmixSaveIps();
-  // Single source of truth for IPs is config.vmixRooms[].ip — the same
-  // per-event field Commander reads + writes. Write there and push so
-  // every Commander and the tracker on every device converge. An IP
-  // entered here is now visible in Commander (and vice-versa) without
-  // re-entering it per app.
+  // Single source of truth for IPs is config.vmixRooms[].ip. CRITICAL:
+  // write ONLY this room's ip via a targeted path — never push the whole
+  // vmixRooms array. pushEventData() does events/<id>.update({..ev}),
+  // which replaces the entire event incl. the whole vmixRooms array, so
+  // a device with stale/empty IPs for OTHER rooms would clobber values
+  // another user just set. We locate the room's index in the REMOTE
+  // array (not our possibly-stale local copy) so concurrent editors and
+  // any row-order drift are both safe.
   try {
-    const ev = (typeof currentEvent === 'function') ? currentEvent() : null;
-    if (ev && ev.config && Array.isArray(ev.config.vmixRooms)) {
-      const slot = ev.config.vmixRooms.find(r => r && r.key === key);
-      if (slot) {
-        slot.ip = room.ip;
+    if (fbDb && currentEventId) {
+      const snap = await fbDb.child('events/' + currentEventId + '/config/vmixRooms').once('value');
+      const remote = snap.val();
+      if (Array.isArray(remote)) {
+        const idx = remote.findIndex(r => r && r.key === key);
+        if (idx >= 0) {
+          await fbDb.child('events/' + currentEventId + '/config/vmixRooms/' + idx + '/ip').set(room.ip);
+        }
+      }
+      // Keep this device's local copy coherent for its own UI, but do
+      // NOT push it remotely (that's the clobber path).
+      const ev = (typeof currentEvent === 'function') ? currentEvent() : null;
+      if (ev && ev.config && Array.isArray(ev.config.vmixRooms)) {
+        const slot = ev.config.vmixRooms.find(r => r && r.key === key);
+        if (slot) slot.ip = room.ip;
         if (typeof touchEvent === 'function') touchEvent(ev);
         if (typeof saveAppData === 'function') saveAppData();
-        if (typeof pushEventData === 'function') pushEventData();
       }
     }
   } catch (_) { /* fall through to legacy path below */ }
