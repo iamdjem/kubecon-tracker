@@ -1617,7 +1617,7 @@ body.role-user .admin-only-input { pointer-events: none; opacity: 0.55; }
 // Bump on every deploy. Shown in Settings → About so you can confirm a
 // push actually reached the browser (past the service-worker cache).
 // Keep the sw.js CACHE constant in lockstep with this — same string.
-const APP_VERSION = '2026.05.16.2';
+const APP_VERSION = '2026.05.16.3';
 
 const AVATAR_COLORS = ['#e8c547','#e87d47','#e84774','#a347e8','#478ce8','#47e8a0','#e8476b','#47e8d4','#c8e847','#e88347'];
 function avatarColor(name) {
@@ -5757,6 +5757,69 @@ function updateVmixHttpsWarn() {
   w.style.display = (location.protocol === 'https:' && !vmixProxyUrl) ? 'block' : 'none';
 }
 
+// Merge per-Commander status sub-nodes into one synthetic vmixLive so
+// the rest of the tracker keeps reading a single object. Each Commander
+// writes vmixStatus/<eventId>/commanders/<id> (multiple Commanders, one
+// per venue, each see only their own rooms). Rule: a room is live if ANY
+// fresh Commander reports it reachable; a stale source (no push within
+// VMIX_STALE_MS) can't keep a room green. An un-upgraded Commander still
+// writing the flat top-level {rooms,...} is folded in as one more source
+// for backward compat during rollout.
+function vmixMergeCommanderStatus(raw) {
+  if (!raw || typeof raw !== 'object') return raw || null;
+  var now = Date.now();
+  var sources = [];
+  if (raw.commanders && typeof raw.commanders === 'object') {
+    Object.keys(raw.commanders).forEach(function(id) {
+      var c = raw.commanders[id];
+      if (c && typeof c === 'object') sources.push(c);
+    });
+  }
+  if (raw.rooms && typeof raw.rooms === 'object') {
+    sources.push({
+      updatedAt: raw.updatedAt || 0,
+      operator: raw.operator || null,
+      safetyLocked: !!raw.safetyLocked,
+      rooms: raw.rooms,
+      roomLocks: raw.roomLocks || {}
+    });
+  }
+  if (!sources.length) return raw;  // nothing to merge — pass through
+
+  var merged = { updatedAt: 0, operator: null, safetyLocked: false, rooms: {}, roomLocks: {} };
+  var freshestOpAt = -1;
+  sources.forEach(function(s) {
+    var at = s.updatedAt || 0;
+    var fresh = (now - at) < VMIX_STALE_MS;
+    if (at > merged.updatedAt) merged.updatedAt = at;
+    if (s.safetyLocked) merged.safetyLocked = true;
+    if (s.operator && at > freshestOpAt) { merged.operator = s.operator; freshestOpAt = at; }
+    if (s.roomLocks) Object.keys(s.roomLocks).forEach(function(k){ if (s.roomLocks[k]) merged.roomLocks[k] = true; });
+    if (!s.rooms) return;
+    Object.keys(s.rooms).forEach(function(k) {
+      var r = s.rooms[k]; if (!r) return;
+      var ok = !!r.ok && fresh;  // a stale source can't assert "reachable"
+      var cand = {
+        ok: ok,
+        recording: !!r.recording,
+        streaming: !!r.streaming,
+        multicorder: !!r.multicorder,
+        latency: r.latency || 0,
+        tier: !fresh ? 'offline' : (r.tier || (ok ? 'live' : 'unreachable')),
+        recordingStartTime: r.recordingStartTime || null,
+        _at: at
+      };
+      var cur = merged.rooms[k];
+      // Prefer a reachable report; among equal reachability, freshest wins.
+      if (!cur || (cand.ok && !cur.ok) || (cand.ok === cur.ok && cand._at > (cur._at || 0))) {
+        merged.rooms[k] = cand;
+      }
+    });
+  });
+  Object.keys(merged.rooms).forEach(function(k){ delete merged.rooms[k]._at; });
+  return merged;
+}
+
 // Subscribe to Commander's live vmix status for the current event.
 // Runs whenever the active event changes. Also fans out to per-event
 // proxy URL / roomLocks / runOfShow / controller listeners.
@@ -5776,7 +5839,7 @@ function vmixSubscribeStatus() {
   if (!eventId) { if (currentPage === 'rooms') renderVmixCards(); return; }
   vmixLiveRef = fbDb.child('vmixStatus/' + eventId);
   vmixLiveRef.on('value', function(snap) {
-    vmixLive = snap.val();
+    vmixLive = vmixMergeCommanderStatus(snap.val());
     if (vmixLive && vmixLive.rooms) {
       Object.keys(vmixLive.rooms).forEach(function(k) {
         var r = vmixLive.rooms[k];
