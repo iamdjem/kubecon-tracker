@@ -1617,7 +1617,7 @@ body.role-user .admin-only-input { pointer-events: none; opacity: 0.55; }
 // Bump on every deploy. Shown in Settings → About so you can confirm a
 // push actually reached the browser (past the service-worker cache).
 // Keep the sw.js CACHE constant in lockstep with this — same string.
-const APP_VERSION = '2026.05.16.3';
+const APP_VERSION = '2026.05.17.1';
 
 const AVATAR_COLORS = ['#e8c547','#e87d47','#e84774','#a347e8','#478ce8','#47e8a0','#e8476b','#47e8d4','#c8e847','#e88347'];
 function avatarColor(name) {
@@ -5257,6 +5257,11 @@ let trackerRoomLocksEventId = null;
 let trackerController = null;
 let trackerControllerRef = null;
 let trackerControllerEventId = null;
+// Per-Commander presence map (events/<id>/presence/<commanderId>). Each
+// Commander owns its own cell, so the connected indicator no longer
+// flickers when 2+ Commanders are connected (they can't wipe each other).
+let trackerPresence = null;
+let trackerPresenceRef = null;
 let trackerPerEventProxyRef = null;
 let trackerPerEventProxyEventId = null;
 let trackerPerEventProxyUrl = null;  // value from events/<id>/config/vmixProxyUrl
@@ -5581,11 +5586,31 @@ function trackerSubscribeController() {
     trackerController = snap.val() || null;
     if (currentPage === 'rooms') renderVmixBanner();
   }, function (err) { console.warn('[tracker controller]', err); });
+
+  if (trackerPresenceRef) { trackerPresenceRef.off(); trackerPresenceRef = null; }
+  trackerPresenceRef = fbDb.child('events/' + eventId + '/presence');
+  trackerPresenceRef.on('value', function (snap) {
+    trackerPresence = snap.val() || null;
+    if (currentPage === 'rooms') renderVmixBanner();
+  }, function (err) { console.warn('[tracker presence]', err); });
 }
 
+// Connected if EITHER the legacy single controller is fresh (old
+// Commander) OR any per-Commander presence cell is fresh (new Commander).
+// Using the presence map means an accidental 2nd Commander can no longer
+// blank the indicator — its disconnect only clears its own cell.
 function trackerControllerFresh() {
-  if (!trackerController || !trackerController.lastHeartbeat) return false;
-  return (Date.now() - trackerController.lastHeartbeat) < 10000;
+  var now = Date.now();
+  if (trackerController && trackerController.lastHeartbeat &&
+      (now - trackerController.lastHeartbeat) < 10000) return true;
+  if (trackerPresence && typeof trackerPresence === 'object') {
+    var ids = Object.keys(trackerPresence);
+    for (var i = 0; i < ids.length; i++) {
+      var p = trackerPresence[ids[i]];
+      if (p && p.lastHeartbeat && (now - p.lastHeartbeat) < 10000) return true;
+    }
+  }
+  return false;
 }
 
 // ─── Per-event proxy URL (reader) ──────────────────────────────────────────
