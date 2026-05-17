@@ -1618,7 +1618,7 @@ body.role-user .admin-only-input { pointer-events: none; opacity: 0.55; }
 // Bump on every deploy. Shown in Settings → About so you can confirm a
 // push actually reached the browser (past the service-worker cache).
 // Keep the sw.js CACHE constant in lockstep with this — same string.
-const APP_VERSION = '2026.05.17.10';
+const APP_VERSION = '2026.05.17.11';
 const {
   ROOM_PROXY_STALE_MS,
   selectRoomProxyRoute,
@@ -3702,17 +3702,64 @@ function signInPickCrew(crewId, el) {
   if (doneBtn) doneBtn.disabled = false;
 }
 
+const TRACKER_DEVICE_ID_KEY = 'kc_tracker_device_id';
+
+function trackerDeviceShortId() {
+  try {
+    let id = localStorage.getItem(TRACKER_DEVICE_ID_KEY);
+    if (!id) {
+      const raw = (window.crypto && window.crypto.getRandomValues)
+        ? Array.from(window.crypto.getRandomValues(new Uint8Array(3))).map(function (n) { return n.toString(16).padStart(2, '0'); }).join('')
+        : Math.random().toString(36).slice(2, 8);
+      id = raw.slice(0, 4).toUpperCase();
+      localStorage.setItem(TRACKER_DEVICE_ID_KEY, id);
+    }
+    return id;
+  } catch (e) { return ''; }
+}
+
+function trackerDetectedDeviceLabel() {
+  try {
+    const ua = navigator.userAgent || '';
+    const platform = (navigator.userAgentData && navigator.userAgentData.platform) || navigator.platform || '';
+    const haystack = (ua + ' ' + platform).toLowerCase();
+    let device = 'Browser';
+    if (/iphone/.test(haystack)) device = 'iPhone';
+    else if (/ipad/.test(haystack) || (/mac/.test(haystack) && navigator.maxTouchPoints > 1)) device = 'iPad';
+    else if (/android/.test(haystack) && /mobile/.test(haystack)) device = 'Android Phone';
+    else if (/android/.test(haystack)) device = 'Android Tablet';
+    else if (/windows/.test(haystack) || /win32|win64/.test(haystack)) device = 'Windows';
+    else if (/mac/.test(haystack)) device = 'Mac';
+    else if (/linux/.test(haystack)) device = 'Linux';
+
+    let browser = '';
+    if (/edg\//i.test(ua)) browser = 'Edge';
+    else if (/crios|chrome\//i.test(ua) && !/edg\//i.test(ua)) browser = 'Chrome';
+    else if (/firefox|fxios/i.test(ua)) browser = 'Firefox';
+    else if (/safari/i.test(ua) && !/chrome|crios|android/i.test(ua)) browser = 'Safari';
+
+    const id = trackerDeviceShortId();
+    return [device, browser].filter(Boolean).join(' ') + (id ? ' #' + id : '');
+  } catch (e) {
+    return '';
+  }
+}
+
 function signInDefaultAdminName() {
   const nameEl = document.getElementById('signin-admin-name');
   const typed = (nameEl && nameEl.value || '').trim();
-  return typed || (trackerIdentity && trackerIdentity.name) || 'Admin';
+  const deviceLabel = trackerDetectedDeviceLabel();
+  return typed || (deviceLabel ? 'Admin · ' + deviceLabel : '') || 'Admin';
 }
 
 function signInFinishAdmin() {
   const name = signInDefaultAdminName();
+  const deviceLabel = trackerDetectedDeviceLabel();
   trackerIdentity = {
     name: name,
     role: 'Admin',
+    deviceLabel: deviceLabel || null,
+    deviceId: trackerDeviceShortId() || null,
     assignedRoom: null,
     crewId: null,
     assignedRooms: null
