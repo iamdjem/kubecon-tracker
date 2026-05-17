@@ -1613,11 +1613,17 @@ body.role-user .admin-only-input { pointer-events: none; opacity: 0.55; }
   </div>
 </div>
 
+<script src="tracker-routing-helpers.js"></script>
 <script>
 // Bump on every deploy. Shown in Settings → About so you can confirm a
 // push actually reached the browser (past the service-worker cache).
 // Keep the sw.js CACHE constant in lockstep with this — same string.
-const APP_VERSION = '2026.05.17.3';
+const APP_VERSION = '2026.05.17.4';
+const {
+  ROOM_PROXY_STALE_MS,
+  selectRoomProxyRoute,
+  roomHasUsableProxy
+} = window.TrackerRoutingHelpers;
 
 const AVATAR_COLORS = ['#e8c547','#e87d47','#e84774','#a347e8','#478ce8','#47e8a0','#e8476b','#47e8d4','#c8e847','#e88347'];
 function avatarColor(name) {
@@ -5266,14 +5272,16 @@ let trackerPerEventProxyRef = null;
 let trackerPerEventProxyEventId = null;
 let trackerPerEventProxyUrl = null;  // value from events/<id>/config/vmixProxyUrl
 let trackerGlobalProxyUrl = null;    // value from /vmix_proxy_url
+let trackerRoomProxyClaims = {};
+let trackerRoomProxyClaimsRef = null;
 // Per-room proxy map: events/<id>/roomProxies/<roomKey> = {url, commanderId,
 // updatedAt}. Each Commander claims the rooms it can actually reach. With
 // rooms on separate networks, a single proxy URL can't reach them all —
 // so each room's command must go to ITS owning Commander's tunnel.
 let trackerRoomProxies = {};
 let trackerRoomProxiesRef = null;
-const ROOM_PROXY_STALE_MS = 30000;  // claim must refresh within this window
 let trackerQrSelfHealNoticed = false; // one-shot toast per page load
+let trackerRenderedRooms = [];
 
 // Recording-page Director crew filter — 'all' or a crew.id. Defaults to 'all'
 // but smart-defaults to the operator's own crew on first render if applicable.
@@ -5626,8 +5634,12 @@ function trackerSubscribePerEventProxy() {
   const eventId = currentEventId || null;
   if (eventId === trackerPerEventProxyEventId) return;
   if (trackerPerEventProxyRef) { trackerPerEventProxyRef.off(); trackerPerEventProxyRef = null; }
+  if (trackerRoomProxyClaimsRef) { trackerRoomProxyClaimsRef.off(); trackerRoomProxyClaimsRef = null; }
+  if (trackerRoomProxiesRef) { trackerRoomProxiesRef.off(); trackerRoomProxiesRef = null; }
   trackerPerEventProxyEventId = eventId;
   trackerPerEventProxyUrl = null;
+  trackerRoomProxyClaims = {};
+  trackerRoomProxies = {};
   if (!eventId) { trackerReconcileProxy(); return; }
   trackerPerEventProxyRef = fbDb.child('events/' + eventId + '/config/vmixProxyUrl');
   trackerPerEventProxyRef.on('value', function (snap) {
@@ -5635,8 +5647,13 @@ function trackerSubscribePerEventProxy() {
     trackerReconcileProxy();
   }, function (err) { console.warn('[tracker per-event proxy]', err); });
 
-  if (trackerRoomProxiesRef) { trackerRoomProxiesRef.off(); trackerRoomProxiesRef = null; }
-  trackerRoomProxies = {};
+  trackerRoomProxyClaimsRef = fbDb.child('events/' + eventId + '/roomProxyClaims');
+  trackerRoomProxyClaimsRef.on('value', function (snap) {
+    trackerRoomProxyClaims = snap.val() || {};
+    updateVmixHttpsWarn();
+    if (currentPage === 'rooms') renderVmixCards();
+  }, function (err) { console.warn('[tracker roomProxyClaims]', err); });
+
   trackerRoomProxiesRef = fbDb.child('events/' + eventId + '/roomProxies');
   trackerRoomProxiesRef.on('value', function (snap) {
     trackerRoomProxies = snap.val() || {};
@@ -5648,14 +5665,18 @@ function trackerSubscribePerEventProxy() {
 // per-room claim (the Commander that can actually reach that room on its
 // own network) wins; otherwise fall back to the single global proxy for
 // backward compat / single-network setups.
+function vmixRouteForRoom(roomKey) {
+  return selectRoomProxyRoute({
+    roomKey,
+    claimMap: roomKey && trackerRoomProxyClaims ? (trackerRoomProxyClaims[roomKey] || {}) : {},
+    legacyRoute: roomKey && trackerRoomProxies ? trackerRoomProxies[roomKey] : null,
+    eventProxyUrl: trackerPerEventProxyUrl || '',
+    globalProxyUrl: trackerGlobalProxyUrl || vmixProxyUrl || ''
+  });
+}
+
 function vmixProxyForRoom(roomKey) {
-  if (roomKey && trackerRoomProxies && trackerRoomProxies[roomKey]) {
-    const rp = trackerRoomProxies[roomKey];
-    if (rp && rp.url && rp.updatedAt && (Date.now() - rp.updatedAt) < ROOM_PROXY_STALE_MS) {
-      return rp.url;
-    }
-  }
-  return vmixProxyUrl || '';
+  return vmixRouteForRoom(roomKey).url;
 }
 
 // Pick the effective proxy URL (per-event wins, else global). Apply QR self-heal toast.
@@ -5807,8 +5828,34 @@ function vmixListenProxyUrl() {
 function updateVmixHttpsWarn() {
   var w = document.getElementById('vmix-https-warn');
   if (!w) return;
-  // The warning matters only when HTTPS is blocking us AND no proxy bridge is available.
-  w.style.display = (location.protocol === 'https:' && !vmixProxyUrl) ? 'block' : 'none';
+  if (location.protocol !== 'https:') {
+    w.style.display = 'none';
+    return;
+  }
+
+  var rooms = (trackerRenderedRooms && trackerRenderedRooms.length)
+    ? trackerRenderedRooms
+    : (VMIX_ROOMS || []);
+  var routed = rooms.filter(function (room) {
+    return roomHasUsableProxy({
+      roomKey: room.key,
+      claimMap: trackerRoomProxyClaims[room.key] || {},
+      legacyRoute: trackerRoomProxies[room.key] || null,
+      eventProxyUrl: trackerPerEventProxyUrl || '',
+      globalProxyUrl: trackerGlobalProxyUrl || vmixProxyUrl || ''
+    });
+  }).length;
+  var summaryText = w.querySelector('summary span:nth-child(2)');
+  if (!rooms.length || routed === rooms.length) {
+    w.style.display = 'none';
+    return;
+  }
+  if (summaryText) {
+    summaryText.innerHTML = routed === 0
+      ? '<strong>No vMix route connected</strong> — buttons won\'t reach these rooms. <span style="color:#ffb74d;opacity:0.7;font-weight:400;">Tap for details.</span>'
+      : '<strong>Some rooms have no vMix route</strong> — ' + (rooms.length - routed) + ' room' + ((rooms.length - routed) === 1 ? '' : 's') + ' cannot be controlled yet. <span style="color:#ffb74d;opacity:0.7;font-weight:400;">Tap for details.</span>';
+  }
+  w.style.display = 'block';
 }
 
 // Merge per-Commander status sub-nodes into one synthetic vmixLive so
@@ -6040,10 +6087,11 @@ function vmixMakeCard(r) {
   // remain operable so the operator can still react per-room mid-event.
   var roomLocked = trackerRoomIsLocked(r.key);
   var isObserver = trackerRoleIsObserver();
-  var disabled = roomLocked || !vmixProxyUrl || !r.ip || isObserver;
+  var route = vmixRouteForRoom(r.key);
+  var disabled = roomLocked || !route.url || !r.ip || isObserver;
   var disabledTitle = roomLocked ? 'This room is locked by the operator.'
                       : isObserver ? 'Observer is read-only'
-                      : !vmixProxyUrl ? 'Commander tunnel offline — cannot reach vMix'
+                      : !route.url ? 'No Commander route for this room'
                       : !r.ip ? 'Set room IP first' : '';
 
   var card = document.createElement('div');
@@ -6482,6 +6530,9 @@ function renderVmixCards() {
     }
   }
 
+  trackerRenderedRooms = rooms.slice();
+  updateVmixHttpsWarn();
+
   // Toggle the operator empty state (and supply the right message)
   var emptyEl = document.getElementById('vmix-operator-empty');
   var emptyMsg = document.getElementById('vmix-operator-empty-msg');
@@ -6587,9 +6638,13 @@ function renderVmixCards() {
   }
 
   if (showAllRow) {
-    // Gate the page-level All Rooms buttons on lock / proxy availability too.
-    var disabled = vmixIsLocked() || !vmixProxyUrl;
-    var disabledTitle = vmixIsLocked() ? 'Controls locked by operator' : 'Commander tunnel offline';
+    // Gate the page-level All Rooms buttons on lock / room-route availability too.
+    var unlockedRooms = rooms.filter(function (room) { return !trackerRoomIsLocked(room.key); });
+    var everyUnlockedRoomRoutable = unlockedRooms.every(function (room) {
+      return !!vmixRouteForRoom(room.key).url;
+    });
+    var disabled = vmixIsLocked() || !everyUnlockedRoomRoutable;
+    var disabledTitle = vmixIsLocked() ? 'Controls locked by operator' : 'One or more rooms have no Commander route';
 
     // Update the LIVE/LOCKED toggle to reflect current safety-lock state.
     var lockToggle = document.getElementById('vmix-all-lock-toggle');
@@ -6708,7 +6763,9 @@ async function vmixSaveIp(key) {
 
 async function vmixCall(ip, fn, roomKey) {
   if (!ip) return { ok: false, error: 'No IP' };
-  const proxy = vmixProxyForRoom(roomKey);
+  const route = vmixRouteForRoom(roomKey);
+  const proxy = route.url;
+  console.log('[vmix-route] command', roomKey, fn, 'via', route.source, proxy || '(none)', route.commanderId || '');
   try {
     if (proxy) {
       // Route through the proxy that owns THIS room (per-room routing for
@@ -6722,6 +6779,8 @@ async function vmixCall(ip, fn, roomKey) {
       let detail = '';
       try { detail = (await r.text()).trim().slice(0, 120); } catch (_) {}
       return { ok: false, error: `proxy HTTP ${r.status}${detail ? ' — ' + detail : ''} — Commander may not reach ${ip}:8088` };
+    } else if (location.protocol === 'https:') {
+      return { ok: false, error: 'No proxy route for this room' };
     } else {
       // Direct HTTP (only works on same network, not HTTPS)
       const r = await fetch(`http://${ip}:8088/api/?Function=${fn}`, { mode: 'no-cors' });
@@ -6730,14 +6789,17 @@ async function vmixCall(ip, fn, roomKey) {
   } catch(e) { return { ok: false, error: e.message }; }
 }
 
-async function vmixGetStatus(ip) {
+async function vmixGetStatus(ip, roomKey) {
   if (!ip) return { ok: false, error: 'No IP', recording: false, streaming: false, multicorder: false };
   try {
     let xml;
-    if (vmixProxyUrl) {
-      // Route through vMix Commander proxy
-      const r = await fetch(`${vmixProxyUrl}/vmix-proxy?ip=${encodeURIComponent(ip)}`);
+    const route = vmixRouteForRoom(roomKey);
+    if (route.url) {
+      console.log('[vmix-route] fallback-status', roomKey, 'via', route.source, route.url, route.commanderId || '');
+      const r = await fetch(`${route.url}/vmix-proxy?ip=${encodeURIComponent(ip)}`);
       xml = await r.text();
+    } else if (location.protocol === 'https:') {
+      return { ok: false, error: 'No proxy route', recording: false, streaming: false, multicorder: false };
     } else {
       // Direct HTTP
       const r = await fetch(`http://${ip}:8088/api`, { mode: 'cors' });
@@ -6761,7 +6823,7 @@ async function vmixRefreshStatus(key) {
   const room = VMIX_ROOMS.find(r => r.key === key);
   if (!room) return;
   const prev = vmixStatus[key] || {};
-  const fresh = await vmixGetStatus(room.ip);
+  const fresh = await vmixGetStatus(room.ip, key);
   vmixStatus[key] = Object.assign({}, prev, fresh);
   renderVmixCards();
 }
@@ -6812,6 +6874,10 @@ async function vmixOne(key, fn) {
     showToast('⚠ No IP set for ' + room.name);
     trackerWriteAudit(action, key, 'fail'); return;
   }
+  if (!vmixRouteForRoom(key).url) {
+    showToast('No Commander route for ' + room.name);
+    trackerWriteAudit(action, key, 'fail'); return;
+  }
   showToast('⏳ ' + fn + '…');
   const res = await vmixCall(room.ip, fn, key);
   showToast(res.ok ? '✓ ' + fn : '✗ Failed: ' + (res.error || 'blocked?'));
@@ -6842,6 +6908,10 @@ async function vmixRoomAction(key, action) {
     showToast('⚠ No IP set for ' + room.name);
     trackerWriteAudit(auditAction, key, 'fail'); return;
   }
+  if (!vmixRouteForRoom(key).url) {
+    showToast('No Commander route for ' + room.name);
+    trackerWriteAudit(auditAction, key, 'fail'); return;
+  }
   showToast('⏳ ' + (action === 'start' ? 'Starting' : 'Stopping') + ' ' + room.name + '…');
   const fns = action === 'start'
     ? ['StartRecording','StartStreaming','StartMultiCorder']
@@ -6862,6 +6932,13 @@ async function vmixAllAction(action) {
   if (vmixIsLocked()) {
     showToast('Controls are locked.');
     trackerWriteAudit(auditAction, '__all__', 'denied'); return;
+  }
+  const missingRoute = VMIX_ROOMS.find(function (room) {
+    return !trackerRoomIsLocked(room.key) && !vmixRouteForRoom(room.key).url;
+  });
+  if (missingRoute) {
+    showToast('Missing Commander route for ' + missingRoute.name);
+    trackerWriteAudit(auditAction, '__all__', 'fail'); return;
   }
   showToast(`${action === 'start' ? 'Starting' : 'Stopping'} all rooms…`);
   const fns = action === 'start'
