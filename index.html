@@ -1414,7 +1414,7 @@ body.role-user .admin-only-input { pointer-events: none; opacity: 0.55; }
   </div>
   <div id="vmix-operator-empty" style="display:none;background:var(--s2);border:1px solid var(--line2);border-radius:12px;padding:18px 16px;margin-bottom:12px;font-size:13px;color:var(--t2);line-height:1.5;text-align:center;">
     <div style="font-size:14px;font-weight:700;color:var(--t1);margin-bottom:6px;">No room assigned</div>
-    <div id="vmix-operator-empty-msg" style="margin-bottom:12px;">Ask a Director to update your identity, or change your role below.</div>
+    <div id="vmix-operator-empty-msg" style="margin-bottom:12px;">Ask an Admin to update your identity, or change your role below.</div>
     <button type="button" onclick="signInReopenForChangeIdentity()" style="background:var(--accent);border:none;color:#000;border-radius:8px;padding:9px 18px;font-size:12px;font-weight:700;cursor:pointer;">Change identity</button>
   </div>
   <div id="vmix-filter-row" style="display:none;gap:6px;margin-bottom:12px;overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:2px;"></div>
@@ -1618,7 +1618,7 @@ body.role-user .admin-only-input { pointer-events: none; opacity: 0.55; }
 // Bump on every deploy. Shown in Settings → About so you can confirm a
 // push actually reached the browser (past the service-worker cache).
 // Keep the sw.js CACHE constant in lockstep with this — same string.
-const APP_VERSION = '2026.05.17.9';
+const APP_VERSION = '2026.05.17.10';
 const {
   ROOM_PROXY_STALE_MS,
   selectRoomProxyRoute,
@@ -3712,7 +3712,7 @@ function signInFinishAdmin() {
   const name = signInDefaultAdminName();
   trackerIdentity = {
     name: name,
-    role: 'Director',
+    role: 'Admin',
     assignedRoom: null,
     crewId: null,
     assignedRooms: null
@@ -5341,7 +5341,7 @@ function trackerSaveIdentityToStorage() {
   } catch (e) {}
 }
 
-function trackerRoleIsDirector()  { return !!trackerIdentity && trackerIdentity.role === 'Director'; }
+function trackerRoleIsDirector()  { return !!trackerIdentity && (trackerIdentity.role === 'Admin' || trackerIdentity.role === 'Director'); }
 function trackerRoleIsOperator()  { return !!trackerIdentity && trackerIdentity.role === 'Operator'; }
 function trackerRoleIsObserver()  { return !!trackerIdentity && trackerIdentity.role === 'Observer'; }
 
@@ -5535,7 +5535,7 @@ function trackerRoomIsLocked(key) {
 // Director-only: toggle a room's lock state. Writes to Firebase; both
 // apps' subscriptions reflect the change within ~1s.
 function trackerToggleRoomLock(roomKey) {
-  if (!trackerRoleIsDirector()) { showToast('Director only.'); return; }
+  if (!trackerRoleIsDirector()) { showToast('Admin only.'); return; }
   if (!fbDb || !currentEventId) { showToast('Not connected.'); return; }
   const room = (VMIX_ROOMS || []).find(r => r.key === roomKey);
   if (!room) return;
@@ -5574,7 +5574,7 @@ function trackerSubscribeSafetyLock() {
 }
 
 function trackerToggleSafetyLock() {
-  if (!trackerRoleIsDirector()) { showToast('Director only.'); return; }
+  if (!trackerRoleIsDirector()) { showToast('Admin only.'); return; }
   if (!fbDb || !currentEventId) { showToast('Not connected.'); return; }
   const next = !vmixIsLocked();
   fbDb.child('events/' + currentEventId + '/safetyLocked').set(next)
@@ -5710,7 +5710,7 @@ function trackerReconcileProxy() {
 // (which is the point — it's how we recover from drift between
 // Commander's pushed list and the tracker's crew assignments).
 function vmixAdoptCrewRoomsWithConfirm() {
-  if (!trackerRoleIsDirector()) { showToast('Director only.'); return; }
+  if (!trackerRoleIsDirector()) { showToast('Admin only.'); return; }
   if (!currentEventId) { showToast('No live event'); return; }
   const ev = currentEvent();
   if (!ev || !ev.config) { showToast('Event not ready'); return; }
@@ -5738,7 +5738,7 @@ function vmixAdoptCrewRoomsWithConfirm() {
 // vmixRooms. Admin-only; writes to events/<id>/config/vmixRooms which both
 // this tracker and Commander subscribe to.
 function vmixAdoptCrewRooms() {
-  if (!trackerRoleIsDirector()) { showToast('Director only.'); return; }
+  if (!trackerRoleIsDirector()) { showToast('Admin only.'); return; }
   if (!currentEventId) { showToast('No live event'); return; }
   const ev = currentEvent();
   if (!ev || !ev.config) { showToast('Event not ready'); return; }
@@ -6504,13 +6504,13 @@ function renderVmixCards() {
   if (emptyEl) emptyEl.style.display = operatorEmpty ? 'block' : 'none';
   if (emptyMsg) {
     if (operatorEmptyReason === 'crew-deleted') {
-      emptyMsg.textContent = 'Your crew assignment was removed. Ask a Director to reassign you, or change identity.';
+      emptyMsg.textContent = 'Your crew assignment was removed. Ask an Admin to reassign you, or change identity.';
     } else if (operatorEmptyReason === 'no-match') {
       emptyMsg.textContent = "Your assigned rooms aren't configured in vMix: " +
         mismatchedNames.map(function (n) { return "'" + n + "'"; }).join(', ') +
-        ". Ask a Director to update the room list, or change identity.";
+        ". Ask an Admin to update the room list, or change identity.";
     } else {
-      emptyMsg.textContent = 'Ask a Director to update your identity, or change your role below.';
+      emptyMsg.textContent = 'Ask an Admin to update your identity, or change your role below.';
     }
   }
 
@@ -6916,7 +6916,7 @@ async function vmixRoomAction(key, action) {
 async function vmixAllAction(action) {
   const auditAction = action === 'start' ? 'START ALL' : 'STOP ALL';
   if (!trackerRoleIsDirector()) {
-    showToast('Only Directors can use All Rooms.');
+    showToast('Only Admins can use All Rooms.');
     trackerWriteAudit(auditAction, '__all__', 'denied'); return;
   }
   if (vmixIsLocked()) {
