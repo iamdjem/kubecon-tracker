@@ -4,6 +4,8 @@ const assert = require('node:assert/strict');
 const {
   selectRoomProxyRoute,
   roomHasUsableProxy,
+  mergeCommanderStatus,
+  applyMergedRoomStatuses,
 } = require('../tracker-routing-helpers');
 
 test('selectRoomProxyRoute prefers freshest per-commander claim', () => {
@@ -71,4 +73,55 @@ test('selectRoomProxyRoute falls back from stale room routes to event then globa
     globalProxyUrl: 'https://global.example',
   });
   assert.equal(globalRoute.source, 'global');
+});
+
+test('mergeCommanderStatus lets a fresh reachable source beat fresh unreachable reports', () => {
+  const now = 100_000;
+  const merged = mergeCommanderStatus({
+    commanders: {
+      commanderA: {
+        updatedAt: now - 1000,
+        rooms: {
+          roomA: { ok: true, latency: 8, tier: 'healthy' },
+          roomB: { ok: false, latency: 0, tier: 'unreachable' },
+        },
+      },
+      commanderB: {
+        updatedAt: now - 500,
+        rooms: {
+          roomA: { ok: false, latency: 0, tier: 'unreachable' },
+          roomB: { ok: true, latency: 10, tier: 'healthy' },
+        },
+      },
+    },
+  }, { now, staleMs: 15_000 });
+
+  assert.equal(merged.rooms.roomA.ok, true);
+  assert.equal(merged.rooms.roomA.latency, 8);
+  assert.equal(merged.rooms.roomB.ok, true);
+  assert.equal(merged.rooms.roomB.latency, 10);
+});
+
+test('applyMergedRoomStatuses clears rooms absent from the merged Firebase snapshot', () => {
+  const next = applyMergedRoomStatuses(
+    {
+      roomA: { ok: true, latency: 8, tier: 'healthy' },
+      roomB: { ok: true, latency: 9, tier: 'healthy' },
+    },
+    {
+      roomA: { ok: true, latency: 8, tier: 'healthy' },
+    },
+    [{ key: 'roomA' }, { key: 'roomB' }]
+  );
+
+  assert.equal(next.roomA.ok, true);
+  assert.deepEqual(next.roomB, {
+    ok: false,
+    recording: false,
+    streaming: false,
+    multicorder: false,
+    latency: 0,
+    tier: 'offline',
+    recordingStartTime: null,
+  });
 });
