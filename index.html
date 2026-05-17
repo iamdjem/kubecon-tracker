@@ -1617,7 +1617,7 @@ body.role-user .admin-only-input { pointer-events: none; opacity: 0.55; }
 // Bump on every deploy. Shown in Settings → About so you can confirm a
 // push actually reached the browser (past the service-worker cache).
 // Keep the sw.js CACHE constant in lockstep with this — same string.
-const APP_VERSION = '2026.05.17.2';
+const APP_VERSION = '2026.05.17.3';
 
 const AVATAR_COLORS = ['#e8c547','#e87d47','#e84774','#a347e8','#478ce8','#47e8a0','#e8476b','#47e8d4','#c8e847','#e88347'];
 function avatarColor(name) {
@@ -5266,6 +5266,13 @@ let trackerPerEventProxyRef = null;
 let trackerPerEventProxyEventId = null;
 let trackerPerEventProxyUrl = null;  // value from events/<id>/config/vmixProxyUrl
 let trackerGlobalProxyUrl = null;    // value from /vmix_proxy_url
+// Per-room proxy map: events/<id>/roomProxies/<roomKey> = {url, commanderId,
+// updatedAt}. Each Commander claims the rooms it can actually reach. With
+// rooms on separate networks, a single proxy URL can't reach them all —
+// so each room's command must go to ITS owning Commander's tunnel.
+let trackerRoomProxies = {};
+let trackerRoomProxiesRef = null;
+const ROOM_PROXY_STALE_MS = 30000;  // claim must refresh within this window
 let trackerQrSelfHealNoticed = false; // one-shot toast per page load
 
 // Recording-page Director crew filter — 'all' or a crew.id. Defaults to 'all'
@@ -5627,6 +5634,28 @@ function trackerSubscribePerEventProxy() {
     trackerPerEventProxyUrl = snap.val() || null;
     trackerReconcileProxy();
   }, function (err) { console.warn('[tracker per-event proxy]', err); });
+
+  if (trackerRoomProxiesRef) { trackerRoomProxiesRef.off(); trackerRoomProxiesRef = null; }
+  trackerRoomProxies = {};
+  trackerRoomProxiesRef = fbDb.child('events/' + eventId + '/roomProxies');
+  trackerRoomProxiesRef.on('value', function (snap) {
+    trackerRoomProxies = snap.val() || {};
+    if (currentPage === 'rooms') renderVmixCards();
+  }, function (err) { console.warn('[tracker roomProxies]', err); });
+}
+
+// Resolve which proxy a given room's command must go through. A fresh
+// per-room claim (the Commander that can actually reach that room on its
+// own network) wins; otherwise fall back to the single global proxy for
+// backward compat / single-network setups.
+function vmixProxyForRoom(roomKey) {
+  if (roomKey && trackerRoomProxies && trackerRoomProxies[roomKey]) {
+    const rp = trackerRoomProxies[roomKey];
+    if (rp && rp.url && rp.updatedAt && (Date.now() - rp.updatedAt) < ROOM_PROXY_STALE_MS) {
+      return rp.url;
+    }
+  }
+  return vmixProxyUrl || '';
 }
 
 // Pick the effective proxy URL (per-event wins, else global). Apply QR self-heal toast.
@@ -6677,12 +6706,14 @@ async function vmixSaveIp(key) {
   vmixRefreshStatus(key);
 }
 
-async function vmixCall(ip, fn) {
+async function vmixCall(ip, fn, roomKey) {
   if (!ip) return { ok: false, error: 'No IP' };
+  const proxy = vmixProxyForRoom(roomKey);
   try {
-    if (vmixProxyUrl) {
-      // Route through vMix Commander proxy (works over HTTPS)
-      const r = await fetch(`${vmixProxyUrl}/vmix-proxy?ip=${encodeURIComponent(ip)}&fn=${encodeURIComponent(fn)}`);
+    if (proxy) {
+      // Route through the proxy that owns THIS room (per-room routing for
+      // multi-network setups; falls back to the global proxy).
+      const r = await fetch(`${proxy}/vmix-proxy?ip=${encodeURIComponent(ip)}&fn=${encodeURIComponent(fn)}`);
       if (r.ok) return { ok: true };
       // Surface the real reason instead of the old misleading "blocked?".
       // A non-OK here almost always means the Commander running this
@@ -6782,7 +6813,7 @@ async function vmixOne(key, fn) {
     trackerWriteAudit(action, key, 'fail'); return;
   }
   showToast('⏳ ' + fn + '…');
-  const res = await vmixCall(room.ip, fn);
+  const res = await vmixCall(room.ip, fn, key);
   showToast(res.ok ? '✓ ' + fn : '✗ Failed: ' + (res.error || 'blocked?'));
   trackerWriteAudit(action, key, res.ok ? 'ok' : 'fail');
   setTimeout(() => vmixRefreshStatus(key), 1000);
@@ -6815,7 +6846,7 @@ async function vmixRoomAction(key, action) {
   const fns = action === 'start'
     ? ['StartRecording','StartStreaming','StartMultiCorder']
     : ['StopRecording','StopStreaming','StopMultiCorder'];
-  const results = await Promise.all(fns.map(f => vmixCall(room.ip, f)));
+  const results = await Promise.all(fns.map(f => vmixCall(room.ip, f, key)));
   const ok = results.filter(r => r.ok).length;
   showToast(ok === 3 ? '✓ ' + room.name + ' done' : '✗ ' + ok + '/3 OK — HTTPS blocking?');
   trackerWriteAudit(auditAction, key, ok === 3 ? 'ok' : 'fail');
@@ -6838,7 +6869,7 @@ async function vmixAllAction(action) {
     : ['StopRecording','StopStreaming','StopMultiCorder'];
   // Per-room lock respected: skip locked rooms
   const targets = VMIX_ROOMS.filter(function (r) { return !trackerRoomIsLocked(r.key); });
-  const results = await Promise.all(targets.flatMap(r => fns.map(f => vmixCall(r.ip, f))));
+  const results = await Promise.all(targets.flatMap(r => fns.map(f => vmixCall(r.ip, f, r.key))));
   const ok = results.filter(r => r.ok).length;
   trackerWriteAudit(auditAction, '__all__', ok > 0 ? 'ok' : 'fail');
   setTimeout(vmixRefreshAll, 1200);
