@@ -1618,7 +1618,7 @@ body.role-user .admin-only-input { pointer-events: none; opacity: 0.55; }
 // Bump on every deploy. Shown in Settings → About so you can confirm a
 // push actually reached the browser (past the service-worker cache).
 // Keep the sw.js CACHE constant in lockstep with this — same string.
-const APP_VERSION = '2026.05.17.8';
+const APP_VERSION = '2026.05.17.9';
 const {
   ROOM_PROXY_STALE_MS,
   selectRoomProxyRoute,
@@ -3543,9 +3543,7 @@ function signInPickEvent(eventId) {
     switchEvent(eventId, { toast: false });
   }
   if (_signinChosenRole === 'admin') {
-    const nm = document.getElementById('signin-admin-name');
-    if (nm && !nm.value) nm.value = trackerIdentity ? trackerIdentity.name : '';
-    signInShowStep('adminIdentity');
+    signInFinishAdmin();
   } else {
     signInRenderCrewList();
     signInShowStep('crewIdentity');
@@ -3628,9 +3626,7 @@ async function signInVerifyPassword() {
     return;
   }
   if (_signinChosenRole === 'admin') {
-    const nm = document.getElementById('signin-admin-name');
-    if (nm && !nm.value) nm.value = trackerIdentity ? trackerIdentity.name : '';
-    signInShowStep('adminIdentity');
+    signInFinishAdmin();
   } else {
     signInRenderCrewList();
     signInShowStep('crewIdentity');
@@ -3706,10 +3702,14 @@ function signInPickCrew(crewId, el) {
   if (doneBtn) doneBtn.disabled = false;
 }
 
-function signInFinishAdmin() {
+function signInDefaultAdminName() {
   const nameEl = document.getElementById('signin-admin-name');
-  const name = (nameEl && nameEl.value || '').trim();
-  if (!name) { if (nameEl) nameEl.focus(); return; }
+  const typed = (nameEl && nameEl.value || '').trim();
+  return typed || (trackerIdentity && trackerIdentity.name) || 'Admin';
+}
+
+function signInFinishAdmin() {
+  const name = signInDefaultAdminName();
   trackerIdentity = {
     name: name,
     role: 'Director',
