@@ -1618,7 +1618,7 @@ body.role-user .admin-only-input { pointer-events: none; opacity: 0.55; }
 // Bump on every deploy. Shown in Settings → About so you can confirm a
 // push actually reached the browser (past the service-worker cache).
 // Keep the sw.js CACHE constant in lockstep with this — same string.
-const APP_VERSION = '2026.05.17.6';
+const APP_VERSION = '2026.05.17.7';
 const {
   ROOM_PROXY_STALE_MS,
   selectRoomProxyRoute,
@@ -5980,7 +5980,11 @@ function renderVmixBanner() {
 }
 
 function vmixFmtDuration(ms) {
-  var sec = Math.floor(ms / 1000);
+  // Commander timestamps come from the room laptop. If that laptop's clock is
+  // ahead of the tracker device, Date.now() - recordingStartTime can be
+  // negative. Clamp here so the UI never renders nonsense like REC 0-1:0-20.
+  var safeMs = Number.isFinite(ms) ? Math.max(0, ms) : 0;
+  var sec = Math.floor(safeMs / 1000);
   var h = Math.floor(sec / 3600);
   var m = Math.floor((sec % 3600) / 60);
   var s = sec % 60;
