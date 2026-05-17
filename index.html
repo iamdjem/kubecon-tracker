@@ -1618,7 +1618,7 @@ body.role-user .admin-only-input { pointer-events: none; opacity: 0.55; }
 // Bump on every deploy. Shown in Settings → About so you can confirm a
 // push actually reached the browser (past the service-worker cache).
 // Keep the sw.js CACHE constant in lockstep with this — same string.
-const APP_VERSION = '2026.05.17.7';
+const APP_VERSION = '2026.05.17.8';
 const {
   ROOM_PROXY_STALE_MS,
   selectRoomProxyRoute,
@@ -6850,6 +6850,34 @@ async function vmixOne(key, fn) {
   setTimeout(() => vmixRefreshStatus(key), 1000);
 }
 
+const VMIX_START_SEQUENCE = ['StartRecording', 'StartMultiCorder', 'StartStreaming'];
+const VMIX_STOP_SEQUENCE = ['StopStreaming', 'StopMultiCorder', 'StopRecording'];
+const VMIX_START_STEP_DELAY_MS = 1200;
+const VMIX_STOP_STEP_DELAY_MS = 700;
+
+function vmixDelay(ms) {
+  return new Promise(function(resolve) { setTimeout(resolve, ms); });
+}
+
+function vmixFnsForAction(action) {
+  return action === 'start' ? VMIX_START_SEQUENCE : VMIX_STOP_SEQUENCE;
+}
+
+function vmixDelayForAction(action) {
+  return action === 'start' ? VMIX_START_STEP_DELAY_MS : VMIX_STOP_STEP_DELAY_MS;
+}
+
+async function vmixRunRoomSequence(room, action) {
+  var fns = vmixFnsForAction(action);
+  var delay = vmixDelayForAction(action);
+  var results = [];
+  for (var i = 0; i < fns.length; i++) {
+    results.push(await vmixCall(room.ip, fns[i], room.key));
+    if (i < fns.length - 1) await vmixDelay(delay);
+  }
+  return results;
+}
+
 async function vmixRoomAction(key, action) {
   const room = VMIX_ROOMS.find(r => r.key === key);
   if (!room) return;
@@ -6877,13 +6905,10 @@ async function vmixRoomAction(key, action) {
     showToast('No Commander route for ' + room.name);
     trackerWriteAudit(auditAction, key, 'fail'); return;
   }
-  showToast('⏳ ' + (action === 'start' ? 'Starting' : 'Stopping') + ' ' + room.name + '…');
-  const fns = action === 'start'
-    ? ['StartRecording','StartStreaming','StartMultiCorder']
-    : ['StopRecording','StopStreaming','StopMultiCorder'];
-  const results = await Promise.all(fns.map(f => vmixCall(room.ip, f, key)));
+  showToast('⏳ ' + (action === 'start' ? 'Starting' : 'Stopping') + ' ' + room.name + ' in sequence…');
+  const results = await vmixRunRoomSequence(room, action);
   const ok = results.filter(r => r.ok).length;
-  showToast(ok === 3 ? '✓ ' + room.name + ' done' : '✗ ' + ok + '/3 OK — HTTPS blocking?');
+  showToast(ok === 3 ? '✓ ' + room.name + ' done' : '✗ ' + ok + '/3 OK');
   trackerWriteAudit(auditAction, key, ok === 3 ? 'ok' : 'fail');
   setTimeout(() => vmixRefreshStatus(key), 1200);
 }
@@ -6905,14 +6930,12 @@ async function vmixAllAction(action) {
     showToast('Missing Commander route for ' + missingRoute.name);
     trackerWriteAudit(auditAction, '__all__', 'fail'); return;
   }
-  showToast(`${action === 'start' ? 'Starting' : 'Stopping'} all rooms…`);
-  const fns = action === 'start'
-    ? ['StartRecording','StartStreaming','StartMultiCorder']
-    : ['StopRecording','StopStreaming','StopMultiCorder'];
+  showToast(`${action === 'start' ? 'Starting' : 'Stopping'} all rooms in sequence…`);
   // Per-room lock respected: skip locked rooms
   const targets = VMIX_ROOMS.filter(function (r) { return !trackerRoomIsLocked(r.key); });
-  const results = await Promise.all(targets.flatMap(r => fns.map(f => vmixCall(r.ip, f, r.key))));
-  const ok = results.filter(r => r.ok).length;
+  const nested = await Promise.all(targets.map(function(r) { return vmixRunRoomSequence(r, action); }));
+  const results = nested.flat();
+  const ok = results.filter(function(r) { return r.ok; }).length;
   trackerWriteAudit(auditAction, '__all__', ok > 0 ? 'ok' : 'fail');
   setTimeout(vmixRefreshAll, 1200);
 }
