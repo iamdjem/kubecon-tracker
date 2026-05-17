@@ -13,3 +13,5 @@ node_modules/
 # Local secrets (should never be committed)
 .env
 .env.local
+
+.worktrees/
