@@ -1618,7 +1618,7 @@ body.role-user .admin-only-input { pointer-events: none; opacity: 0.55; }
 // Bump on every deploy. Shown in Settings → About so you can confirm a
 // push actually reached the browser (past the service-worker cache).
 // Keep the sw.js CACHE constant in lockstep with this — same string.
-const APP_VERSION = '2026.05.17.4';
+const APP_VERSION = '2026.05.17.5';
 const {
   ROOM_PROXY_STALE_MS,
   selectRoomProxyRoute,
@@ -6073,8 +6073,26 @@ function vmixStartTick() {
     });
     // Re-check staleness banner
     renderVmixBanner();
+    // Route freshness is TIME-based: a Commander whose tunnel died simply
+    // stops refreshing its claim — no Firebase event fires, so the
+    // claim-change subscription never re-renders. Without this, a room
+    // whose route just went stale keeps its buttons enabled and the warn
+    // banner hidden until some unrelated write. Detect the per-room route
+    // signature changing and re-render only then (cheap; avoids a 1Hz DOM
+    // rebuild while still reflecting staleness within ~1s).
+    try {
+      var sig = (VMIX_ROOMS || []).map(function (r) {
+        return r.key + ':' + (vmixRouteForRoom(r.key).source || 'none');
+      }).join('|');
+      if (sig !== _vmixRouteSig) {
+        _vmixRouteSig = sig;
+        updateVmixHttpsWarn();
+        renderVmixCards();
+      }
+    } catch (e) { /* never let the tick throw */ }
   }, 1000);
 }
+var _vmixRouteSig = '';
 function vmixStopTick() {
   if (_vmixTickInterval) { clearInterval(_vmixTickInterval); _vmixTickInterval = null; }
 }
