@@ -6,6 +6,7 @@ const {
   roomHasUsableProxy,
   mergeCommanderStatus,
   applyMergedRoomStatuses,
+  shouldDelayEmptyRoomState,
 } = require('../tracker-routing-helpers');
 
 test('selectRoomProxyRoute prefers freshest per-commander claim', () => {
@@ -238,4 +239,38 @@ test('applyMergedRoomStatuses shows failure after transient grace expires', () =
   assert.equal(next.roomA.ok, false);
   assert.equal(next.roomA.recording, false);
   assert.equal(next.roomA.tier, 'unreachable');
+});
+
+test('shouldDelayEmptyRoomState holds empty room warnings until first remote snapshot or timeout', () => {
+  assert.equal(shouldDelayEmptyRoomState({
+    hasEmptyState: true,
+    remoteLoaded: false,
+    now: 10_000,
+    startedAt: 8_000,
+    holdMs: 4_000,
+  }), true);
+
+  assert.equal(shouldDelayEmptyRoomState({
+    hasEmptyState: true,
+    remoteLoaded: true,
+    now: 10_000,
+    startedAt: 8_000,
+    holdMs: 4_000,
+  }), false);
+
+  assert.equal(shouldDelayEmptyRoomState({
+    hasEmptyState: true,
+    remoteLoaded: false,
+    now: 13_000,
+    startedAt: 8_000,
+    holdMs: 4_000,
+  }), false);
+
+  assert.equal(shouldDelayEmptyRoomState({
+    hasEmptyState: false,
+    remoteLoaded: false,
+    now: 10_000,
+    startedAt: 8_000,
+    holdMs: 4_000,
+  }), false);
 });

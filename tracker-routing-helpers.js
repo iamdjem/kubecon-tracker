@@ -171,11 +171,25 @@
     return next;
   }
 
+  function shouldDelayEmptyRoomState({
+    hasEmptyState = false,
+    remoteLoaded = false,
+    now = Date.now(),
+    startedAt = 0,
+    holdMs = 4_000,
+  } = {}) {
+    if (!hasEmptyState) return false;
+    if (remoteLoaded) return false;
+    if (!startedAt) return false;
+    return (now - startedAt) < holdMs;
+  }
+
   return {
     ROOM_PROXY_STALE_MS,
     selectRoomProxyRoute,
     roomHasUsableProxy,
     mergeCommanderStatus,
     applyMergedRoomStatuses,
+    shouldDelayEmptyRoomState,
   };
 });

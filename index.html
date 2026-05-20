@@ -1618,13 +1618,14 @@ body.role-user .admin-only-input { pointer-events: none; opacity: 0.55; }
 // Bump on every deploy. Shown in Settings → About so you can confirm a
 // push actually reached the browser (past the service-worker cache).
 // Keep the sw.js CACHE constant in lockstep with this — same string.
-const APP_VERSION = '2026.05.20.3';
+const APP_VERSION = '2026.05.20.4';
 const {
   ROOM_PROXY_STALE_MS,
   selectRoomProxyRoute,
   roomHasUsableProxy,
   mergeCommanderStatus,
-  applyMergedRoomStatuses
+  applyMergedRoomStatuses,
+  shouldDelayEmptyRoomState
 } = window.TrackerRoutingHelpers;
 
 const AVATAR_COLORS = ['#e8c547','#e87d47','#e84774','#a347e8','#478ce8','#47e8a0','#e8476b','#47e8d4','#c8e847','#e88347'];
@@ -2670,6 +2671,9 @@ let state = null;
 let filter = null;
 let fbDb   = null;
 let fbAuth = null;
+const VMIX_EMPTY_STATE_HOLD_MS = 4000;
+const vmixEmptyStateHoldStartedAt = Date.now();
+let trackerRemoteEventsLoaded = false;
 // ─── Auth config ───
 // Client-side hardcoded credentials for a small team tool.
 // These are visible in the source (defense-in-depth: DB rules + non-public URL).
@@ -3247,6 +3251,7 @@ function initFirebase(url) {
         };
         // Data sync listeners — only fire once authenticated (handled by DB rules + our UI)
         fbDb.child('events').on('value', s => {
+          trackerRemoteEventsLoaded = true;
           const v = s.val();
           if (v && typeof v === 'object') {
             const merged = {};
@@ -6414,6 +6419,19 @@ function vmixNormName(s) {
   return String(s == null ? '' : s).trim().toLowerCase();
 }
 
+function renderVmixRoomsLoading(el) {
+  if (!el) return;
+  ['vmix-operator-empty', 'vmix-operator-mismatch'].forEach(function (id) {
+    var node = document.getElementById(id);
+    if (node) node.style.display = 'none';
+  });
+  el.innerHTML =
+    '<div style="background:var(--s2);border:1px solid var(--line2);border-radius:14px;padding:20px;color:var(--t2);font-size:13px;line-height:1.55;text-align:center;">' +
+      '<div style="color:var(--t1);font-weight:700;margin-bottom:8px;font-size:14px;">Loading rooms…</div>' +
+      '<div style="color:var(--t3);">Syncing the event setup before showing room availability.</div>' +
+    '</div>';
+}
+
 // Live room resolution. When a tracker identity is bound to a crew member
 // (identity.crewId is set), re-derive assignedRooms from the current
 // config.crew on every read — so renaming a vMix room or fixing a typo
@@ -6583,6 +6601,21 @@ function renderVmixCards() {
         }
       }
     }
+  }
+
+  var wouldShowEmptyState = operatorEmpty || !!directorFilterEmpty || (!directorFilterEmpty && rooms.length === 0 && !operatorEmpty);
+  if (shouldDelayEmptyRoomState({
+    hasEmptyState: wouldShowEmptyState,
+    remoteLoaded: trackerRemoteEventsLoaded,
+    now: Date.now(),
+    startedAt: vmixEmptyStateHoldStartedAt,
+    holdMs: VMIX_EMPTY_STATE_HOLD_MS
+  })) {
+    trackerRenderedRooms = [];
+    updateVmixHttpsWarn();
+    renderVmixRoomsLoading(el);
+    renderVmixBanner();
+    return;
   }
 
   trackerRenderedRooms = rooms.slice();
