@@ -184,6 +184,20 @@
     return (now - startedAt) < holdMs;
   }
 
+  function roomsFromEventConfig(event, fallbackRooms = []) {
+    const eventRooms = event && event.config && Array.isArray(event.config.vmixRooms)
+      ? event.config.vmixRooms
+      : null;
+    const source = eventRooms && eventRooms.length ? eventRooms : (fallbackRooms || []);
+    return source
+      .filter((room) => room && room.key && room.name)
+      .map((room) => ({
+        key: room.key,
+        name: room.name,
+        ip: room.ip || '',
+      }));
+  }
+
   return {
     ROOM_PROXY_STALE_MS,
     selectRoomProxyRoute,
@@ -191,5 +205,6 @@
     mergeCommanderStatus,
     applyMergedRoomStatuses,
     shouldDelayEmptyRoomState,
+    roomsFromEventConfig,
   };
 });

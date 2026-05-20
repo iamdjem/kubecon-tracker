@@ -7,6 +7,7 @@ const {
   mergeCommanderStatus,
   applyMergedRoomStatuses,
   shouldDelayEmptyRoomState,
+  roomsFromEventConfig,
 } = require('../tracker-routing-helpers');
 
 test('selectRoomProxyRoute prefers freshest per-commander claim', () => {
@@ -273,4 +274,24 @@ test('shouldDelayEmptyRoomState holds empty room warnings until first remote sna
     startedAt: 8_000,
     holdMs: 4_000,
   }), false);
+});
+
+test('roomsFromEventConfig returns current event vMix rooms before falling back', () => {
+  assert.deepEqual(roomsFromEventConfig({
+    config: {
+      vmixRooms: [
+        { key: 'a', name: '200E', ip: '192.168.0.101' },
+        { key: 'b', name: '200F' },
+      ],
+    },
+  }, [{ key: 'legacy', name: 'Legacy', ip: '' }]), [
+    { key: 'a', name: '200E', ip: '192.168.0.101' },
+    { key: 'b', name: '200F', ip: '' },
+  ]);
+
+  assert.deepEqual(roomsFromEventConfig({
+    config: { vmixRooms: [] },
+  }, [{ key: 'legacy', name: 'Legacy', ip: '' }]), [
+    { key: 'legacy', name: 'Legacy', ip: '' },
+  ]);
 });

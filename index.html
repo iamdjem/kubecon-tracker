@@ -1618,14 +1618,15 @@ body.role-user .admin-only-input { pointer-events: none; opacity: 0.55; }
 // Bump on every deploy. Shown in Settings → About so you can confirm a
 // push actually reached the browser (past the service-worker cache).
 // Keep the sw.js CACHE constant in lockstep with this — same string.
-const APP_VERSION = '2026.05.20.4';
+const APP_VERSION = '2026.05.20.5';
 const {
   ROOM_PROXY_STALE_MS,
   selectRoomProxyRoute,
   roomHasUsableProxy,
   mergeCommanderStatus,
   applyMergedRoomStatuses,
-  shouldDelayEmptyRoomState
+  shouldDelayEmptyRoomState,
+  roomsFromEventConfig
 } = window.TrackerRoutingHelpers;
 
 const AVATAR_COLORS = ['#e8c547','#e87d47','#e84774','#a347e8','#478ce8','#47e8a0','#e8476b','#47e8d4','#c8e847','#e88347'];
@@ -2800,6 +2801,7 @@ function renderAll() {
   // every page. Toggle it first so subsequent page renders see the
   // visibility state they expect.
   updateNoLiveEventOverlay();
+  if (typeof vmixRefreshRooms === 'function') vmixRefreshRooms({ render: false });
   render();
   renderOverview();
   renderToday();
@@ -5839,16 +5841,12 @@ function vmixAdoptCrewRooms() {
 }
 
 // Refresh room list from current event (called when event switches or config updates)
-function vmixRefreshRooms() {
+function vmixRefreshRooms(options) {
+  options = options || {};
   const ev = (typeof currentEvent === 'function') ? currentEvent() : null;
-  const eventRooms = ev && ev.config && Array.isArray(ev.config.vmixRooms) ? ev.config.vmixRooms : null;
-  if (eventRooms && eventRooms.length > 0) {
-    VMIX_ROOMS = eventRooms.map(r => ({ key: r.key, name: r.name, ip: r.ip || '' }));
-  } else {
-    VMIX_ROOMS = [...VMIX_LEGACY_ROOMS];
-  }
+  VMIX_ROOMS = roomsFromEventConfig(ev, VMIX_LEGACY_ROOMS);
   vmixLoadIps();
-  if (typeof currentPage !== 'undefined' && currentPage === 'rooms') {
+  if (options.render !== false && typeof currentPage !== 'undefined' && currentPage === 'rooms') {
     renderVmixCards();
   }
 }
