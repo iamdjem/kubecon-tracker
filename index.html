@@ -1618,7 +1618,7 @@ body.role-user .admin-only-input { pointer-events: none; opacity: 0.55; }
 // Bump on every deploy. Shown in Settings → About so you can confirm a
 // push actually reached the browser (past the service-worker cache).
 // Keep the sw.js CACHE constant in lockstep with this — same string.
-const APP_VERSION = '2026.05.20.1';
+const APP_VERSION = '2026.05.20.2';
 const {
   ROOM_PROXY_STALE_MS,
   selectRoomProxyRoute,
@@ -5323,6 +5323,8 @@ let trackerPerEventProxyUrl = null;  // value from events/<id>/config/vmixProxyU
 let trackerGlobalProxyUrl = null;    // value from /vmix_proxy_url
 let trackerRoomProxyClaims = {};
 let trackerRoomProxyClaimsRef = null;
+const VMIX_ROUTE_STICKY_MS = 10000;
+let trackerStickyRoomRoutes = {};
 // Per-room proxy map: events/<id>/roomProxies/<roomKey> = {url, commanderId,
 // updatedAt}. Each Commander claims the rooms it can actually reach. With
 // rooms on separate networks, a single proxy URL can't reach them all —
@@ -5689,6 +5691,7 @@ function trackerSubscribePerEventProxy() {
   trackerPerEventProxyUrl = null;
   trackerRoomProxyClaims = {};
   trackerRoomProxies = {};
+  trackerStickyRoomRoutes = {};
   if (!eventId) { trackerReconcileProxy(); return; }
   trackerPerEventProxyRef = fbDb.child('events/' + eventId + '/config/vmixProxyUrl');
   trackerPerEventProxyRef.on('value', function (snap) {
@@ -5715,13 +5718,30 @@ function trackerSubscribePerEventProxy() {
 // own network) wins; otherwise fall back to the single global proxy for
 // backward compat / single-network setups.
 function vmixRouteForRoom(roomKey) {
-  return selectRoomProxyRoute({
+  const previous = roomKey ? trackerStickyRoomRoutes[roomKey] : null;
+  const route = selectRoomProxyRoute({
     roomKey,
     claimMap: roomKey && trackerRoomProxyClaims ? (trackerRoomProxyClaims[roomKey] || {}) : {},
     legacyRoute: roomKey && trackerRoomProxies ? trackerRoomProxies[roomKey] : null,
     eventProxyUrl: trackerPerEventProxyUrl || '',
-    globalProxyUrl: trackerGlobalProxyUrl || vmixProxyUrl || ''
+    globalProxyUrl: trackerGlobalProxyUrl || vmixProxyUrl || '',
+    stickyRoute: previous,
+    stickyMs: VMIX_ROUTE_STICKY_MS
   });
+  if (roomKey) {
+    if (route.url) {
+      const same = previous && previous.url === route.url && previous.commanderId === route.commanderId && previous.source === route.source;
+      trackerStickyRoomRoutes[roomKey] = {
+        url: route.url,
+        commanderId: route.commanderId || '',
+        source: route.source || '',
+        selectedAt: same ? previous.selectedAt : Date.now()
+      };
+    } else {
+      delete trackerStickyRoomRoutes[roomKey];
+    }
+  }
+  return route;
 }
 
 function vmixProxyForRoom(roomKey) {
@@ -6046,6 +6066,23 @@ function vmixTierColor(tier) {
   return '#555';  // offline
 }
 
+function vmixStatusAgeMs(st) {
+  if (!st) return null;
+  var at = st.updatedAt || st._lastGoodAt || st._lastErrorAt || null;
+  if (!at) return null;
+  return Math.max(0, Date.now() - at);
+}
+
+function vmixFmtAge(ms) {
+  if (!Number.isFinite(ms)) return '';
+  if (ms < 1000) return '<1s';
+  var sec = Math.round(ms / 1000);
+  if (sec < 60) return sec + 's';
+  var min = Math.floor(sec / 60);
+  var rem = sec % 60;
+  return min + 'm' + (rem ? ' ' + rem + 's' : '');
+}
+
 // 1Hz loop — updates REC HH:MM:SS timer and staleness banner. Started lazily
 // when the Rooms page is visible, stopped otherwise.
 let _vmixTickInterval = null;
@@ -6093,8 +6130,9 @@ function vmixStopTick() {
 
 function vmixMakeCard(r) {
   var st   = vmixStatus[r.key] || {};
-  var err  = st.ok === false;
-  var tier = st.tier || (err ? 'unreachable' : (r.ip ? 'offline' : 'offline'));
+  var stale = !!st._stale;
+  var err  = st.ok === false && !stale;
+  var tier = stale ? 'degraded' : (st.tier || (err ? 'unreachable' : (r.ip ? 'offline' : 'offline')));
   // Global safety lock now ONLY guards the All Rooms card. Individual rooms
   // remain operable so the operator can still react per-room mid-event.
   var roomLocked = trackerRoomIsLocked(r.key);
@@ -6142,7 +6180,10 @@ function vmixMakeCard(r) {
   // 11px size + tabular-nums so the metrics line up visually.
   var pingEl = document.createElement('span');
   pingEl.style.cssText = 'flex-shrink:0;font-size:11px;font-weight:600;font-variant-numeric:tabular-nums;color:' + vmixTierColor(tier) + ';white-space:nowrap;display:inline-flex;align-items:center;gap:4px;';
-  if (r.ip && st.ok) pingEl.innerHTML = '<span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:' + vmixTierColor(tier) + ';"></span>Ping ' + Math.round(st.latency || 0) + 'ms';
+  var age = vmixStatusAgeMs(st);
+  var ageText = age == null ? '' : ' · ' + vmixFmtAge(age);
+  if (r.ip && st.ok && stale) pingEl.innerHTML = '<span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:' + vmixTierColor(tier) + ';"></span>Stale ' + vmixFmtAge(age == null ? 0 : age);
+  else if (r.ip && st.ok) pingEl.innerHTML = '<span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:' + vmixTierColor(tier) + ';"></span>Ping ' + Math.round(st.latency || 0) + 'ms' + ageText;
   else if (err)      pingEl.innerHTML = '<span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:' + vmixTierColor(tier) + ';"></span>Unreachable';
   else               pingEl.textContent = '';
 
@@ -6826,18 +6867,55 @@ async function vmixGetStatus(ip, roomKey) {
   } catch(e) { return { ok: false, error: e.message, recording: false, streaming: false, multicorder: false }; }
 }
 
+let vmixStatusRefreshInFlight = {};
+let vmixStatusRefreshSeq = {};
+
 async function vmixRefreshStatus(key) {
   // Source of truth is the Commander's Firebase push (vmixLive). If it's
   // fresh, skip the direct poll — Commander will publish the updated state
   // within a few seconds. Direct polling here would also clobber fields
   // Commander provides (latency, tier, recordingStartTime).
   if (vmixIsLiveFresh()) return;
+  if (vmixStatusRefreshInFlight[key]) return vmixStatusRefreshInFlight[key];
   const room = VMIX_ROOMS.find(r => r.key === key);
   if (!room) return;
-  const prev = vmixStatus[key] || {};
-  const fresh = await vmixGetStatus(room.ip, key);
-  vmixStatus[key] = Object.assign({}, prev, fresh);
-  renderVmixCards();
+  const seq = (vmixStatusRefreshSeq[key] || 0) + 1;
+  vmixStatusRefreshSeq[key] = seq;
+  vmixStatusRefreshInFlight[key] = (async function() {
+    const prev = vmixStatus[key] || {};
+    const fresh = await vmixGetStatus(room.ip, key);
+    if (vmixStatusRefreshSeq[key] !== seq) return;
+    const now = Date.now();
+    if (fresh.ok) {
+      vmixStatus[key] = Object.assign({}, prev, fresh, {
+        updatedAt: now,
+        _lastGoodAt: now,
+        _stale: false
+      });
+    } else {
+      const lastGoodAt = prev._lastGoodAt || prev.updatedAt || 0;
+      if (prev.ok && lastGoodAt && (now - lastGoodAt) < 20000) {
+        vmixStatus[key] = Object.assign({}, prev, {
+          _stale: true,
+          _lastError: fresh.error || 'status refresh failed',
+          _lastErrorAt: now
+        });
+      } else {
+        vmixStatus[key] = Object.assign({}, prev, fresh, {
+          ok: false,
+          recording: false,
+          streaming: false,
+          multicorder: false,
+          updatedAt: now,
+          _stale: false
+        });
+      }
+    }
+    renderVmixCards();
+  })().finally(function() {
+    if (vmixStatusRefreshSeq[key] === seq) delete vmixStatusRefreshInFlight[key];
+  });
+  return vmixStatusRefreshInFlight[key];
 }
 
 async function vmixRefreshAll() {

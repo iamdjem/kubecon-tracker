@@ -26,6 +26,50 @@ test('selectRoomProxyRoute prefers freshest per-commander claim', () => {
   assert.equal(route.source, 'claim');
 });
 
+test('selectRoomProxyRoute keeps a recently working sticky claim while it is still fresh', () => {
+  const now = 100_000;
+  const route = selectRoomProxyRoute({
+    roomKey: 'roomA',
+    now,
+    claimMap: {
+      stable: { url: 'https://stable.example', updatedAt: now - 4_000, commanderId: 'stable' },
+      newer: { url: 'https://newer.example', updatedAt: now - 500, commanderId: 'newer' },
+    },
+    stickyRoute: {
+      url: 'https://stable.example',
+      commanderId: 'stable',
+      selectedAt: now - 3_000,
+    },
+    stickyMs: 10_000,
+  });
+
+  assert.equal(route.url, 'https://stable.example');
+  assert.equal(route.commanderId, 'stable');
+  assert.equal(route.sticky, true);
+});
+
+test('selectRoomProxyRoute abandons sticky claim after stickiness expires', () => {
+  const now = 100_000;
+  const route = selectRoomProxyRoute({
+    roomKey: 'roomA',
+    now,
+    claimMap: {
+      stable: { url: 'https://stable.example', updatedAt: now - 4_000, commanderId: 'stable' },
+      newer: { url: 'https://newer.example', updatedAt: now - 500, commanderId: 'newer' },
+    },
+    stickyRoute: {
+      url: 'https://stable.example',
+      commanderId: 'stable',
+      selectedAt: now - 20_000,
+    },
+    stickyMs: 10_000,
+  });
+
+  assert.equal(route.url, 'https://newer.example');
+  assert.equal(route.commanderId, 'newer');
+  assert.equal(route.sticky, undefined);
+});
+
 test('selectRoomProxyRoute rejects stale claims and falls back to legacy', () => {
   const now = 100_000;
   const route = selectRoomProxyRoute({
@@ -100,6 +144,22 @@ test('mergeCommanderStatus lets a fresh reachable source beat fresh unreachable 
   assert.equal(merged.rooms.roomA.latency, 8);
   assert.equal(merged.rooms.roomB.ok, true);
   assert.equal(merged.rooms.roomB.latency, 10);
+});
+
+test('mergeCommanderStatus annotates room status with the source update time', () => {
+  const now = 100_000;
+  const merged = mergeCommanderStatus({
+    commanders: {
+      commanderA: {
+        updatedAt: now - 1200,
+        rooms: {
+          roomA: { ok: true, latency: 8, tier: 'healthy' },
+        },
+      },
+    },
+  }, { now, staleMs: 15_000 });
+
+  assert.equal(merged.rooms.roomA.updatedAt, now - 1200);
 });
 
 test('applyMergedRoomStatuses clears rooms absent from the merged Firebase snapshot', () => {
