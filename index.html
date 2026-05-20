@@ -1618,7 +1618,7 @@ body.role-user .admin-only-input { pointer-events: none; opacity: 0.55; }
 // Bump on every deploy. Shown in Settings → About so you can confirm a
 // push actually reached the browser (past the service-worker cache).
 // Keep the sw.js CACHE constant in lockstep with this — same string.
-const APP_VERSION = '2026.05.20.2';
+const APP_VERSION = '2026.05.20.3';
 const {
   ROOM_PROXY_STALE_MS,
   selectRoomProxyRoute,
@@ -6399,8 +6399,10 @@ function vmixSetCrewFilter(value) {
   vmixActiveCrewFilter = value;
   vmixFilterUserOverride = true;
   try {
-    if (value === 'all') localStorage.setItem(VMIX_FILTER_KEY, 'all');
-    else localStorage.removeItem(VMIX_FILTER_KEY);
+    // Persist the exact selected chip so refresh keeps the same Recording
+    // tab. Previously only "All" was saved and specific crew selections
+    // were removed, so a reload always reset the filter.
+    localStorage.setItem(VMIX_FILTER_KEY, value || 'all');
   } catch (e) {}
   renderVmixCards();
 }
