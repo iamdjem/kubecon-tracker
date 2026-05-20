@@ -125,3 +125,57 @@ test('applyMergedRoomStatuses clears rooms absent from the merged Firebase snaps
     recordingStartTime: null,
   });
 });
+
+test('applyMergedRoomStatuses preserves last known good state during transient failed reports', () => {
+  const now = 200_000;
+  const next = applyMergedRoomStatuses(
+    {
+      roomA: {
+        ok: true,
+        recording: true,
+        streaming: false,
+        multicorder: false,
+        latency: 8,
+        tier: 'healthy',
+        recordingStartTime: 123,
+        _lastGoodAt: now - 5_000,
+      },
+    },
+    {
+      roomA: { ok: false, latency: 0, tier: 'degraded' },
+    },
+    [{ key: 'roomA' }],
+    { now, transientFailureGraceMs: 20_000 }
+  );
+
+  assert.equal(next.roomA.ok, true);
+  assert.equal(next.roomA.recording, true);
+  assert.equal(next.roomA._stale, true);
+});
+
+test('applyMergedRoomStatuses shows failure after transient grace expires', () => {
+  const now = 200_000;
+  const next = applyMergedRoomStatuses(
+    {
+      roomA: {
+        ok: true,
+        recording: true,
+        streaming: false,
+        multicorder: false,
+        latency: 8,
+        tier: 'healthy',
+        recordingStartTime: 123,
+        _lastGoodAt: now - 25_000,
+      },
+    },
+    {
+      roomA: { ok: false, latency: 0, tier: 'unreachable' },
+    },
+    [{ key: 'roomA' }],
+    { now, transientFailureGraceMs: 20_000 }
+  );
+
+  assert.equal(next.roomA.ok, false);
+  assert.equal(next.roomA.recording, false);
+  assert.equal(next.roomA.tier, 'unreachable');
+});

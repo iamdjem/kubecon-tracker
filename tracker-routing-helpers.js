@@ -107,13 +107,45 @@
     };
   }
 
-  function applyMergedRoomStatuses(current = {}, mergedRooms = {}, roomList = []) {
+  function withGoodStamp(status, now) {
+    if (!status || !status.ok) return status;
+    return { ...status, _lastGoodAt: now, _stale: false };
+  }
+
+  function preserveDuringTransientFailure(previous, failed, now, graceMs) {
+    if (!previous || !previous.ok || !failed || failed.ok) return null;
+    const lastGoodAt = previous._lastGoodAt || now;
+    if ((now - lastGoodAt) > graceMs) return null;
+    return {
+      ...previous,
+      tier: previous.tier === 'unreachable' || previous.tier === 'offline' ? 'degraded' : (previous.tier || 'degraded'),
+      _lastGoodAt: lastGoodAt,
+      _stale: true,
+      _lastErrorAt: now,
+      _lastErrorTier: failed.tier || 'unreachable',
+    };
+  }
+
+  function applyMergedRoomStatuses(current = {}, mergedRooms = {}, roomList = [], options = {}) {
+    const now = options.now || Date.now();
+    const transientFailureGraceMs = options.transientFailureGraceMs == null ? 20_000 : options.transientFailureGraceMs;
     const next = { ...(current || {}) };
     (roomList || []).forEach((room) => {
       const key = room && room.key;
       if (!key) return;
+      const previous = current && current[key];
       const merged = mergedRooms && mergedRooms[key];
-      next[key] = merged ? normalizeRoomStatus(merged, true) : offlineRoomStatus();
+      const candidate = merged ? normalizeRoomStatus(merged, true) : offlineRoomStatus();
+      if (candidate.ok) {
+        next[key] = withGoodStamp(candidate, now);
+        return;
+      }
+      // Only smooth explicit failed reports from an owner. If a room is absent
+      // from the merged status tree, no Commander currently owns it, so clear
+      // it immediately instead of preserving a ghost status.
+      next[key] = merged
+        ? (preserveDuringTransientFailure(previous, candidate, now, transientFailureGraceMs) || candidate)
+        : candidate;
     });
     return next;
   }
