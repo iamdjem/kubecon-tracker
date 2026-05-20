@@ -1618,7 +1618,7 @@ body.role-user .admin-only-input { pointer-events: none; opacity: 0.55; }
 // Bump on every deploy. Shown in Settings → About so you can confirm a
 // push actually reached the browser (past the service-worker cache).
 // Keep the sw.js CACHE constant in lockstep with this — same string.
-const APP_VERSION = '2026.05.20.5';
+const APP_VERSION = '2026.05.21.1';
 const {
   ROOM_PROXY_STALE_MS,
   selectRoomProxyRoute,
@@ -1626,7 +1626,8 @@ const {
   mergeCommanderStatus,
   applyMergedRoomStatuses,
   shouldDelayEmptyRoomState,
-  roomsFromEventConfig
+  roomsFromEventConfig,
+  shouldRebindEventSubscription
 } = window.TrackerRoutingHelpers;
 
 const AVATAR_COLORS = ['#e8c547','#e87d47','#e84774','#a347e8','#478ce8','#47e8a0','#e8476b','#47e8d4','#c8e847','#e88347'];
@@ -3369,6 +3370,11 @@ function onAuthenticated() {
     syncActiveEvent();
     saveAppData();
     renderAllIncludingSettings();
+    // The first unauthenticated listener registration can fail silently under
+    // Firebase rules while still setting our local "bound event" ids. Force a
+    // re-bind after sign-in/event hydration so routes and status appear
+    // without needing a manual browser refresh.
+    if (typeof vmixSubscribeStatus === 'function') vmixSubscribeStatus({ force: true });
     if (typeof signInMaybeRefreshCrewList === 'function') signInMaybeRefreshCrewList();
     if (typeof signInMaybeRefreshEventList === 'function') signInMaybeRefreshEventList();
     // Reconcile resumed Operator's rooms now that config is hydrated.
@@ -5504,10 +5510,11 @@ function trackerFnToAction(fn) {
 }
 
 // ─── Run-of-show view (read-only) ──────────────────────────────────────────
-function trackerSubscribeRunOfShow() {
+function trackerSubscribeRunOfShow(options) {
+  options = options || {};
   if (!fbDb) return;
   const eventId = currentEventId || null;
-  if (eventId === trackerRunOfShowEventId) return;
+  if (!shouldRebindEventSubscription({ eventId: eventId, boundEventId: trackerRunOfShowEventId, force: options.force })) return;
   if (trackerRunOfShowRef) { trackerRunOfShowRef.off(); trackerRunOfShowRef = null; }
   trackerRunOfShowEventId = eventId;
   trackerRunOfShow = [];
@@ -5564,10 +5571,11 @@ function trackerRenderRunOfShow() {
 }
 
 // ─── Per-room locks ────────────────────────────────────────────────────────
-function trackerSubscribeRoomLocks() {
+function trackerSubscribeRoomLocks(options) {
+  options = options || {};
   if (!fbDb) return;
   const eventId = currentEventId || null;
-  if (eventId === trackerRoomLocksEventId) return;
+  if (!shouldRebindEventSubscription({ eventId: eventId, boundEventId: trackerRoomLocksEventId, force: options.force })) return;
   if (trackerRoomLocksRef) { trackerRoomLocksRef.off(); trackerRoomLocksRef = null; }
   trackerRoomLocksEventId = eventId;
   trackerRoomLocks = {};
@@ -5613,10 +5621,11 @@ let trackerSafetyLockRef = null;
 let trackerSafetyLockEventId = null;
 let trackerRemoteSafetyLocked = null;  // null = unknown; true/false from Firebase
 
-function trackerSubscribeSafetyLock() {
+function trackerSubscribeSafetyLock(options) {
+  options = options || {};
   if (!fbDb) return;
   const eventId = currentEventId || null;
-  if (eventId === trackerSafetyLockEventId) return;
+  if (!shouldRebindEventSubscription({ eventId: eventId, boundEventId: trackerSafetyLockEventId, force: options.force })) return;
   if (trackerSafetyLockRef) { trackerSafetyLockRef.off(); trackerSafetyLockRef = null; }
   trackerSafetyLockEventId = eventId;
   trackerRemoteSafetyLocked = null;
@@ -5646,10 +5655,11 @@ function trackerToggleSafetyLock() {
 }
 
 // ─── Controller (heartbeat) ────────────────────────────────────────────────
-function trackerSubscribeController() {
+function trackerSubscribeController(options) {
+  options = options || {};
   if (!fbDb) return;
   const eventId = currentEventId || null;
-  if (eventId === trackerControllerEventId) return;
+  if (!shouldRebindEventSubscription({ eventId: eventId, boundEventId: trackerControllerEventId, force: options.force })) return;
   if (trackerControllerRef) { trackerControllerRef.off(); trackerControllerRef = null; }
   trackerControllerEventId = eventId;
   trackerController = null;
@@ -5687,10 +5697,11 @@ function trackerControllerFresh() {
 }
 
 // ─── Per-event proxy URL (reader) ──────────────────────────────────────────
-function trackerSubscribePerEventProxy() {
+function trackerSubscribePerEventProxy(options) {
+  options = options || {};
   if (!fbDb) return;
   const eventId = currentEventId || null;
-  if (eventId === trackerPerEventProxyEventId) return;
+  if (!shouldRebindEventSubscription({ eventId: eventId, boundEventId: trackerPerEventProxyEventId, force: options.force })) return;
   if (trackerPerEventProxyRef) { trackerPerEventProxyRef.off(); trackerPerEventProxyRef = null; }
   if (trackerRoomProxyClaimsRef) { trackerRoomProxyClaimsRef.off(); trackerRoomProxyClaimsRef = null; }
   if (trackerRoomProxiesRef) { trackerRoomProxiesRef.off(); trackerRoomProxiesRef = null; }
@@ -5945,16 +5956,17 @@ function vmixMergeCommanderStatus(raw) {
 // Subscribe to Commander's live vmix status for the current event.
 // Runs whenever the active event changes. Also fans out to per-event
 // proxy URL / roomLocks / runOfShow / controller listeners.
-function vmixSubscribeStatus() {
+function vmixSubscribeStatus(options) {
+  options = options || {};
   if (!fbDb) return;
   const eventId = (typeof currentEventId !== 'undefined' && currentEventId) ? currentEventId : null;
   // Always refresh side-channel subs even if vmixStatus event id is unchanged
-  trackerSubscribePerEventProxy();
-  trackerSubscribeRoomLocks();
-  trackerSubscribeRunOfShow();
-  trackerSubscribeController();
-  trackerSubscribeSafetyLock();
-  if (eventId === vmixLiveEventId) return;  // no change to main status stream
+  trackerSubscribePerEventProxy({ force: options.force });
+  trackerSubscribeRoomLocks({ force: options.force });
+  trackerSubscribeRunOfShow({ force: options.force });
+  trackerSubscribeController({ force: options.force });
+  trackerSubscribeSafetyLock({ force: options.force });
+  if (!shouldRebindEventSubscription({ eventId: eventId, boundEventId: vmixLiveEventId, force: options.force })) return;  // no change to main status stream
   if (vmixLiveRef) { vmixLiveRef.off(); vmixLiveRef = null; }
   vmixLiveEventId = eventId;
   vmixLive = null;

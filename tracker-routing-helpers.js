@@ -198,6 +198,14 @@
       }));
   }
 
+  function shouldRebindEventSubscription({
+    eventId = null,
+    boundEventId = null,
+    force = false,
+  } = {}) {
+    return !!force || eventId !== boundEventId;
+  }
+
   return {
     ROOM_PROXY_STALE_MS,
     selectRoomProxyRoute,
@@ -206,5 +214,6 @@
     applyMergedRoomStatuses,
     shouldDelayEmptyRoomState,
     roomsFromEventConfig,
+    shouldRebindEventSubscription,
   };
 });

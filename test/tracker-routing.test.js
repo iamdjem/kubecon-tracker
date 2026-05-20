@@ -8,6 +8,7 @@ const {
   applyMergedRoomStatuses,
   shouldDelayEmptyRoomState,
   roomsFromEventConfig,
+  shouldRebindEventSubscription,
 } = require('../tracker-routing-helpers');
 
 test('selectRoomProxyRoute prefers freshest per-commander claim', () => {
@@ -294,4 +295,24 @@ test('roomsFromEventConfig returns current event vMix rooms before falling back'
   }, [{ key: 'legacy', name: 'Legacy', ip: '' }]), [
     { key: 'legacy', name: 'Legacy', ip: '' },
   ]);
+});
+
+test('shouldRebindEventSubscription forces a same-event subscription after auth changes', () => {
+  assert.equal(shouldRebindEventSubscription({
+    eventId: 'ev1',
+    boundEventId: 'ev1',
+    force: false,
+  }), false);
+
+  assert.equal(shouldRebindEventSubscription({
+    eventId: 'ev1',
+    boundEventId: 'ev1',
+    force: true,
+  }), true);
+
+  assert.equal(shouldRebindEventSubscription({
+    eventId: 'ev2',
+    boundEventId: 'ev1',
+    force: false,
+  }), true);
 });
