@@ -1643,6 +1643,50 @@ body.role-user .admin-only-input { pointer-events: none; opacity: 0.55; }
   #page-rooms .vmix-fn-toggle.active, #page-rooms .vmix-fn-toggle.active .vmix-fn-dot { animation: none !important; }
 }
 
+/* ─── Solid surfaces. No see-through washes or blur: every surface is an opaque step on
+ *  one grey scale, so layers read as layers. Page 0a → card 14 → control 1f → hover 26,
+ *  borders 26 on cards and 33 on controls, selected 2a. ─── */
+#page-rooms {
+  --rc-bg: #0a0a0a;
+  --rc-card: #141414;
+  --rc-raised: #1f1f1f;
+  --rc-raised-hover: #262626;
+  --rc-selected: #2a2a2a;
+  --rc-border: #262626;
+  --rc-input: #333333;
+  --rc-muted: #1a1a1a;
+  --rc-accent: #262626;
+  --rc-fg: #fafafa;
+  --rc-muted-fg: #a3a3a3;
+  --rc-shadow-xs: none;
+  --rc-shadow-sm: none;
+}
+#page-rooms .rc-panel, #page-rooms .rc-master, #page-rooms .rc-card { box-shadow: none; }
+#page-rooms .vmix-fn-toggle,
+#page-rooms .vmix-btn-start-all, #page-rooms .vmix-btn-stop-all,
+#page-rooms .rc-lock-toggle,
+#page-rooms #vmix-attention-bar button, #page-rooms .vmix-reason button,
+#page-rooms .rc-input { background: var(--rc-raised); border-color: var(--rc-input); box-shadow: none; }
+#page-rooms .vmix-fn-toggle:hover:not(:disabled),
+#page-rooms .vmix-btn-start-all:hover:not(:disabled), #page-rooms .vmix-btn-stop-all:hover:not(:disabled),
+#page-rooms .rc-lock-toggle:hover,
+#page-rooms #vmix-attention-bar button:hover, #page-rooms .vmix-reason button:hover { background: var(--rc-raised-hover); border-color: #3d3d3d; }
+#page-rooms .vmix-fn-toggle.error, #page-rooms .vmix-fn-toggle.unknown { background: var(--rc-card); border-color: var(--rc-border); }
+#page-rooms #vmix-filter-row { background: var(--rc-muted); border: 1px solid var(--rc-border); }
+#page-rooms #vmix-filter-row .fc.on { background: var(--rc-selected); border-color: var(--rc-input); box-shadow: none; }
+#page-rooms .vmix-all-fn { background: var(--rc-card); box-shadow: none; }
+#page-rooms .vmix-all-fn:hover { background: var(--rc-raised); }
+#page-rooms .vmix-all-fn.on { background: var(--rc-selected); border-color: #3d3d3d; }
+#page-rooms .rc-badge { background: var(--rc-raised); }
+#page-rooms .rc-badge-rec, #page-rooms .rc-ping.is-warn, #page-rooms .rc-ping.is-down { background: var(--rc-card); }
+#page-rooms .rc-icon-btn:hover, #page-rooms .rc-icon-btn.is-on { background: var(--rc-raised-hover); }
+#page-rooms .rc-switch-track { background: #333333; }
+#page-rooms #vmix-attention-bar { background: var(--rc-card); border-color: var(--rc-input); box-shadow: 0 8px 24px rgb(0 0 0 / 0.5); }
+#page-rooms .vmix-fn-toggle.active.stale { background: #3a1616; }
+.bottom-nav { background: #0a0a0a; -webkit-backdrop-filter: none; backdrop-filter: none; border-top-color: #262626; }
+.nav-tab:hover { background: #1a1a1a; }
+.nav-tab.on { background: #1f1f1f; }
+
 /* HTTPS-warn summary — hide the default disclosure triangle across engines
  * so the custom chevron-less "Tap for details" cue reads as intended. */
 #vmix-https-warn > summary::-webkit-details-marker { display: none; }
@@ -2018,12 +2062,12 @@ body.role-user .admin-only-input { pointer-events: none; opacity: 0.55; }
   </div>
 </div>
 
-<script src="tracker-routing-helpers.js?v=2026.10.07.8"></script>
+<script src="tracker-routing-helpers.js?v=2026.10.07.9"></script>
 <script>
 // Bump on every deploy. Shown in Settings → About so you can confirm a
 // push actually reached the browser (past the service-worker cache).
 // Keep the sw.js CACHE constant in lockstep with this — same string.
-const APP_VERSION = '2026.10.07.8';
+const APP_VERSION = '2026.10.07.9';
 const {
   ROOM_PROXY_STALE_MS,
   selectRoomProxyRoute,
@@ -7128,8 +7172,13 @@ function vmixAfterCardsRender() {
   var el = document.getElementById('vmix-cards');
   if (!el) return;
   var now = Date.now();
-  el.querySelectorAll('.vmix-fn-toggle.active').forEach(function (b) { b.style.animationDelay = (-(now % 2000)) + 'ms'; });
-  el.querySelectorAll('.vmix-fn-dot').forEach(function (d) { d.style.animationDelay = (-(now % 1500)) + 'ms'; });
+  // Lock every Live animation to the page clock: startTime 0 puts each one at
+  // (page time mod period), so tiles move together and a re-render or a rebuilt
+  // card never jumps. Setting the same startTime again is a no-op.
+  el.querySelectorAll('.vmix-fn-toggle.active, .vmix-fn-dot').forEach(function (n) {
+    if (!n.getAnimations) return;
+    n.getAnimations().forEach(function (a) { if (a.startTime !== 0) a.startTime = 0; });
+  });
   el.querySelectorAll('button.vmix-fn-toggle[data-room]').forEach(function (b) {
     var id = b.dataset.room + '|' + b.dataset.fn, p = _vmixPending[id];
     if (!p) return;
