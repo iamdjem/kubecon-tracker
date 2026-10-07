@@ -1618,7 +1618,7 @@ body.role-user .admin-only-input { pointer-events: none; opacity: 0.55; }
 // Bump on every deploy. Shown in Settings → About so you can confirm a
 // push actually reached the browser (past the service-worker cache).
 // Keep the sw.js CACHE constant in lockstep with this — same string.
-const APP_VERSION = '2026.10.07.2';
+const APP_VERSION = '2026.10.07.3';
 const {
   ROOM_PROXY_STALE_MS,
   selectRoomProxyRoute,
@@ -6920,9 +6920,34 @@ async function vmixSaveIp(key) {
   vmixRefreshStatus(key);
 }
 
+// Commands go to the route this page currently believes in. If that fails
+// (a Commander restarted and its tunnel URL changed, or the page fell back to
+// an old global proxy), read the room's freshest claim straight from Firebase
+// and retry once there. Start/Stop are idempotent in vMix, so a retry is safe.
 async function vmixCall(ip, fn, roomKey) {
+  const first = await vmixCallOnce(ip, fn, roomKey);
+  if (first.ok || !roomKey || !fbDb || !currentEventId) return first;
+  try {
+    const snap = await fbDb.child('events/' + currentEventId + '/roomProxyClaims/' + roomKey).once('value');
+    const freshest = Object.values(snap.val() || {})
+      .filter(function (c) { return c && c.url; })
+      .sort(function (a, b) { return (b.updatedAt || 0) - (a.updatedAt || 0); })[0];
+    if (!freshest || freshest.url === first.url) return first;
+    console.log('[vmix-route] retry', roomKey, fn, 'via fresh claim', freshest.url);
+    const second = await vmixCallOnce(ip, fn, roomKey, freshest.url);
+    if (second.ok) {
+      trackerStickyRoomRoutes[roomKey] = { url: freshest.url, commanderId: freshest.commanderId || '', source: 'claim', selectedAt: Date.now() };
+      return { ok: true, retried: true };
+    }
+    return { ok: false, error: first.error + ' | retry via fresh claim: ' + second.error, url: first.url };
+  } catch (e) {
+    return first;
+  }
+}
+
+async function vmixCallOnce(ip, fn, roomKey, overrideUrl) {
   if (!ip) return { ok: false, error: 'No IP' };
-  const route = vmixRouteForRoom(roomKey);
+  const route = overrideUrl ? { url: overrideUrl, source: 'claim-retry' } : vmixRouteForRoom(roomKey);
   const proxy = route.url;
   console.log('[vmix-route] command', roomKey, fn, 'via', route.source, proxy || '(none)', route.commanderId || '');
   try {
@@ -6937,7 +6962,7 @@ async function vmixCall(ip, fn, roomKey) {
       // off / different subnet / firewall).
       let detail = '';
       try { detail = (await r.text()).trim().slice(0, 120); } catch (_) {}
-      return { ok: false, error: `proxy HTTP ${r.status}${detail ? ' — ' + detail : ''} — Commander may not reach ${ip}:8088` };
+      return { ok: false, url: proxy, error: `proxy HTTP ${r.status}${detail ? ' — ' + detail : ''} — Commander may not reach ${ip}:8088` };
     } else if (location.protocol === 'https:') {
       return { ok: false, error: 'No proxy route for this room' };
     } else {
@@ -6945,7 +6970,7 @@ async function vmixCall(ip, fn, roomKey) {
       const r = await fetch(`http://${ip}:8088/api/?Function=${fn}`, { mode: 'no-cors' });
       return { ok: true };
     }
-  } catch(e) { return { ok: false, error: e.message }; }
+  } catch(e) { return { ok: false, url: proxy, error: e.message + (proxy ? ' (' + String(proxy).replace(/^https?:\/\//, '') + ')' : '') }; }
 }
 
 async function vmixGetStatus(ip, roomKey) {
