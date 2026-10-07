@@ -316,3 +316,37 @@ test('shouldRebindEventSubscription forces a same-event subscription after auth 
     force: false,
   }), true);
 });
+
+const RO = require('../tracker-routing-helpers');
+
+test('sortRoomsByOrder follows the shared order and keeps unknown rooms after, in place', () => {
+  const rooms = [{ name: 'Small Hall' }, { name: 'Club H' }, { name: 'Panorama Hall' }, { name: 'Forum Hall' }];
+  assert.deepEqual(RO.sortRoomsByOrder(rooms, ['panorama hall', 'Small Hall']).map((r) => r.name),
+    ['Panorama Hall', 'Small Hall', 'Club H', 'Forum Hall']);
+  assert.deepEqual(RO.sortRoomsByOrder(rooms, null).map((r) => r.name), rooms.map((r) => r.name));
+});
+
+test('reorderRoomSubset moves only the crew member\'s rooms, others stay put', () => {
+  const all = ['Small Hall', 'Club H', 'Panorama Hall', 'Club E', 'Forum Hall'];
+  // Aleksei sees Small Hall, Panorama Hall, Forum Hall and drags Forum Hall to the top.
+  assert.deepEqual(RO.reorderRoomSubset(null, all, ['Forum Hall', 'Small Hall', 'Panorama Hall']),
+    ['Forum Hall', 'Club H', 'Small Hall', 'Club E', 'Panorama Hall']);
+});
+
+test('reorderRoomSubset respects an existing order and keeps rooms it does not know', () => {
+  const all = ['A', 'B', 'C'];
+  assert.deepEqual(RO.reorderRoomSubset(['C', 'A', 'B', 'Gone'], all, ['B', 'C']), ['B', 'A', 'C', 'Gone']);
+});
+
+test('START ALL / STOP ALL follow the event setting', () => {
+  const start = ['StartRecording', 'StartMultiCorder', 'StartStreaming'];
+  const stop = ['StopStreaming', 'StopMultiCorder', 'StopRecording'];
+  assert.deepEqual(RO.filterActionSequence(start, null), start);
+  assert.deepEqual(RO.filterActionSequence(start, ['record', 'multicorder']), ['StartRecording', 'StartMultiCorder']);
+  // All-day MultiCorder event: sessions only start and stop REC + STREAM.
+  assert.deepEqual(RO.filterActionSequence(stop, ['stream', 'record']), ['StopStreaming', 'StopRecording']);
+  assert.deepEqual(RO.filterActionSequence(stop, ['bogus']), stop);
+  assert.equal(RO.allActionLabel(null), 'ALL');
+  assert.equal(RO.allActionLabel(['stream', 'record']), 'REC + STREAM');
+  assert.equal(RO.allActionLabel(['multicorder', 'record', 'stream']), 'ALL');
+});

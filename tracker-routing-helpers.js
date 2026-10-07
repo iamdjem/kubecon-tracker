@@ -206,7 +206,81 @@
     return !!force || eventId !== boundEventId;
   }
 
+  // ── Shared room order (events/<id>/config/roomOrder: array of room names).
+  // Both apps sort their room cards by it. Rooms missing from the list keep
+  // their existing relative order after the ordered ones.
+  function normRoomName(name) {
+    return String(name == null ? '' : name).trim().toLowerCase();
+  }
+
+  function sortRoomsByOrder(rooms, order) {
+    const list = Array.isArray(rooms) ? rooms.slice() : [];
+    const idx = {};
+    (Array.isArray(order) ? order : []).forEach((name, i) => {
+      const key = normRoomName(name);
+      if (key && !(key in idx)) idx[key] = i;
+    });
+    return list
+      .map((room, i) => ({ room, i, at: idx[normRoomName(room && room.name)] }))
+      .sort((a, b) => {
+        const ao = a.at === undefined ? Infinity : a.at;
+        const bo = b.at === undefined ? Infinity : b.at;
+        return ao === bo ? a.i - b.i : ao - bo;
+      })
+      .map((x) => x.room);
+  }
+
+  // A crew member reorders only the rooms they can see. Put their new
+  // sequence into the slots their rooms already occupy in the full order,
+  // so everyone else's rooms stay exactly where they were.
+  function reorderRoomSubset(currentOrder, allNames, newSubset) {
+    const full = sortRoomsByOrder((allNames || []).map((name) => ({ name })), currentOrder).map((r) => r.name);
+    (Array.isArray(currentOrder) ? currentOrder : []).forEach((name) => {
+      if (!full.some((n) => normRoomName(n) === normRoomName(name))) full.push(name);
+    });
+    const subsetKeys = (newSubset || []).map(normRoomName);
+    const slots = [];
+    full.forEach((name, i) => { if (subsetKeys.includes(normRoomName(name))) slots.push(i); });
+    const next = full.slice();
+    const placed = (newSubset || []).filter((name) => full.some((n) => normRoomName(n) === normRoomName(name)));
+    slots.forEach((slot, i) => { next[slot] = placed[i]; });
+    return next;
+  }
+
+  // ── Which functions START ALL / STOP ALL control, per event
+  // (events/<id>/config/allActionFns: subset of record, stream, multicorder).
+  // Missing or empty means all three, which is the old behaviour.
+  const ALL_ACTION_KEYS = ['record', 'stream', 'multicorder'];
+  const ALL_ACTION_FN_KEY = {
+    StartRecording: 'record', StopRecording: 'record',
+    StartStreaming: 'stream', StopStreaming: 'stream',
+    StartMultiCorder: 'multicorder', StopMultiCorder: 'multicorder',
+  };
+  const ALL_ACTION_SHORT = { record: 'REC', stream: 'STREAM', multicorder: 'MULTI' };
+
+  function normalizeAllActionFns(enabled) {
+    const list = Array.isArray(enabled) ? enabled.filter((k) => ALL_ACTION_KEYS.includes(k)) : [];
+    return list.length ? ALL_ACTION_KEYS.filter((k) => list.includes(k)) : ALL_ACTION_KEYS.slice();
+  }
+
+  function filterActionSequence(sequence, enabled) {
+    const keys = normalizeAllActionFns(enabled);
+    return (sequence || []).filter((fn) => keys.includes(ALL_ACTION_FN_KEY[fn]));
+  }
+
+  // "ALL" when all three are on, otherwise e.g. "REC + STREAM".
+  function allActionLabel(enabled) {
+    const keys = normalizeAllActionFns(enabled);
+    return keys.length === ALL_ACTION_KEYS.length ? 'ALL' : keys.map((k) => ALL_ACTION_SHORT[k]).join(' + ');
+  }
+
   return {
+    normalizeAllActionFns,
+    filterActionSequence,
+    allActionLabel,
+    normRoomName,
+    sortRoomsByOrder,
+    reorderRoomSubset,
     ROOM_PROXY_STALE_MS,
     selectRoomProxyRoute,
     roomHasUsableProxy,

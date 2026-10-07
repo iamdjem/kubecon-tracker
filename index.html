@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Setup Tracker</title>
-<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@500;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
 <link rel="manifest" href="manifest.json">
 <link rel="icon" type="image/svg+xml" href="icon.svg">
@@ -1263,6 +1263,38 @@ body.role-user .admin-only-input { pointer-events: none; opacity: 0.55; }
   #vmix-attention-bar > div::-webkit-scrollbar { display: none; }
   #vmix-attention-bar button { flex-shrink: 0; white-space: nowrap; }
 }
+.vmix-drag-handle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 40px;
+  margin-left: -8px;
+  color: var(--t3);
+  cursor: grab;
+  touch-action: none;
+  flex-shrink: 0;
+  border-radius: 6px;
+}
+.vmix-drag-handle:hover { color: var(--t1); background: rgba(255, 255, 255, 0.05); }
+.vmix-drag-handle:active { cursor: grabbing; }
+.vmix-drag-ghost { opacity: 0.4; }
+.vmix-all-fns { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 0 16px 10px; }
+.vmix-all-fns-label { font-size: 12px; color: var(--t2); margin-right: 4px; }
+.vmix-all-fn {
+  appearance: none;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  min-height: 32px;
+  padding: 4px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--line2);
+  background: transparent;
+  color: var(--t2);
+  cursor: pointer;
+}
+.vmix-all-fn.on { border-color: rgba(212, 168, 67, 0.6); background: rgba(212, 168, 67, 0.15); color: var(--t1); }
 @media (prefers-reduced-motion: reduce) {
   .vmix-fn-toggle.active, .vmix-fn-dot { animation: none !important; }
 }
@@ -1311,6 +1343,249 @@ body.role-user .admin-only-input { pointer-events: none; opacity: 0.55; }
 .vmix-btn-stop-all:hover:not(:disabled) {
   background: rgba(204, 93, 93, 0.15);
   border-color: rgba(204, 93, 93, 0.35);
+}
+
+/* ─── Room Control in the shadcn/ui look (neutral, new-york). Scoped to #page-rooms so
+ *      the other pages keep their current style. Colour only for Live, confirm stop and
+ *      problems. Values are shadcn's own dark theme tokens. ─── */
+#page-rooms {
+  --rc-bg: oklch(0.145 0 0);
+  --rc-card: oklch(0.205 0 0);
+  --rc-fg: oklch(0.985 0 0);
+  --rc-muted: oklch(0.269 0 0);
+  --rc-muted-fg: oklch(0.708 0 0);
+  --rc-accent: oklch(0.269 0 0);
+  --rc-border: oklch(1 0 0 / 10%);
+  --rc-input: oklch(1 0 0 / 15%);
+  --rc-ring: oklch(0.556 0 0);
+  --rc-primary: oklch(0.922 0 0);
+  --rc-primary-fg: oklch(0.205 0 0);
+  --rc-red: oklch(0.704 0.191 22.216);
+  --rc-amber: oklch(0.828 0.189 84.429);
+  --rc-radius: 10px;
+  --rc-shadow-xs: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --rc-shadow-sm: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+  --rc-shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.25), 0 4px 6px -4px rgb(0 0 0 / 0.25);
+  background: var(--rc-bg);
+  color: var(--rc-fg);
+  font-family: 'Geist', -apple-system, system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+#page-rooms button { font-family: inherit; }
+#page-rooms button:focus-visible, #page-rooms input:focus-visible { outline: none; box-shadow: 0 0 0 3px color-mix(in oklch, var(--rc-ring) 50%, transparent); border-color: var(--rc-ring); }
+#page-rooms .rc-title { margin: 0 0 4px; font-size: 24px; font-weight: 600; letter-spacing: -0.025em; line-height: 1.2; color: var(--rc-fg); }
+#page-rooms .rc-sub { font-size: 14px; color: var(--rc-muted-fg); }
+#page-rooms .rc-switch { display: inline-flex; align-items: center; gap: 8px; margin-top: 12px; font-size: 14px; font-weight: 500; color: var(--rc-fg); cursor: pointer; user-select: none; }
+#page-rooms .rc-switch input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+#page-rooms .rc-switch-track { position: relative; width: 32px; height: 18px; flex-shrink: 0; border-radius: 999px; background: var(--rc-input); transition: background-color 150ms; }
+#page-rooms .rc-switch-track::after { content: ""; position: absolute; top: 2px; left: 2px; width: 14px; height: 14px; border-radius: 50%; background: var(--rc-fg); transition: transform 150ms; }
+#page-rooms .rc-switch input:checked + .rc-switch-track { background: var(--rc-red); }
+#page-rooms .rc-switch input:checked + .rc-switch-track::after { transform: translateX(14px); }
+#page-rooms .rc-switch input:focus-visible + .rc-switch-track { box-shadow: 0 0 0 3px color-mix(in oklch, var(--rc-ring) 50%, transparent); }
+
+/* panels: upcoming schedule, master card, room cards */
+#page-rooms .rc-panel, #page-rooms .rc-master, #page-rooms .rc-card {
+  background: var(--rc-card);
+  border: 1px solid var(--rc-border);
+  border-radius: 14px;
+  box-shadow: var(--rc-shadow-sm);
+  overflow: hidden;
+}
+#page-rooms .rc-panel { margin-bottom: 12px; }
+#page-rooms .rc-panel-title { font-size: 14px; font-weight: 500; color: var(--rc-fg); }
+#page-rooms .rc-master { margin-bottom: 20px; }
+#page-rooms .rc-master-head { display: flex; align-items: flex-start; gap: 8px; padding: 16px 16px 12px; }
+#page-rooms .rc-master-title { font-size: 16px; font-weight: 600; line-height: 1; color: var(--rc-fg); }
+#page-rooms .rc-master-desc { font-size: 13px; color: var(--rc-muted-fg); margin-top: 6px; }
+#page-rooms .rc-lock-toggle {
+  appearance: none; height: 32px; padding: 0 12px; border-radius: 8px; cursor: pointer;
+  border: 1px solid var(--rc-input); background: color-mix(in oklch, var(--rc-input) 30%, transparent);
+  color: var(--rc-fg); font-size: 13px; font-weight: 500; box-shadow: var(--rc-shadow-xs);
+}
+#page-rooms .rc-lock-toggle:hover { background: color-mix(in oklch, var(--rc-input) 50%, transparent); }
+#page-rooms .rc-lock-toggle.is-locked { color: var(--rc-red); border-color: color-mix(in oklch, var(--rc-red) 45%, transparent); }
+
+/* crew filter as a shadcn tabs list */
+#page-rooms #vmix-filter-row { width: fit-content; max-width: 100%; gap: 2px !important; padding: 3px !important; margin-bottom: 12px; background: var(--rc-muted); border-radius: var(--rc-radius); }
+#page-rooms #vmix-filter-row .fc {
+  height: 30px; padding: 0 12px; border: 1px solid transparent; border-radius: 8px; background: transparent;
+  color: var(--rc-muted-fg); font-size: 14px; font-weight: 500; transition: color 150ms, background-color 150ms;
+}
+#page-rooms #vmix-filter-row .fc:active { transform: none; }
+#page-rooms #vmix-filter-row .avatar { display: none; }
+#page-rooms #vmix-filter-row .fc.on { background: color-mix(in oklch, var(--rc-input) 30%, transparent); border-color: var(--rc-input); color: var(--rc-fg); box-shadow: var(--rc-shadow-sm); }
+
+/* attention bar as a shadcn alert */
+#page-rooms #vmix-attention-bar {
+  top: 8px; padding: 12px 16px; border-radius: var(--rc-radius);
+  background: var(--rc-card); border: 1px solid var(--rc-border); box-shadow: var(--rc-shadow-lg);
+  color: var(--rc-muted-fg); font-size: 14px;
+}
+#page-rooms #vmix-attention-bar b { color: var(--rc-amber); font-weight: 500; }
+#page-rooms #vmix-attention-bar.is-down b { color: var(--rc-red); }
+#page-rooms #vmix-attention-bar button, #page-rooms .vmix-reason button {
+  appearance: none; height: 32px; min-height: 32px; padding: 0 12px; margin: 8px 6px 0 0; border-radius: 8px; cursor: pointer;
+  border: 1px solid var(--rc-input); background: color-mix(in oklch, var(--rc-input) 30%, transparent);
+  color: var(--rc-fg); font-size: 13px; font-weight: 500; box-shadow: var(--rc-shadow-xs);
+}
+#page-rooms .vmix-reason button { margin: 0; }
+
+/* room card */
+#page-rooms .rc-card.vmix-card-down { border-color: color-mix(in oklch, var(--rc-red) 50%, transparent) !important; }
+#page-rooms .rc-card.vmix-card-warn { border-color: color-mix(in oklch, var(--rc-amber) 35%, transparent) !important; }
+#page-rooms .rc-card-head { display: flex; align-items: center; flex-wrap: nowrap; gap: 8px; padding: 14px 16px 12px; }
+#page-rooms .rc-tier-dot { display: none; }
+#page-rooms .rc-room-name { font-size: 16px; font-weight: 600; color: var(--rc-fg); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; flex-shrink: 1; }
+#page-rooms .rc-badge {
+  flex-shrink: 0; display: inline-flex; align-items: center; gap: 5px; height: 22px; padding: 0 8px; border-radius: 6px;
+  border: 1px solid transparent; background: var(--rc-muted); color: var(--rc-fg);
+  font-size: 12px; font-weight: 500; white-space: nowrap; font-variant-numeric: tabular-nums;
+}
+#page-rooms .rc-badge:empty { display: none; }
+#page-rooms .rc-badge-rec { font-family: 'Geist Mono', ui-monospace, Menlo, monospace; background: transparent; color: var(--rc-red); border-color: color-mix(in oklch, var(--rc-red) 40%, transparent); }
+#page-rooms .rc-ping { color: var(--rc-muted-fg); }
+#page-rooms .rc-ping.is-warn { background: transparent; color: var(--rc-amber); border-color: color-mix(in oklch, var(--rc-amber) 40%, transparent); }
+#page-rooms .rc-ping.is-down { background: transparent; color: var(--rc-red); border-color: color-mix(in oklch, var(--rc-red) 40%, transparent); }
+#page-rooms .rc-icon-btn {
+  appearance: none; width: 36px; height: 36px; padding: 0; flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center;
+  border: 0; border-radius: 8px; background: transparent; color: var(--rc-muted-fg); cursor: pointer; transition: background-color 150ms, color 150ms;
+}
+#page-rooms .rc-icon-btn:hover { background: var(--rc-accent); color: var(--rc-fg); }
+#page-rooms .rc-icon-btn.is-on { background: var(--rc-accent); color: var(--rc-fg); }
+#page-rooms .rc-lock-flag { display: inline-flex; align-items: center; color: var(--rc-muted-fg); }
+#page-rooms .vmix-drag-handle { width: 20px; height: 32px; margin-left: -6px; color: var(--rc-muted-fg); }
+#page-rooms .vmix-drag-handle:hover { color: var(--rc-fg); background: var(--rc-accent); }
+
+/* reason line as an alert inside the card */
+#page-rooms .vmix-reason {
+  margin: 0 16px 12px; padding: 10px 12px; border-radius: var(--rc-radius); font-size: 13px; line-height: 1.45;
+  background: transparent; border: 1px solid var(--rc-border); color: var(--rc-amber);
+}
+#page-rooms .vmix-reason.down { color: var(--rc-red); background: transparent; border-color: color-mix(in oklch, var(--rc-red) 35%, transparent); }
+#page-rooms .vmix-reason.info { color: var(--rc-muted-fg); }
+
+/* IP row */
+#page-rooms .vmix-ip-row { padding: 0 16px 12px !important; }
+#page-rooms .rc-input {
+  flex: 1; height: 36px; padding: 0 12px; border-radius: 8px; border: 1px solid var(--rc-input);
+  background: color-mix(in oklch, var(--rc-input) 30%, transparent); color: var(--rc-fg);
+  font-family: 'Geist Mono', ui-monospace, Menlo, monospace; font-size: 13px;
+}
+#page-rooms .rc-btn-primary {
+  appearance: none; height: 36px; padding: 0 16px; border: 0; border-radius: 8px; cursor: pointer;
+  background: var(--rc-primary); color: var(--rc-primary-fg); font-size: 14px; font-weight: 500;
+}
+
+/* the three tiles */
+#page-rooms .vmix-room-controls { gap: 8px; padding: 0 16px 12px; }
+#page-rooms .vmix-fn-toggle {
+  min-height: 58px; padding: 8px 4px; gap: 2px; border-radius: var(--rc-radius);
+  border: 1px solid var(--rc-input); background: color-mix(in oklch, var(--rc-input) 30%, transparent);
+  color: var(--rc-muted-fg); box-shadow: var(--rc-shadow-xs); animation: none !important;
+  transition: background-color 150ms, border-color 150ms;
+}
+#page-rooms .vmix-fn-toggle:active { transform: none; }
+#page-rooms .vmix-fn-toggle:hover:not(:disabled) { background: color-mix(in oklch, var(--rc-input) 50%, transparent); }
+#page-rooms .vmix-fn-label { font-size: 14px; font-weight: 500; letter-spacing: 0; color: var(--rc-fg); }
+#page-rooms .vmix-fn-state { font-size: 12px; font-weight: 400; letter-spacing: 0; text-transform: none; gap: 5px; }
+#page-rooms .vmix-fn-dot { width: 6px; height: 6px; animation: none !important; }
+#page-rooms .vmix-fn-toggle.active { border-color: color-mix(in oklch, var(--rc-red) 45%, transparent); color: var(--rc-red); }
+#page-rooms .vmix-fn-toggle.active .vmix-fn-state { font-weight: 500; }
+#page-rooms .vmix-fn-toggle.armed { background: color-mix(in oklch, var(--rc-red) 60%, transparent); border-color: var(--rc-red); color: #fff; }
+#page-rooms .vmix-fn-toggle.armed .vmix-fn-state { font-weight: 600; }
+#page-rooms .vmix-fn-toggle.error, #page-rooms .vmix-fn-toggle.unknown { background: transparent; box-shadow: none; color: var(--rc-muted-fg); }
+#page-rooms .vmix-fn-toggle.error .vmix-fn-state { color: var(--rc-red); }
+#page-rooms .vmix-fn-toggle.error .vmix-fn-label, #page-rooms .vmix-fn-toggle.unknown .vmix-fn-label { color: var(--rc-muted-fg); }
+#page-rooms .vmix-fn-toggle.pending { opacity: 0.6; }
+
+/* Start / Stop: shadcn outline buttons, no green or red until confirm */
+#page-rooms .vmix-master-controls { gap: 8px; padding: 0 16px 16px; }
+#page-rooms .vmix-btn-start-all, #page-rooms .vmix-btn-stop-all {
+  height: 36px; padding: 0 12px; gap: 8px; border-radius: 8px; letter-spacing: 0;
+  border: 1px solid var(--rc-input); background: color-mix(in oklch, var(--rc-input) 30%, transparent);
+  color: var(--rc-fg); font-size: 14px; font-weight: 500; white-space: nowrap; box-shadow: var(--rc-shadow-xs);
+  transition: background-color 150ms;
+}
+#page-rooms .vmix-btn-start-all svg, #page-rooms .vmix-btn-stop-all svg { color: currentColor; }
+#page-rooms .vmix-btn-start-all:hover:not(:disabled), #page-rooms .vmix-btn-stop-all:hover:not(:disabled) { background: color-mix(in oklch, var(--rc-input) 50%, transparent); border-color: var(--rc-input); }
+#page-rooms .vmix-btn-start-all:active, #page-rooms .vmix-btn-stop-all:active { transform: none; }
+
+/* START / STOP ALL scope picker as shadcn toggles */
+#page-rooms .vmix-all-fns { gap: 8px; padding: 0 16px 12px; }
+#page-rooms .vmix-all-fns-label { font-size: 13px; color: var(--rc-muted-fg); }
+#page-rooms .vmix-all-fn {
+  height: 32px; min-height: 32px; padding: 0 10px; border-radius: 8px; border: 1px solid var(--rc-input);
+  background: transparent; color: var(--rc-muted-fg); font-size: 13px; font-weight: 500; box-shadow: var(--rc-shadow-xs);
+}
+#page-rooms .vmix-all-fn:hover { background: var(--rc-muted); color: var(--rc-fg); }
+#page-rooms .vmix-all-fn.on { background: var(--rc-accent); border-color: var(--rc-input); color: var(--rc-fg); }
+
+@media (max-width: 560px) {
+  #page-rooms .rc-title { font-size: 22px; }
+  #page-rooms .rc-ping:not(.is-warn):not(.is-down) { display: none; }
+  #page-rooms .vmix-btn-start-all, #page-rooms .vmix-btn-stop-all { font-size: 13px; padding: 0 8px; gap: 6px; }
+}
+
+/* ─── Room Control polish: one type scale, one spacing scale, optical alignment ───
+ *  Type: 24/600 page title · 16/600 card titles · 14/500 controls · 13/400 secondary · 12/500 badges.
+ *  Space: 16 px card padding on every side, 12 px between rows inside a card, 8 px between
+ *  sibling controls, 16 px between page blocks. Controls are 36 px tall, small ones 32 px. */
+#page-rooms { line-height: 1.43; font-feature-settings: "ss01" 0; }
+#page-rooms .rc-title { font-size: 24px; line-height: 32px; margin: 0; }
+#page-rooms .rc-sub { font-size: 13px; line-height: 20px; margin-top: 2px; }
+#page-rooms .rc-switch { margin-top: 12px; font-size: 14px; line-height: 20px; }
+#page-rooms .rc-panel { margin-bottom: 16px; }
+#page-rooms #vmix-ros-header { padding: 0 16px !important; min-height: 48px; }
+#page-rooms .rc-panel-title { font-size: 14px; line-height: 20px; font-weight: 500; }
+#page-rooms #vmix-filter-row { margin-bottom: 16px; }
+#page-rooms #vmix-filter-row .fc { display: inline-flex !important; align-items: center; justify-content: center; line-height: 20px; }
+#page-rooms #vmix-attention-bar { margin-bottom: 16px; line-height: 20px; }
+#page-rooms #vmix-attention-bar > div { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+#page-rooms #vmix-attention-bar button { margin: 0; display: inline-flex; align-items: center; line-height: 20px; }
+
+/* master card */
+#page-rooms .rc-master { margin-bottom: 16px; }
+#page-rooms .rc-master-head { align-items: center; padding: 16px 16px 12px; gap: 12px; }
+#page-rooms .rc-master-title { font-size: 16px; line-height: 24px; }
+#page-rooms .rc-master-desc { font-size: 13px; line-height: 20px; margin-top: 0; }
+#page-rooms .rc-lock-toggle { display: inline-flex; align-items: center; justify-content: center; height: 32px; line-height: 20px; }
+#page-rooms .vmix-all-fns { gap: 8px; padding: 0 16px 12px; }
+#page-rooms .vmix-all-fns-label { flex-basis: 100%; margin: 0; font-size: 13px; line-height: 20px; color: var(--rc-muted-fg); }
+#page-rooms .vmix-all-fn { display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 12px; line-height: 20px; }
+#page-rooms .vmix-all-fn .rc-check { width: 14px; height: 14px; margin-left: -2px; fill: none; stroke: currentColor; stroke-width: 2.25; stroke-linecap: round; stroke-linejoin: round; }
+
+/* room card */
+#page-rooms #vmix-cards { gap: 12px !important; }
+#page-rooms .rc-card-head { min-height: 36px; padding: 12px 12px 12px 16px; gap: 8px; box-sizing: content-box; }
+#page-rooms .vmix-drag-handle { width: 20px; height: 36px; margin: 0 -4px 0 -8px; }
+#page-rooms .vmix-drag-handle svg { width: 10px; height: 14px; }
+#page-rooms .rc-room-name { font-size: 16px; line-height: 24px; font-weight: 600; }
+#page-rooms .rc-badge { height: 22px; line-height: 20px; padding: 0 8px; font-size: 12px; font-weight: 500; }
+#page-rooms .rc-badge-rec { padding: 0 7px; letter-spacing: 0; }
+#page-rooms .rc-icon-btn svg { width: 16px; height: 16px; }
+#page-rooms .vmix-reason { margin: 0 16px 12px; padding: 8px 12px; font-size: 13px; line-height: 20px; gap: 8px 12px; }
+#page-rooms .vmix-room-controls { gap: 8px; padding: 0 16px 12px; }
+#page-rooms .vmix-fn-toggle { min-height: 60px; padding: 8px; gap: 2px; justify-content: center; align-items: center; text-align: center; }
+#page-rooms .vmix-fn-label { font-size: 14px; line-height: 20px; font-weight: 500; white-space: nowrap; max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
+#page-rooms .vmix-fn-state { font-size: 12px; line-height: 16px; gap: 6px; align-items: center; white-space: nowrap; }
+#page-rooms .vmix-fn-dot { width: 6px; height: 6px; flex-shrink: 0; }
+#page-rooms .vmix-master-controls { gap: 8px; padding: 0 16px 16px; }
+#page-rooms .vmix-btn-start-all, #page-rooms .vmix-btn-stop-all { height: 36px; padding: 0 12px; gap: 8px; font-size: 14px; line-height: 20px; }
+#page-rooms .vmix-btn-start-all svg { width: 11px; height: 11px; }
+#page-rooms .vmix-btn-stop-all svg { width: 10px; height: 10px; }
+#page-rooms .vmix-ip-row { gap: 8px !important; }
+
+@media (max-width: 560px) {
+  #page-rooms .rc-title { font-size: 22px; line-height: 28px; }
+  #page-rooms .vmix-fn-label { font-size: 13px; }
+  #page-rooms .vmix-btn-start-all, #page-rooms .vmix-btn-stop-all { font-size: 13px; padding: 0 8px; gap: 6px; }
+  #page-rooms .rc-card-head { padding-left: 12px; }
+  #page-rooms .vmix-room-controls, #page-rooms .vmix-master-controls, #page-rooms .vmix-all-fns, #page-rooms .vmix-ip-row { padding-left: 12px !important; padding-right: 12px !important; }
+  #page-rooms .vmix-reason { margin-left: 12px; margin-right: 12px; }
+  #page-rooms .rc-master-head { padding: 12px 12px 12px; }
+  /* keep the pinned bar one row tall on phones; room buttons scroll sideways */
+  #page-rooms #vmix-attention-bar > div { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
+  #page-rooms #vmix-attention-bar button { flex-shrink: 0; white-space: nowrap; }
 }
 
 /* HTTPS-warn summary — hide the default disclosure triangle across engines
@@ -1466,10 +1741,15 @@ body.role-user .admin-only-input { pointer-events: none; opacity: 0.55; }
 
 <!-- PAGE: ROOMS -->
 <div id="page-rooms" class="page" style="padding:16px;padding-bottom:80px;overflow-y:auto;">
-  <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:12px;">
+  <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:16px;">
     <div style="flex:1;min-width:0;">
-      <div style="font-size:16px;font-weight:700;color:var(--t1);margin-bottom:4px;">Room Control</div>
-      <div style="font-size:11px;color:var(--t3);">vMix · Record + Stream + MultiCorder</div>
+      <h1 class="rc-title">Room Control</h1>
+      <div class="rc-sub">vMix · Record + Stream + MultiCorder</div>
+      <label class="rc-switch" title="When on, a single tap on a Live button stops it, and a room's Stop button skips the confirm. Applies to this device only.">
+        <input type="checkbox" id="vmix-fast-stop" role="switch" onchange="vmixSetFastStop(this.checked)">
+        <span class="rc-switch-track" aria-hidden="true"></span>
+        <span>One-tap stop</span>
+      </label>
     </div>
     <!-- Identity chip + dropdown menu — mirrors Commander's header chip.
          Two-line button (role label + identity name); clicking opens a
@@ -1496,9 +1776,9 @@ body.role-user .admin-only-input { pointer-events: none; opacity: 0.55; }
     </div>
   </details>
   <div id="vmix-commander-banner" style="display:none;margin-bottom:12px;padding:10px 12px;border-radius:8px;font-size:11px;line-height:1.5;"></div>
-  <div id="vmix-ros-panel" style="display:none;margin-bottom:12px;background:var(--s2);border:1px solid var(--line2);border-radius:10px;overflow:hidden;">
+  <div id="vmix-ros-panel" class="rc-panel" style="display:none;">
     <div id="vmix-ros-header" style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;cursor:pointer;user-select:none;" onclick="trackerToggleRunOfShow()">
-      <div style="font-size:12px;font-weight:700;color:var(--t1);text-transform:uppercase;letter-spacing:0.6px;">Upcoming schedule</div>
+      <div class="rc-panel-title">Upcoming schedule</div>
       <div id="vmix-ros-chevron" style="font-size:11px;color:var(--t3);">▾</div>
     </div>
     <div id="vmix-ros-body" style="padding:0 14px 12px;display:flex;flex-direction:column;gap:6px;"></div>
@@ -1512,12 +1792,11 @@ body.role-user .admin-only-input { pointer-events: none; opacity: 0.55; }
   <!-- All Rooms master card sits ABOVE individual room cards to mirror Commander's layout.
        Distinct accent background + bigger bottom margin so it can't be confused with
        (or accidentally tapped instead of) a per-room card. -->
-  <div id="vmix-all-row" style="display:none;margin-bottom:24px;background:linear-gradient(135deg, rgba(212, 168, 67, 0.16), rgba(212, 168, 67, 0.04));border:1px solid rgba(212, 168, 67, 0.5);box-shadow:0 0 0 1px rgba(212, 168, 67, 0.15), 0 4px 20px rgba(212, 168, 67, 0.06);border-radius:14px;overflow:hidden;">
-    <div style="padding:14px 16px 10px;font-size:15px;font-weight:700;color:var(--accent);display:flex;align-items:center;gap:8px;">
-      <span>All Rooms</span>
-      <span style="display:inline-block;font-size:9px;font-weight:700;letter-spacing:1.2px;color:var(--accent);background:rgba(212, 168, 67, 0.12);border:1px solid rgba(212, 168, 67, 0.4);padding:2px 6px;border-radius:5px;">MASTER</span>
+  <div id="vmix-all-row" class="rc-master" style="display:none;">
+    <div class="rc-master-head">
+      <div><div class="rc-master-title">All rooms</div><div class="rc-master-desc">Controls every room in this event.</div></div>
       <span style="flex:1;"></span>
-      <button id="vmix-all-lock-toggle" type="button" onclick="trackerToggleSafetyLock()" style="display:none;background:none;border:1px solid var(--line2);color:var(--t2);font-size:10px;font-weight:700;letter-spacing:1.2px;padding:5px 12px;border-radius:6px;cursor:pointer;font-family:inherit;text-transform:uppercase;">LIVE</button>
+      <button id="vmix-all-lock-toggle" type="button" class="rc-lock-toggle" onclick="trackerToggleSafetyLock()" style="display:none;">Controls live</button>
     </div>
     <div class="vmix-master-controls">
       <button id="vmix-all-start" class="vmix-btn-start-all" onclick="vmixAllAction('start')"></button>
@@ -1704,12 +1983,12 @@ body.role-user .admin-only-input { pointer-events: none; opacity: 0.55; }
   </div>
 </div>
 
-<script src="tracker-routing-helpers.js"></script>
+<script src="tracker-routing-helpers.js?v=2026.10.07.6"></script>
 <script>
 // Bump on every deploy. Shown in Settings → About so you can confirm a
 // push actually reached the browser (past the service-worker cache).
 // Keep the sw.js CACHE constant in lockstep with this — same string.
-const APP_VERSION = '2026.10.07.4';
+const APP_VERSION = '2026.10.07.6';
 const {
   ROOM_PROXY_STALE_MS,
   selectRoomProxyRoute,
@@ -1720,6 +1999,13 @@ const {
   roomsFromEventConfig,
   shouldRebindEventSubscription
 } = window.TrackerRoutingHelpers;
+// Newer helpers. Fall back to "keep the current order" if a phone still has
+// an older cached helpers file, so the Recording page never breaks.
+const sortRoomsByOrder = window.TrackerRoutingHelpers.sortRoomsByOrder || function (rooms) { return (rooms || []).slice(); };
+const reorderRoomSubset = window.TrackerRoutingHelpers.reorderRoomSubset || function (cur, all, subset) { return (subset || []).slice(); };
+const filterActionSequence = window.TrackerRoutingHelpers.filterActionSequence || function (seq) { return (seq || []).slice(); };
+const allActionLabel = window.TrackerRoutingHelpers.allActionLabel || function () { return 'ALL'; };
+const normalizeAllActionFns = window.TrackerRoutingHelpers.normalizeAllActionFns || function () { return ['record', 'stream', 'multicorder']; };
 
 const AVATAR_COLORS = ['#e8c547','#e87d47','#e84774','#a347e8','#478ce8','#47e8a0','#e8476b','#47e8d4','#c8e847','#e88347'];
 function avatarColor(name) {
@@ -5429,6 +5715,14 @@ let trackerPerEventProxyUrl = null;  // value from events/<id>/config/vmixProxyU
 let trackerGlobalProxyUrl = null;    // value from /vmix_proxy_url
 let trackerRoomProxyClaims = {};
 let trackerRoomProxyClaimsRef = null;
+// Shared room order for the Recording page (events/<id>/config/roomOrder),
+// also read by vMix Commander. Written only with a targeted transaction.
+let vmixRoomOrder = null;
+let trackerRoomOrderRef = null;
+// Which functions START ALL / STOP ALL control for this event
+// (events/<id>/config/allActionFns). null means all three.
+let vmixAllActionFns = null;
+let trackerAllActionFnsRef = null;
 const VMIX_ROUTE_STICKY_MS = 10000;
 let trackerStickyRoomRoutes = {};
 // Per-room proxy map: events/<id>/roomProxies/<roomKey> = {url, commanderId,
@@ -5801,6 +6095,10 @@ function trackerSubscribePerEventProxy(options) {
   if (trackerPerEventProxyRef) { trackerPerEventProxyRef.off(); trackerPerEventProxyRef = null; }
   if (trackerRoomProxyClaimsRef) { trackerRoomProxyClaimsRef.off(); trackerRoomProxyClaimsRef = null; }
   if (trackerRoomProxiesRef) { trackerRoomProxiesRef.off(); trackerRoomProxiesRef = null; }
+  if (trackerRoomOrderRef) { trackerRoomOrderRef.off(); trackerRoomOrderRef = null; }
+  if (trackerAllActionFnsRef) { trackerAllActionFnsRef.off(); trackerAllActionFnsRef = null; }
+  vmixRoomOrder = null;
+  vmixAllActionFns = null;
   trackerPerEventProxyEventId = eventId;
   trackerPerEventProxyUrl = null;
   trackerRoomProxyClaims = {};
@@ -5812,6 +6110,24 @@ function trackerSubscribePerEventProxy(options) {
     trackerPerEventProxyUrl = snap.val() || null;
     trackerReconcileProxy();
   }, function (err) { console.warn('[tracker per-event proxy]', err); });
+
+  trackerRoomOrderRef = fbDb.child('events/' + eventId + '/config/roomOrder');
+  trackerRoomOrderRef.on('value', function (snap) {
+    vmixRoomOrder = Array.isArray(snap.val()) ? snap.val() : null;
+    // Keep this device's saved copy current, so a later whole-config push
+    // from here carries the new order instead of reverting it.
+    var ev = typeof currentEvent === 'function' ? currentEvent() : null;
+    if (ev && ev.config) ev.config.roomOrder = vmixRoomOrder;
+    if (currentPage === 'rooms') renderVmixCards();
+  }, function (err) { console.warn('[tracker roomOrder]', err); });
+
+  trackerAllActionFnsRef = fbDb.child('events/' + eventId + '/config/allActionFns');
+  trackerAllActionFnsRef.on('value', function (snap) {
+    vmixAllActionFns = Array.isArray(snap.val()) ? snap.val() : null;
+    var ev = typeof currentEvent === 'function' ? currentEvent() : null;
+    if (ev && ev.config) ev.config.allActionFns = vmixAllActionFns;
+    if (currentPage === 'rooms') renderVmixCards();
+  }, function (err) { console.warn('[tracker allActionFns]', err); });
 
   trackerRoomProxyClaimsRef = fbDb.child('events/' + eventId + '/roomProxyClaims');
   trackerRoomProxyClaimsRef.on('value', function (snap) {
@@ -6306,28 +6622,27 @@ function vmixMakeCard(r) {
   var nowSig = Date.now();
   card.dataset.sig = JSON.stringify([r.name, r.ip || '', st.ok, !!st.recording, !!st.streaming, !!st.multicorder,
     tier, stale, err, unknown, health ? health.kind + ':' + health.level : '', roomLocked, isObserver, !!route.url, disabled,
-    vmixOpenIpRows.has(r.key), trackerRoleIsDirector(),
+    vmixOpenIpRows.has(r.key), trackerRoleIsDirector(), allActionLabel(vmixAllActionFns),
     Object.keys(_vmixPending).filter(function (k) { return k.indexOf(r.key + '|') === 0 && _vmixPending[k].until > nowSig; }).sort().join(','),
     Object.keys(_vmixArmed).filter(function (k) { return k.indexOf(r.key + '|') === 0 && _vmixArmed[k] > nowSig; }).sort().join(',')]);
-  card.style.cssText = 'background:var(--s2);border:1px solid var(--line2);border-radius:14px;overflow:hidden;scroll-margin-top:96px;' + (roomLocked ? 'opacity:0.65;' : '');
-  if (health && health.level === 'down') card.className = 'vmix-card-down';
-  else if (health && health.level === 'warn') card.className = 'vmix-card-warn';
+  card.style.cssText = 'scroll-margin-top:96px;' + (roomLocked ? 'opacity:0.65;' : '');
+  card.className = 'rc-card' + (health && health.level === 'down' ? ' vmix-card-down' : health && health.level === 'warn' ? ' vmix-card-warn' : '');
 
   // ── Header: tier dot · name · REC timer · Ping · lock · gear ──
   // gap:8px (was 10) so the trailing buttons don't push the name off-screen
   // on narrow phones; flex-wrap:nowrap is the default but explicit for clarity.
   var hdr = document.createElement('div');
-  hdr.style.cssText = 'display:flex;align-items:center;flex-wrap:nowrap;gap:8px;padding:14px 16px 10px;';
+  hdr.className = 'rc-card-head';
 
   var dot = document.createElement('span');
   dot.title = tier;
-  dot.style.cssText = 'width:8px;height:8px;border-radius:50%;flex-shrink:0;background:' + vmixTierColor(tier) + ';' + (st.recording || st.streaming || st.multicorder ? 'box-shadow:0 0 6px ' + vmixTierColor(tier) + '88;' : '');
+  dot.className = 'rc-tier-dot';
 
   // Name truncates with ellipsis when the row gets tight (e.g. mobile width
   // + an active REC pill + ping). Without nowrap + min-width:0, the browser
   // wraps "Bohemia 2" onto two lines.
   var nameEl = document.createElement('span');
-  nameEl.style.cssText = 'font-size:15px;font-weight:700;color:var(--t1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;flex-shrink:1;';
+  nameEl.className = 'rc-room-name';
   nameEl.title = r.name;
   nameEl.textContent = r.name;
 
@@ -6335,7 +6650,7 @@ function vmixMakeCard(r) {
   // size while the name handles the squeeze.
   var timerEl = document.createElement('span');
   timerEl.id = 'vmix-timer-' + r.key;
-  timerEl.style.cssText = 'flex-shrink:0;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-variant-numeric:tabular-nums;font-size:11px;font-weight:700;color:#ff6b6b;background:#2a0d0d;border:1px solid #5a2020;padding:2px 7px;border-radius:5px;letter-spacing:0.3px;';
+  timerEl.className = 'rc-badge rc-badge-rec';
   if (st.recording && st.recordingStartTime) {
     timerEl.textContent = 'REC ' + vmixFmtDuration(Date.now() - st.recordingStartTime);
   } else {
@@ -6346,12 +6661,12 @@ function vmixMakeCard(r) {
   // 11px size + tabular-nums so the metrics line up visually.
   var pingEl = document.createElement('span');
   pingEl.id = 'vmix-ping-' + r.key;
-  pingEl.style.cssText = 'flex-shrink:0;font-size:11px;font-weight:600;font-variant-numeric:tabular-nums;color:' + vmixTierColor(tier) + ';white-space:nowrap;display:inline-flex;align-items:center;gap:4px;';
+  pingEl.className = 'rc-badge rc-ping' + (err || (health && health.level === 'down') ? ' is-down' : (stale || unknown || (health && health.level === 'warn')) ? ' is-warn' : '');
   var age = vmixStatusAgeMs(st);
   var ageText = age == null ? '' : ' · ' + vmixFmtAge(age);
-  if (r.ip && st.ok && stale) pingEl.innerHTML = '<span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:' + vmixTierColor(tier) + ';"></span>Stale ' + vmixFmtAge(age == null ? 0 : age);
-  else if (r.ip && st.ok) pingEl.innerHTML = '<span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:' + vmixTierColor(tier) + ';"></span>Ping ' + Math.round(st.latency || 0) + 'ms' + ageText;
-  else if (err)      pingEl.innerHTML = '<span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:' + vmixTierColor(tier) + ';"></span>' + (health ? health.label : 'Unreachable');
+  if (r.ip && st.ok && stale) pingEl.textContent = 'Stale ' + vmixFmtAge(age == null ? 0 : age);
+  else if (r.ip && st.ok) pingEl.textContent = Math.round(st.latency || 0) + ' ms' + ageText;
+  else if (err)      pingEl.textContent = health ? health.label : 'Unreachable';
   else if (unknown)  pingEl.textContent = health ? health.label : 'No status';
   else               pingEl.textContent = '';
 
@@ -6360,12 +6675,13 @@ function vmixMakeCard(r) {
 
   // Unified header-button style — matches Commander's .room-lock-btn /
   // .room-settings-btn (40x40 box, 8px padding, 8px radius, 1px border).
-  var HDR_BTN_BASE = 'background:none;border:1px solid var(--line2);color:var(--t3);border-radius:8px;width:40px;height:40px;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;transition:all 0.15s ease;padding:0;';
+
 
   var ipToggle = document.createElement('button');
   ipToggle.innerHTML = VMIX_ICON_GEAR;
   ipToggle.title = r.ip || 'Set IP';
-  ipToggle.style.cssText = HDR_BTN_BASE;
+  ipToggle.className = 'rc-icon-btn';
+  ipToggle.setAttribute('aria-label', r.name + ' settings');
   ipToggle.onclick = function (e) {
     e.stopPropagation();
     if (vmixOpenIpRows.has(r.key)) {
@@ -6384,12 +6700,21 @@ function vmixMakeCard(r) {
     lockBtn = document.createElement('button');
     lockBtn.innerHTML = roomLocked ? VMIX_ICON_LOCK : VMIX_ICON_UNLOCK;
     lockBtn.title = roomLocked ? 'Unlock this room' : 'Lock this room (prevents accidental taps)';
-    lockBtn.style.cssText = HDR_BTN_BASE + (roomLocked
-      ? 'background:rgba(212,168,67,0.15);border-color:rgba(212,168,67,0.4);color:rgb(212,168,67);'
-      : '');
+    lockBtn.className = 'rc-icon-btn' + (roomLocked ? ' is-on' : '');
+    lockBtn.setAttribute('aria-pressed', roomLocked ? 'true' : 'false');
+    lockBtn.setAttribute('aria-label', roomLocked ? 'Unlock ' + r.name : 'Lock ' + r.name);
     lockBtn.onclick = function (e) { e.stopPropagation(); trackerToggleRoomLock(r.key); };
   }
 
+  if (!isObserver) {
+    var grip = document.createElement('span');
+    grip.className = 'vmix-drag-handle';
+    grip.title = 'Drag to change the room order';
+    grip.setAttribute('aria-label', 'Drag to change the order of ' + r.name);
+    grip.setAttribute('role', 'button');
+    grip.innerHTML = VMIX_ICON_GRIP;
+    hdr.appendChild(grip);
+  }
   hdr.appendChild(dot);
   hdr.appendChild(nameEl);
   // Show a static 🔒 indicator only when the user can't toggle (Operator/Observer).
@@ -6397,7 +6722,7 @@ function vmixMakeCard(r) {
     var lockEl = document.createElement('span');
     lockEl.title = 'This room is locked by the operator.';
     lockEl.innerHTML = VMIX_ICON_LOCK;
-    lockEl.style.cssText = 'color:rgb(212,168,67);display:inline-flex;align-items:center;';
+    lockEl.className = 'rc-lock-flag';
     hdr.appendChild(lockEl);
   }
   // Timer + ping cluster together right after the name — matches Commander.
@@ -6439,12 +6764,12 @@ function vmixMakeCard(r) {
   // Restore in-progress typing if the row was already open.
   inp.value = (r.key in vmixIpDraft) ? vmixIpDraft[r.key] : (r.ip || '');
   inp.placeholder = '10.x.x.x';
-  inp.style.cssText = 'flex:1;background:#111;border:1px solid var(--line2);color:var(--t1);border-radius:7px;padding:6px 10px;font-size:12px;font-family:monospace;';
+  inp.className = 'rc-input';
   inp.oninput = function () { vmixIpDraft[r.key] = inp.value; };
   inp.onkeydown = function (e) { if (e.key === 'Enter') saveBtn.click(); };
   var saveBtn = document.createElement('button');
   saveBtn.textContent = 'Save';
-  saveBtn.style.cssText = 'background:#5dcc5d;border:none;color:#000;border-radius:7px;padding:6px 14px;font-size:12px;font-weight:700;cursor:pointer;';
+  saveBtn.className = 'rc-btn-primary';
   saveBtn.onclick = function () {
     vmixSaveIp(r.key);
     vmixOpenIpRows.delete(r.key);
@@ -6473,10 +6798,10 @@ function vmixMakeCard(r) {
       pill.style.cssText = 'cursor:default;opacity:0.85;';
       var plbl = document.createElement('span'); plbl.className = 'vmix-fn-label'; plbl.textContent = f.label;
       var pstate = document.createElement('span'); pstate.className = 'vmix-fn-state';
-      if (err) pstate.textContent = 'ERR';
+      if (err) pstate.textContent = 'No response';
       else if (unknown) pstate.textContent = health && health.kind === 'connecting' ? '…' : 'Unknown';
-      else if (f.on) pstate.innerHTML = '<span class="vmix-fn-dot"></span>LIVE';
-      else pstate.textContent = 'OFF';
+      else if (f.on) pstate.innerHTML = '<span class="vmix-fn-dot"></span>Live';
+      else pstate.textContent = 'Off';
       pill.appendChild(plbl); pill.appendChild(pstate);
       controls.appendChild(pill);
       return;
@@ -6495,10 +6820,10 @@ function vmixMakeCard(r) {
 
     var state = document.createElement('span');
     state.className = 'vmix-fn-state';
-    if (err)      state.textContent = 'ERR';
+    if (err)      state.textContent = 'No response';
     else if (unknown) state.textContent = health && health.kind === 'connecting' ? '…' : 'Unknown';
-    else if (f.on) state.innerHTML = '<span class="vmix-fn-dot"></span>LIVE';
-    else           state.textContent = 'OFF';
+    else if (f.on) state.innerHTML = '<span class="vmix-fn-dot"></span>Live';
+    else           state.textContent = 'Off';
 
     btn.appendChild(lbl);
     btn.appendChild(state);
@@ -6506,10 +6831,10 @@ function vmixMakeCard(r) {
       if (btn.disabled) return;
       // Stopping something live takes two taps: the first arms the button,
       // a second tap within 4 s stops. Starting stays a single tap.
-      if (f.on && !vmixStopIsArmed(r.key, f.label)) {
+      if (f.on && !vmixFastStop && !vmixStopIsArmed(r.key, f.label)) {
         vmixArmStop(r.key, f.label);
         btn.classList.add('armed');
-        state.textContent = 'Tap again to stop';
+        state.textContent = 'Tap again';
         renderVmixCards();
         return;
       }
@@ -6535,19 +6860,21 @@ function vmixMakeCard(r) {
   startAll.className = 'vmix-btn-start-all';
   startAll.disabled = disabled;
   startAll.title = disabled ? disabledTitle : '';
-  startAll.innerHTML = VMIX_ICON_PLAY + '<span>START ALL</span>';
+  startAll.innerHTML = VMIX_ICON_PLAY + '<span>' + vmixAllButtonLabel('start') + '</span>';
+  startAll.title = startAll.title || ('Starts ' + vmixAllFnsText() + ' for ' + r.name);
   startAll.onclick = function() { if (!disabled) vmixRoomAction(r.key, 'start'); };
 
   var stopAll = document.createElement('button');
   stopAll.className = 'vmix-btn-stop-all';
   stopAll.disabled = disabled;
   stopAll.title = disabled ? disabledTitle : '';
-  stopAll.innerHTML = VMIX_ICON_STOP + '<span>STOP ALL</span>';
+  stopAll.innerHTML = VMIX_ICON_STOP + '<span>' + vmixAllButtonLabel('stop') + '</span>';
   stopAll.onclick = function() {
     if (disabled) return;
+    if (vmixFastStop) { vmixRoomAction(r.key, 'stop'); return; }
     showConfirm(
       'Stop all recordings?',
-      'This will stop REC + STREAM + MULTI for ' + r.name + '.',
+      'This will stop ' + vmixAllFnsText() + ' for ' + r.name + '.',
       'Stop All',
       'background:#7a2d2d;color:#ff6b6b;',
       function () { vmixRoomAction(r.key, 'stop'); }
@@ -6563,6 +6890,7 @@ function vmixMakeCard(r) {
 
 // SVG icons cloned from vMix Commander (renderer/index.html <template> blocks)
 // Identical glyphs across both apps so the controls read as the same controls.
+var VMIX_ICON_GRIP = '<svg width="14" height="18" viewBox="0 0 14 18" fill="currentColor" aria-hidden="true"><circle cx="4" cy="3" r="1.6"/><circle cx="10" cy="3" r="1.6"/><circle cx="4" cy="9" r="1.6"/><circle cx="10" cy="9" r="1.6"/><circle cx="4" cy="15" r="1.6"/><circle cx="10" cy="15" r="1.6"/></svg>';
 var VMIX_ICON_PLAY = '<svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor" aria-hidden="true"><polygon points="2,0 12,6 2,12"/></svg>';
 var VMIX_ICON_STOP = '<svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor" aria-hidden="true"><rect x="0" y="0" width="10" height="10" rx="1.5"/></svg>';
 var VMIX_ICON_GEAR = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>';
@@ -6690,6 +7018,28 @@ function vmixArmStop(roomKey, fnLabel) {
   _vmixArmed[roomKey + '|' + fnLabel] = Date.now() + VMIX_ARM_MS;
   setTimeout(function () { if (currentPage === 'rooms') renderVmixCards(); }, VMIX_ARM_MS + 50);
 }
+// One-tap stop: a per-device choice for operators who need to stop fast.
+// When on, a Live button stops on the first tap and a room's Stop button
+// skips the confirm. The All rooms Stop keeps its confirm either way.
+var VMIX_FAST_STOP_KEY = 'kc_vmix_fast_stop';
+var vmixFastStop = false;
+try { vmixFastStop = localStorage.getItem(VMIX_FAST_STOP_KEY) === '1'; } catch (e) {}
+function vmixSetFastStop(on) {
+  vmixFastStop = !!on;
+  try { localStorage.setItem(VMIX_FAST_STOP_KEY, vmixFastStop ? '1' : '0'); } catch (e) {}
+  if (vmixFastStop) _vmixArmed = {};
+  vmixSyncFastStopSwitch();
+  showToast(vmixFastStop ? 'One-tap stop is on for this device' : 'Stop needs two taps again');
+  renderVmixCards();
+}
+function vmixSyncFastStopSwitch() {
+  var cb = document.getElementById('vmix-fast-stop');
+  if (cb) cb.checked = vmixFastStop;
+  var page = document.getElementById('page-rooms');
+  if (page) page.classList.toggle('rc-fast-stop', vmixFastStop);
+}
+vmixSyncFastStopSwitch();
+
 function vmixStopIsArmed(roomKey, fnLabel) {
   var until = _vmixArmed[roomKey + '|' + fnLabel];
   return !!until && Date.now() < until;
@@ -6726,8 +7076,7 @@ function vmixRenderAttentionBar() {
   });
   bar.innerHTML = html + '</div>';
   bar.style.display = 'block';
-  bar.style.background = down ? '#2a0d0d' : '#2a1f0b';
-  bar.style.borderColor = down ? 'rgba(239,68,68,0.55)' : 'rgba(255,183,77,0.5)';
+  bar.classList.toggle('is-down', !!down);
   bar.querySelectorAll('button[data-jump]').forEach(function (b) {
     b.onclick = function () {
       var c = document.getElementById('vmix-card-' + b.dataset.jump);
@@ -6761,14 +7110,55 @@ function vmixAfterCardsRender() {
     if (now >= until || b.dataset.on !== '1' || b.disabled) { delete _vmixArmed[id]; return; }
     b.classList.add('armed');
     var st = b.querySelector('.vmix-fn-state');
-    if (st) st.textContent = 'Tap again to stop';
+    if (st) st.textContent = 'Tap again';
   });
   vmixRenderAttentionBar();
 }
 
+// Drag-to-reorder. While a card is being dragged, status updates must not
+// rebuild the list under the user's finger; one render runs when it drops.
+var _vmixDragging = false;
+function vmixInitRoomSortable(el) {
+  if (el._vmixSortable || typeof Sortable === 'undefined') return;
+  el._vmixSortable = new Sortable(el, {
+    handle: '.vmix-drag-handle',
+    draggable: '[id^="vmix-card-"]',
+    animation: 150,
+    ghostClass: 'vmix-drag-ghost',
+    onStart: function () { _vmixDragging = true; },
+    onEnd: function (evt) {
+      _vmixDragging = false;
+      if (evt.oldIndex !== evt.newIndex) vmixSaveRoomOrderFromDom(el);
+      renderVmixCards();
+    }
+  });
+}
+function vmixSaveRoomOrderFromDom(el) {
+  var byKey = {};
+  (VMIX_ROOMS || []).forEach(function (r) { byKey[r.key] = r.name; });
+  var subset = Array.prototype.map.call(el.querySelectorAll('[id^="vmix-card-"]'), function (c) {
+    return byKey[c.id.replace('vmix-card-', '')];
+  }).filter(Boolean);
+  var allNames = sortRoomsByOrder((VMIX_ROOMS || []).slice(), vmixRoomOrder).map(function (r) { return r.name; });
+  vmixRoomOrder = reorderRoomSubset(vmixRoomOrder, allNames, subset);  // optimistic
+  if (!fbDb || !currentEventId) { showToast('Order changed on this device only (offline)'); return; }
+  fbDb.child('events/' + currentEventId + '/config/roomOrder').transaction(function (cur) {
+    return reorderRoomSubset(cur, allNames, subset);
+  }).then(function () {
+    fbDb.child('events/' + currentEventId + '/updatedAt').set(firebase.database.ServerValue.TIMESTAMP);
+    showToast('Room order saved');
+  }).catch(function (e) {
+    console.warn('[tracker roomOrder] save failed', e);
+    showToast('✗ Could not save the room order', 8000);
+  });
+}
+
 function renderVmixCards() {
+  if (_vmixDragging) return;
   _renderVmixCardsInner.apply(this, arguments);
   vmixAfterCardsRender();
+  var cardsEl = document.getElementById('vmix-cards');
+  if (cardsEl) vmixInitRoomSortable(cardsEl);
 }
 
 function _renderVmixCardsInner() {
@@ -6812,7 +7202,7 @@ function _renderVmixCardsInner() {
   renderVmixFilterRow();
 
   // Decide which rooms are visible for this role
-  var rooms = VMIX_ROOMS.slice();
+  var rooms = sortRoomsByOrder(VMIX_ROOMS.slice(), vmixRoomOrder);
   var operatorEmpty = false;
   var operatorEmptyReason = null; // 'unassigned' | 'crew-deleted' | 'no-match'
   var mismatchedNames = [];
@@ -7012,7 +7402,7 @@ function _renderVmixCardsInner() {
       // Same buttons as before: keep the existing card and refresh only the
       // ping / age text. The REC timer is refreshed by the 1 s tick.
       var np = fresh.querySelector('#vmix-ping-' + r.key), op = prev.querySelector('#vmix-ping-' + r.key);
-      if (np && op && op.innerHTML !== np.innerHTML) { op.innerHTML = np.innerHTML; op.style.color = np.style.color; }
+      if (np && op && (op.innerHTML !== np.innerHTML || op.className !== np.className)) { op.innerHTML = np.innerHTML; op.className = np.className; }
       var nr = fresh.querySelector('#vmix-reason-' + r.key), orr = prev.querySelector('#vmix-reason-' + r.key);
       if (nr && orr && orr.textContent !== nr.textContent) orr.textContent = nr.textContent;
       el.appendChild(prev);
@@ -7033,6 +7423,7 @@ function _renderVmixCardsInner() {
   }
 
   if (showAllRow) {
+    vmixRenderAllFnsPicker();
     // Gate the page-level All Rooms buttons on lock / room-route availability too.
     var unlockedRooms = rooms.filter(function (room) { return !trackerRoomIsLocked(room.key); });
     var everyUnlockedRoomRoutable = unlockedRooms.every(function (room) {
@@ -7046,16 +7437,12 @@ function _renderVmixCardsInner() {
     if (lockToggle) {
       lockToggle.style.display = '';
       if (vmixIsLocked()) {
-        lockToggle.textContent = '🔒 LOCKED';
-        lockToggle.style.background = 'rgba(220, 50, 50, 0.18)';
-        lockToggle.style.borderColor = 'rgba(220, 50, 50, 0.5)';
-        lockToggle.style.color = '#ff6b6b';
+        lockToggle.textContent = 'Controls locked';
+        lockToggle.classList.add('is-locked');
         lockToggle.title = 'Click to unlock the All Rooms master controls';
       } else {
-        lockToggle.textContent = '● LIVE';
-        lockToggle.style.background = 'rgba(93, 204, 93, 0.12)';
-        lockToggle.style.borderColor = 'rgba(93, 204, 93, 0.4)';
-        lockToggle.style.color = '#5dcc5d';
+        lockToggle.textContent = 'Controls live';
+        lockToggle.classList.remove('is-locked');
         lockToggle.title = 'Click to lock the All Rooms master controls';
       }
     }
@@ -7065,12 +7452,12 @@ function _renderVmixCardsInner() {
     if (startAll) {
       startAll.disabled = disabled;
       startAll.title = disabled ? disabledTitle : '';
-      startAll.innerHTML = VMIX_ICON_PLAY + '<span>START ALL</span>';
+      startAll.innerHTML = VMIX_ICON_PLAY + '<span>' + vmixAllButtonLabel('start') + '</span>';
       startAll.onclick = function () {
         if (disabled) return;
         showConfirm(
-          'Start all recordings?',
-          'This will start REC + STREAM + MULTI for every room in this event.',
+          'Start in all rooms?',
+          'This will start ' + vmixAllFnsText() + ' for every room in this event.',
           'Start All',
           'background:#1a3d1a;color:#5dcc5d;',
           function () { vmixAllAction('start'); }
@@ -7080,12 +7467,12 @@ function _renderVmixCardsInner() {
     if (stopAll) {
       stopAll.disabled = disabled;
       stopAll.title = disabled ? disabledTitle : '';
-      stopAll.innerHTML = VMIX_ICON_STOP + '<span>STOP ALL</span>';
+      stopAll.innerHTML = VMIX_ICON_STOP + '<span>' + vmixAllButtonLabel('stop') + '</span>';
       stopAll.onclick = function () {
         if (disabled) return;
         showConfirm(
-          'Stop all recordings?',
-          'This will stop REC + STREAM + MULTI for every room in this event.',
+          'Stop in all rooms?',
+          'This will stop ' + vmixAllFnsText() + ' for every room in this event.',
           'Stop All',
           'background:#7a2d2d;color:#ff6b6b;',
           function () { vmixAllAction('stop'); }
@@ -7354,7 +7741,52 @@ function vmixDelay(ms) {
 }
 
 function vmixFnsForAction(action) {
-  return action === 'start' ? VMIX_START_SEQUENCE : VMIX_STOP_SEQUENCE;
+  return filterActionSequence(action === 'start' ? VMIX_START_SEQUENCE : VMIX_STOP_SEQUENCE, vmixAllActionFns);
+}
+// "REC + STREAM + MULTI" style text for confirm dialogs.
+function vmixAllFnsText() {
+  var short = { record: 'REC', stream: 'STREAM', multicorder: 'MULTI' };
+  return normalizeAllActionFns(vmixAllActionFns).map(function (k) { return short[k]; }).join(' + ');
+}
+function vmixAllButtonLabel(action) {
+  var scope = allActionLabel(vmixAllActionFns);
+  scope = scope === 'ALL' ? 'all' : scope.split(' + ').map(function (w) { return w.charAt(0) + w.slice(1).toLowerCase(); }).join(' + ');
+  return (action === 'start' ? 'Start ' : 'Stop ') + scope;
+}
+// Admin control: tick which functions START ALL / STOP ALL include.
+function vmixToggleAllActionFn(key) {
+  var cur = normalizeAllActionFns(vmixAllActionFns);
+  var next = cur.indexOf(key) === -1 ? cur.concat([key]) : cur.filter(function (k) { return k !== key; });
+  if (!next.length) { showToast('START ALL / STOP ALL needs at least one function'); return; }
+  next = normalizeAllActionFns(next);
+  vmixAllActionFns = next;  // optimistic
+  renderVmixCards();
+  if (!fbDb || !currentEventId) return;
+  fbDb.child('events/' + currentEventId + '/config/allActionFns').set(next).then(function () {
+    fbDb.child('events/' + currentEventId + '/updatedAt').set(firebase.database.ServerValue.TIMESTAMP);
+    showToast('START / STOP ALL now controls ' + vmixAllFnsText());
+  }).catch(function (e) {
+    console.warn('[tracker allActionFns] save failed', e);
+    showToast('✗ Could not save the START / STOP ALL setting', 8000);
+  });
+}
+function vmixRenderAllFnsPicker() {
+  var row = document.getElementById('vmix-all-row');
+  if (!row) return;
+  var box = document.getElementById('vmix-all-fns');
+  if (!box) {
+    box = document.createElement('div');
+    box.id = 'vmix-all-fns';
+    box.className = 'vmix-all-fns';
+    row.insertBefore(box, row.querySelector('.vmix-master-controls'));
+  }
+  var on = normalizeAllActionFns(vmixAllActionFns);
+  var names = { record: 'Record', stream: 'Stream', multicorder: 'MultiCorder' };
+  box.innerHTML = '<span class="vmix-all-fns-label">Start and Stop control</span>' + ['record', 'stream', 'multicorder'].map(function (k) {
+    var pressed = on.indexOf(k) !== -1;
+    return '<button type="button" class="vmix-all-fn' + (pressed ? ' on' : '') + '" aria-pressed="' + pressed + '" data-fn="' + k + '">' + (pressed ? '<svg class="rc-check" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>' : '') + '<span>' + names[k] + '</span></button>';
+  }).join('');
+  box.querySelectorAll('button[data-fn]').forEach(function (b) { b.onclick = function () { vmixToggleAllActionFn(b.dataset.fn); }; });
 }
 
 function vmixDelayForAction(action) {
@@ -7402,8 +7834,9 @@ async function vmixRoomAction(key, action) {
   showToast('⏳ ' + (action === 'start' ? 'Starting' : 'Stopping') + ' ' + room.name + ' in sequence…');
   const results = await vmixRunRoomSequence(room, action);
   const ok = results.filter(r => r.ok).length;
-  showToast(ok === 3 ? '✓ ' + room.name + ' done' : '✗ ' + ok + '/3 OK');
-  trackerWriteAudit(auditAction, key, ok === 3 ? 'ok' : 'fail');
+  const total = results.length;
+  showToast(ok === total ? '✓ ' + room.name + ' done (' + vmixAllFnsText() + ')' : '✗ ' + ok + '/' + total + ' OK', ok === total ? 2000 : 8000);
+  trackerWriteAudit(auditAction, key, ok === total ? 'ok' : 'fail', ok === total ? '' : ok + '/' + total + ' of ' + vmixAllFnsText());
   setTimeout(() => vmixRefreshStatus(key), 1200);
 }
 

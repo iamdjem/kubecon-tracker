@@ -1,8 +1,8 @@
 // Keep in lockstep with APP_VERSION in index.html. Changing this string
 // is what makes the service worker drop the old cache on activate, so a
 // new deploy actually reaches users instead of serving stale HTML.
-const CACHE = 'tracker-2026.10.07.4';
-const ASSETS = ['/kubecon-tracker/', '/kubecon-tracker/index.html', '/kubecon-tracker/tracker-routing-helpers.js'];
+const CACHE = 'tracker-2026.10.07.6';
+const ASSETS = ['/kubecon-tracker/', '/kubecon-tracker/index.html', '/kubecon-tracker/tracker-routing-helpers.js?v=2026.10.07.6'];
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS)));
