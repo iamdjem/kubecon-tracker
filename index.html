@@ -2126,12 +2126,12 @@ button, input, select, textarea { font-family: inherit; }
   </div>
 </div>
 
-<script src="tracker-routing-helpers.js?v=2026.10.07.11"></script>
+<script src="tracker-routing-helpers.js?v=2026.10.07.12"></script>
 <script>
 // Bump on every deploy. Shown in Settings → About so you can confirm a
 // push actually reached the browser (past the service-worker cache).
 // Keep the sw.js CACHE constant in lockstep with this — same string.
-const APP_VERSION = '2026.10.07.11';
+const APP_VERSION = '2026.10.07.12';
 const {
   ROOM_PROXY_STALE_MS,
   selectRoomProxyRoute,
@@ -7209,7 +7209,7 @@ function vmixRenderAttentionBar() {
     if (h && h.level !== 'info') issues.push({ r: r, h: h });
   });
   issues.sort(function (a, b) { return (a.h.level === 'down' ? 0 : 1) - (b.h.level === 'down' ? 0 : 1); });
-  if (!issues.length || currentPage !== 'rooms') { bar.style.display = 'none'; bar.innerHTML = ''; return; }
+  if (!issues.length || currentPage !== 'rooms') { bar.style.display = 'none'; bar.innerHTML = ''; bar.dataset.html = ''; return; }
   var down = issues.filter(function (i) { return i.h.level === 'down'; }).length;
   var head = issues.length === 1 ? '1 room needs attention' : issues.length + ' rooms need attention';
   if (down) head += ' (' + down + ' not responding)';
@@ -7217,8 +7217,13 @@ function vmixRenderAttentionBar() {
   issues.forEach(function (i) {
     html += '<button type="button" data-jump="' + escapeHtml(i.r.key) + '">' + escapeHtml(i.r.name) + ' · ' + escapeHtml(i.h.label) + '</button>';
   });
-  bar.innerHTML = html + '</div>';
+  html += '</div>';
   bar.style.display = 'block';
+  bar.classList.toggle('is-down', !!down);
+  // Only redraw when the issues changed, so a hovered room button is not replaced.
+  if (bar.dataset.html === html) return;
+  bar.dataset.html = html;
+  bar.innerHTML = html;
   bar.classList.toggle('is-down', !!down);
   bar.querySelectorAll('button[data-jump]').forEach(function (b) {
     b.onclick = function () {
@@ -7307,6 +7312,17 @@ function renderVmixCards() {
   vmixAfterCardsRender();
   var cardsEl = document.getElementById('vmix-cards');
   if (cardsEl) vmixInitRoomSortable(cardsEl);
+}
+
+// Put exactly `nodes` into `parent`, in order, moving or inserting only what
+// differs and removing the rest. Nodes already in the right place are left
+// alone, so they keep hover, focus and running animations.
+function vmixReconcileChildren(parent, nodes) {
+  for (var i = 0; i < nodes.length; i++) {
+    var cur = parent.childNodes[i];
+    if (cur !== nodes[i]) parent.insertBefore(nodes[i], cur || null);
+  }
+  while (parent.childNodes.length > nodes.length) parent.removeChild(parent.lastChild);
 }
 
 function _renderVmixCardsInner() {
@@ -7480,7 +7496,11 @@ function _renderVmixCardsInner() {
 
   var prevCards = {};
   Array.prototype.forEach.call(el.children, function (n) { if (n.id && n.id.indexOf('vmix-card-') === 0) prevCards[n.id] = n; });
-  el.innerHTML = '';
+  // Build the wanted list of nodes, then reconcile it into the container in
+  // place. Cards that did not change are never detached: taking a node out of
+  // the page drops its :hover, which made buttons flicker under the mouse on
+  // every status update.
+  var nodes = [];
 
   // Director diagnostic: when a crew tab is active but yields zero rooms,
   // explain why instead of leaving the page blank.
@@ -7501,7 +7521,7 @@ function _renderVmixCardsInner() {
           : '<em>none configured</em>');
     }
     diag.innerHTML = title + body;
-    el.appendChild(diag);
+    nodes.push(diag);
   }
 
   // Live event but zero rooms configured. If the event has crew rooms
@@ -7533,13 +7553,13 @@ function _renderVmixCardsInner() {
         'This event has crew rooms defined but no vMix rooms. Import them in one click to keep Setup and Recording in sync.' +
         '<div style="margin-top:16px;"><button type="button" id="vmix-adopt-crew-rooms" style="background:var(--accent);border:none;color:#000;font-weight:700;padding:10px 18px;border-radius:8px;cursor:pointer;font-family:inherit;font-size:13px;">Use rooms from crew assignments (' + crewRoomNames.length + ')</button></div>' +
         '<div style="margin-top:8px;font-size:11px;color:var(--t3);">' + crewRoomNames.map(function (n) { return escapeHtml(n); }).join(' · ') + '</div>';
-      el.appendChild(noRooms);
-      var btn = document.getElementById('vmix-adopt-crew-rooms');
+      nodes.push(noRooms);
+      var btn = noRooms.querySelector('#vmix-adopt-crew-rooms');
       if (btn) btn.onclick = function () { vmixAdoptCrewRooms(); };
     } else {
       noRooms.innerHTML = '<div style="color:var(--t1);font-weight:700;margin-bottom:8px;font-size:14px;">No rooms configured</div>' +
         'This event has no vMix rooms set up yet. Open vMix Commander → Settings → Rooms to add one, or duplicate from a template that has rooms pre-configured.';
-      el.appendChild(noRooms);
+      nodes.push(noRooms);
     }
   }
 
@@ -7553,11 +7573,12 @@ function _renderVmixCardsInner() {
       if (np && op && (op.innerHTML !== np.innerHTML || op.className !== np.className)) { op.innerHTML = np.innerHTML; op.className = np.className; }
       var nr = fresh.querySelector('#vmix-reason-' + r.key), orr = prev.querySelector('#vmix-reason-' + r.key);
       if (nr && orr && orr.textContent !== nr.textContent) orr.textContent = nr.textContent;
-      el.appendChild(prev);
+      nodes.push(prev);
     } else {
-      el.appendChild(fresh);
+      nodes.push(fresh);
     }
   });
+  vmixReconcileChildren(el, nodes);
 
   // Page-level All Rooms row visibility — hide when a non-"all" crew filter
   // is active so the master "START ALL" doesn't shadow the filtered scope
@@ -7600,7 +7621,8 @@ function _renderVmixCardsInner() {
     if (startAll) {
       startAll.disabled = disabled;
       startAll.title = disabled ? disabledTitle : '';
-      startAll.innerHTML = VMIX_ICON_PLAY + '<span>' + vmixAllButtonLabel('start') + '</span>';
+      var startAllHtml = VMIX_ICON_PLAY + '<span>' + vmixAllButtonLabel('start') + '</span>';
+      if (startAll.dataset.html !== startAllHtml) { startAll.dataset.html = startAllHtml; startAll.innerHTML = startAllHtml; }
       startAll.onclick = function () {
         if (disabled) return;
         showConfirm(
@@ -7615,7 +7637,8 @@ function _renderVmixCardsInner() {
     if (stopAll) {
       stopAll.disabled = disabled;
       stopAll.title = disabled ? disabledTitle : '';
-      stopAll.innerHTML = VMIX_ICON_STOP + '<span>' + vmixAllButtonLabel('stop') + '</span>';
+      var stopAllHtml = VMIX_ICON_STOP + '<span>' + vmixAllButtonLabel('stop') + '</span>';
+      if (stopAll.dataset.html !== stopAllHtml) { stopAll.dataset.html = stopAllHtml; stopAll.innerHTML = stopAllHtml; }
       stopAll.onclick = function () {
         if (disabled) return;
         showConfirm(
@@ -7930,10 +7953,14 @@ function vmixRenderAllFnsPicker() {
   }
   var on = normalizeAllActionFns(vmixAllActionFns);
   var names = { record: 'Record', stream: 'Stream', multicorder: 'MultiCorder' };
-  box.innerHTML = '<span class="vmix-all-fns-label">Start and Stop control</span>' + ['record', 'stream', 'multicorder'].map(function (k) {
+  var pickerHtml = '<span class="vmix-all-fns-label">Start and Stop control</span>' + ['record', 'stream', 'multicorder'].map(function (k) {
     var pressed = on.indexOf(k) !== -1;
     return '<button type="button" class="vmix-all-fn' + (pressed ? ' on' : '') + '" aria-pressed="' + pressed + '" data-fn="' + k + '">' + (pressed ? '<svg class="rc-check" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>' : '') + '<span>' + names[k] + '</span></button>';
   }).join('');
+  // Only redraw when something changed, so a hovered toggle is not replaced.
+  if (box.dataset.html === pickerHtml) return;
+  box.dataset.html = pickerHtml;
+  box.innerHTML = pickerHtml;
   box.querySelectorAll('button[data-fn]').forEach(function (b) { b.onclick = function () { vmixToggleAllActionFn(b.dataset.fn); }; });
 }
 
