@@ -1175,6 +1175,97 @@ body.role-user .admin-only-input { pointer-events: none; opacity: 0.55; }
   color: var(--t3);
 }
 .vmix-fn-toggle.pending { opacity: 0.6; cursor: wait; }
+/* Unknown: no status yet. Neutral and readable, never a confident OFF. */
+.vmix-fn-toggle.unknown {
+  background: rgba(255, 255, 255, 0.03);
+  border-color: var(--line2);
+  color: var(--t2);
+}
+/* Error and unknown tiles stay readable instead of fading to ~2:1. */
+.vmix-fn-toggle.error:disabled,
+.vmix-fn-toggle.unknown:disabled { opacity: 1; }
+.vmix-fn-toggle.error .vmix-fn-state { color: #ff8a8a; }
+.vmix-fn-toggle.error .vmix-fn-label,
+.vmix-fn-toggle.unknown .vmix-fn-label { color: var(--t2); }
+/* Stale: last known state, not fresh. Dashed edge, no pulse. */
+.vmix-fn-toggle.stale { border-style: dashed; animation: none !important; }
+/* Armed stop: the first tap only arms it, a second tap within 4 s stops. */
+.vmix-fn-toggle.armed {
+  background: rgba(220, 50, 50, 0.32);
+  border-color: #ef4444;
+  color: #fff;
+  animation: none !important;
+}
+.vmix-fn-toggle.armed .vmix-fn-label { color: #fff; }
+.vmix-reason {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0 16px 10px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--t1);
+  background: rgba(255, 183, 77, 0.08);
+  border: 1px solid rgba(255, 183, 77, 0.3);
+}
+.vmix-reason.down { background: rgba(220, 50, 50, 0.1); border-color: rgba(239, 68, 68, 0.45); }
+.vmix-reason.info { background: rgba(255, 255, 255, 0.04); border-color: var(--line2); color: var(--t2); }
+.vmix-reason button {
+  appearance: none;
+  background: transparent;
+  border: 1px solid currentColor;
+  color: inherit;
+  border-radius: 6px;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 4px 10px;
+  min-height: 32px;
+  cursor: pointer;
+}
+.vmix-card-down { border-color: rgba(239, 68, 68, 0.6) !important; }
+.vmix-card-warn { border-color: rgba(255, 183, 77, 0.45) !important; }
+#vmix-attention-bar {
+  position: sticky;
+  top: 0;
+  z-index: 90;
+  display: none;
+  margin-bottom: 12px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: #2a0d0d;
+  border: 1px solid rgba(239, 68, 68, 0.55);
+  color: #ffd6d6;
+  font-size: 13px;
+  line-height: 1.45;
+}
+#vmix-attention-bar b { color: #fff; }
+#vmix-attention-bar button {
+  appearance: none;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #fff;
+  border-radius: 999px;
+  padding: 4px 10px;
+  min-height: 32px;
+  margin: 6px 6px 0 0;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+@media (max-width: 600px) {
+  /* Keep the pinned bar short on phones: one row of room buttons that scrolls sideways. */
+  #vmix-attention-bar > div { display: flex; flex-wrap: nowrap; overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
+  #vmix-attention-bar > div::-webkit-scrollbar { display: none; }
+  #vmix-attention-bar button { flex-shrink: 0; white-space: nowrap; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .vmix-fn-toggle.active, .vmix-fn-dot { animation: none !important; }
+}
 
 .vmix-master-controls {
   display: grid;
@@ -6143,8 +6234,46 @@ function vmixStopTick() {
   if (_vmixTickInterval) { clearInterval(_vmixTickInterval); _vmixTickInterval = null; }
 }
 
+// What the crew needs to know about a room, most urgent first. Returns null
+// when the room is healthy. `level` drives styling: down (red), warn (amber),
+// info (neutral, not listed in the attention bar).
+var _vmixLastLive = {};
+var _vmixPageStart = Date.now();
+var VMIX_CONNECT_GRACE_MS = 8000;
+function vmixRememberLive(key, st) {
+  if (st && st.ok === true && !st._stale) {
+    _vmixLastLive[key] = { rec: !!st.recording, str: !!st.streaming, mc: !!st.multicorder, at: Date.now() };
+  }
+}
+function vmixLastLiveText(key) {
+  var l = _vmixLastLive[key];
+  if (!l) return '';
+  var on = [l.rec && 'Record', l.str && 'Stream', l.mc && 'MultiCorder'].filter(Boolean);
+  return ' Last seen ' + vmixFmtAge(Date.now() - l.at) + ' ago: ' + (on.length ? on.join(', ') + ' on.' : 'everything off.');
+}
+function vmixRoomHealth(r, st, route, roomLocked) {
+  st = st || {};
+  var connecting = (Date.now() - _vmixPageStart) < VMIX_CONNECT_GRACE_MS && !_vmixLastLive[r.key];
+  var last = vmixLastLiveText(r.key);
+  if (!r.ip) return { kind: 'noip', level: 'warn', label: 'No IP', text: 'No IP set for this room, so it cannot be checked or controlled.', action: 'ip' };
+  if (st.ok === true && st._stale) return { kind: 'stale', level: 'warn', label: 'Stale', text: 'No update for ' + vmixFmtAge(vmixStatusAgeMs(st)) + '. Showing the last known state.' };
+  if (st.ok === true) {
+    if (!route.url) return { kind: 'noroute', level: 'warn', label: 'No route', text: 'Status is coming in, but no Commander can send commands to this room right now.' };
+    return roomLocked ? { kind: 'locked', level: 'info', label: 'Locked', text: 'Locked by the operator. Controls are off for this room.' } : null;
+  }
+  if (connecting) return { kind: 'connecting', level: 'info', label: 'Connecting', text: 'Connecting to vMix Commander…' };
+  if (st.ok === undefined || st.tier === 'offline') {
+    return { kind: 'unknown', level: 'warn', label: 'No status', text: (route.url ? 'No status reported for this room yet.' : 'No vMix Commander is reporting this room. Check that Commander is running on the room PC.') + last };
+  }
+  return { kind: 'down', level: 'down', label: 'Not responding', text: 'vMix is not responding at ' + r.ip + '.' + last };
+}
+function vmixHealthFor(r) {
+  return vmixRoomHealth(r, vmixStatus[r.key], vmixRouteForRoom(r.key), trackerRoomIsLocked(r.key));
+}
+
 function vmixMakeCard(r) {
   var st   = vmixStatus[r.key] || {};
+  vmixRememberLive(r.key, st);
   var stale = !!st._stale;
   var err  = st.ok === false && !stale;
   var tier = stale ? 'degraded' : (st.tier || (err ? 'unreachable' : (r.ip ? 'offline' : 'offline')));
@@ -6153,14 +6282,21 @@ function vmixMakeCard(r) {
   var roomLocked = trackerRoomIsLocked(r.key);
   var isObserver = trackerRoleIsObserver();
   var route = vmixRouteForRoom(r.key);
-  var disabled = roomLocked || !route.url || !r.ip || isObserver;
+  var health = vmixRoomHealth(r, st, route, roomLocked);
+  // Anything without a real status from Commander is Unknown, never OFF.
+  var unknown = (!!health && (health.kind === 'unknown' || health.kind === 'connecting')) || (st.ok !== true && !err);
+  if (unknown) err = false;
+  var disabled = roomLocked || !route.url || !r.ip || isObserver || err || unknown;
   var disabledTitle = roomLocked ? 'This room is locked by the operator.'
                       : isObserver ? 'Observer is read-only'
                       : !route.url ? 'No Commander route for this room'
                       : !r.ip ? 'Set room IP first' : '';
 
   var card = document.createElement('div');
-  card.style.cssText = 'background:var(--s2);border:1px solid var(--line2);border-radius:14px;overflow:hidden;' + (roomLocked ? 'opacity:0.65;' : '');
+  card.id = 'vmix-card-' + r.key;
+  card.style.cssText = 'background:var(--s2);border:1px solid var(--line2);border-radius:14px;overflow:hidden;scroll-margin-top:96px;' + (roomLocked ? 'opacity:0.65;' : '');
+  if (health && health.level === 'down') card.className = 'vmix-card-down';
+  else if (health && health.level === 'warn') card.className = 'vmix-card-warn';
 
   // ── Header: tier dot · name · REC timer · Ping · lock · gear ──
   // gap:8px (was 10) so the trailing buttons don't push the name off-screen
@@ -6199,7 +6335,8 @@ function vmixMakeCard(r) {
   var ageText = age == null ? '' : ' · ' + vmixFmtAge(age);
   if (r.ip && st.ok && stale) pingEl.innerHTML = '<span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:' + vmixTierColor(tier) + ';"></span>Stale ' + vmixFmtAge(age == null ? 0 : age);
   else if (r.ip && st.ok) pingEl.innerHTML = '<span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:' + vmixTierColor(tier) + ';"></span>Ping ' + Math.round(st.latency || 0) + 'ms' + ageText;
-  else if (err)      pingEl.innerHTML = '<span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:' + vmixTierColor(tier) + ';"></span>Unreachable';
+  else if (err)      pingEl.innerHTML = '<span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:' + vmixTierColor(tier) + ';"></span>' + (health ? health.label : 'Unreachable');
+  else if (unknown)  pingEl.textContent = health ? health.label : 'No status';
   else               pingEl.textContent = '';
 
   var spacer = document.createElement('span');
@@ -6255,6 +6392,25 @@ function vmixMakeCard(r) {
   hdr.appendChild(ipToggle);
   card.appendChild(hdr);
 
+  // ── Reason line: says why a room needs attention and how to fix it, so
+  //    nobody has to hover over a dimmed button to find out.
+  if (health) {
+    var reason = document.createElement('div');
+    reason.className = 'vmix-reason ' + health.level;
+    reason.setAttribute('role', health.level === 'down' ? 'alert' : 'status');
+    var rtxt = document.createElement('span');
+    rtxt.textContent = health.text;
+    reason.appendChild(rtxt);
+    if (health.action === 'ip' && !isObserver) {
+      var fixBtn = document.createElement('button');
+      fixBtn.type = 'button';
+      fixBtn.textContent = 'Set IP';
+      fixBtn.onclick = function (e) { e.stopPropagation(); vmixOpenIpRows.add(r.key); renderVmixCards(); };
+      reason.appendChild(fixBtn);
+    }
+    card.appendChild(reason);
+  }
+
   // ── IP row — open state survives re-renders so Firebase updates can't
   //    snap the input shut while the user is typing.
   var ipOpen = vmixOpenIpRows.has(r.key);
@@ -6296,11 +6452,12 @@ function vmixMakeCard(r) {
     if (isObserver) {
       // Read-only pill for observers
       var pill = document.createElement('div');
-      pill.className = 'vmix-fn-toggle ' + (err ? 'error' : f.on ? 'active' : 'inactive');
+      pill.className = 'vmix-fn-toggle ' + (err ? 'error' : unknown ? 'unknown' : f.on ? 'active' : 'inactive');
       pill.style.cssText = 'cursor:default;opacity:0.85;';
       var plbl = document.createElement('span'); plbl.className = 'vmix-fn-label'; plbl.textContent = f.label;
       var pstate = document.createElement('span'); pstate.className = 'vmix-fn-state';
       if (err) pstate.textContent = 'ERR';
+      else if (unknown) pstate.textContent = health && health.kind === 'connecting' ? '…' : 'Unknown';
       else if (f.on) pstate.innerHTML = '<span class="vmix-fn-dot"></span>LIVE';
       else pstate.textContent = 'OFF';
       pill.appendChild(plbl); pill.appendChild(pstate);
@@ -6309,10 +6466,11 @@ function vmixMakeCard(r) {
     }
     var btn = document.createElement('button');
     btn.dataset.room = r.key; btn.dataset.fn = f.label; btn.dataset.on = f.on ? '1' : '0';
-    var klass = err ? 'error' : f.on ? 'active' : 'inactive';
+    var klass = err ? 'error' : unknown ? 'unknown' : f.on ? 'active' : 'inactive';
+    if (st._stale && !err && !unknown) klass += ' stale';
     btn.className = 'vmix-fn-toggle ' + klass;
-    btn.disabled = disabled || err;
-    btn.title = err ? 'Unreachable' : (disabled ? disabledTitle : (f.on ? 'Stop ' + f.label : 'Start ' + f.label));
+    btn.disabled = disabled;
+    btn.title = health && health.level !== 'info' ? health.text : (disabled ? disabledTitle : (f.on ? 'Stop ' + f.label : 'Start ' + f.label));
 
     var lbl = document.createElement('span');
     lbl.className = 'vmix-fn-label';
@@ -6321,6 +6479,7 @@ function vmixMakeCard(r) {
     var state = document.createElement('span');
     state.className = 'vmix-fn-state';
     if (err)      state.textContent = 'ERR';
+    else if (unknown) state.textContent = health && health.kind === 'connecting' ? '…' : 'Unknown';
     else if (f.on) state.innerHTML = '<span class="vmix-fn-dot"></span>LIVE';
     else           state.textContent = 'OFF';
 
@@ -6328,6 +6487,15 @@ function vmixMakeCard(r) {
     btn.appendChild(state);
     btn.onclick = function() {
       if (btn.disabled) return;
+      // Stopping something live takes two taps: the first arms the button,
+      // a second tap within 4 s stops. Starting stays a single tap.
+      if (f.on && !vmixStopIsArmed(r.key, f.label)) {
+        vmixArmStop(r.key, f.label);
+        btn.classList.add('armed');
+        state.textContent = 'Tap again to stop';
+        return;
+      }
+      vmixDisarmStop(r.key, f.label);
       btn.classList.add('pending');
       btn.disabled = true;
       state.textContent = f.on ? 'Stopping…' : 'Starting…';
@@ -6498,6 +6666,58 @@ function trackerRematchAssignedRooms() {
 //    the pulse stutter. Phase-lock it to the wall clock so it stays smooth.
 // 2. A pressed button's "Starting…/Stopping…" state: keep it until the room
 //    reports the new state, or 15 s pass.
+var _vmixArmed = {};
+var VMIX_ARM_MS = 4000;
+function vmixArmStop(roomKey, fnLabel) {
+  _vmixArmed[roomKey + '|' + fnLabel] = Date.now() + VMIX_ARM_MS;
+  setTimeout(function () { if (currentPage === 'rooms') renderVmixCards(); }, VMIX_ARM_MS + 50);
+}
+function vmixStopIsArmed(roomKey, fnLabel) {
+  var until = _vmixArmed[roomKey + '|' + fnLabel];
+  return !!until && Date.now() < until;
+}
+function vmixDisarmStop(roomKey, fnLabel) { delete _vmixArmed[roomKey + '|' + fnLabel]; }
+
+// Fixed bar above the cards listing rooms that need attention. Cards keep
+// their order so nothing moves under a finger; the bar jumps to the card.
+function vmixRenderAttentionBar() {
+  var cards = document.getElementById('vmix-cards');
+  if (!cards) return;
+  var bar = document.getElementById('vmix-attention-bar');
+  if (!bar) {
+    bar = document.createElement('div');
+    bar.id = 'vmix-attention-bar';
+    bar.setAttribute('role', 'status');
+    bar.setAttribute('aria-live', 'polite');
+    cards.parentNode.insertBefore(bar, cards);
+  }
+  var shown = (typeof trackerRenderedRooms !== 'undefined' && trackerRenderedRooms) || [];
+  var issues = [];
+  shown.forEach(function (r) {
+    var h = vmixHealthFor(r);
+    if (h && h.level !== 'info') issues.push({ r: r, h: h });
+  });
+  issues.sort(function (a, b) { return (a.h.level === 'down' ? 0 : 1) - (b.h.level === 'down' ? 0 : 1); });
+  if (!issues.length || currentPage !== 'rooms') { bar.style.display = 'none'; bar.innerHTML = ''; return; }
+  var down = issues.filter(function (i) { return i.h.level === 'down'; }).length;
+  var head = issues.length === 1 ? '1 room needs attention' : issues.length + ' rooms need attention';
+  if (down) head += ' (' + down + ' not responding)';
+  var html = '<b>' + escapeHtml(head) + '</b><div>';
+  issues.forEach(function (i) {
+    html += '<button type="button" data-jump="' + escapeHtml(i.r.key) + '">' + escapeHtml(i.r.name) + ' · ' + escapeHtml(i.h.label) + '</button>';
+  });
+  bar.innerHTML = html + '</div>';
+  bar.style.display = 'block';
+  bar.style.background = down ? '#2a0d0d' : '#2a1f0b';
+  bar.style.borderColor = down ? 'rgba(239,68,68,0.55)' : 'rgba(255,183,77,0.5)';
+  bar.querySelectorAll('button[data-jump]').forEach(function (b) {
+    b.onclick = function () {
+      var c = document.getElementById('vmix-card-' + b.dataset.jump);
+      if (c) c.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    };
+  });
+}
+
 var _vmixPending = {};
 function vmixPendingMark(roomKey, fnLabel, wasOn) {
   _vmixPending[roomKey + '|' + fnLabel] = { wasOn: !!wasOn, until: Date.now() + 15000 };
@@ -6517,6 +6737,15 @@ function vmixAfterCardsRender() {
     var st = b.querySelector('.vmix-fn-state');
     if (st) st.textContent = p.wasOn ? 'Stopping…' : 'Starting…';
   });
+  el.querySelectorAll('button.vmix-fn-toggle[data-room]').forEach(function (b) {
+    var id = b.dataset.room + '|' + b.dataset.fn, until = _vmixArmed[id];
+    if (!until) return;
+    if (now >= until || b.dataset.on !== '1' || b.disabled) { delete _vmixArmed[id]; return; }
+    b.classList.add('armed');
+    var st = b.querySelector('.vmix-fn-state');
+    if (st) st.textContent = 'Tap again to stop';
+  });
+  vmixRenderAttentionBar();
 }
 
 function renderVmixCards() {
