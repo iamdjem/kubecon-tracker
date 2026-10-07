@@ -1598,6 +1598,51 @@ body.role-user .admin-only-input { pointer-events: none; opacity: 0.55; }
   #page-rooms #vmix-attention-bar button { flex-shrink: 0; white-space: nowrap; }
 }
 
+/* ─── Live tiles: filled tile with a highlight running around its edge, plus a tally dot.
+ *  Colours are variables so the Live colour is a one-line change. The run takes 2 s and
+ *  the dot 1.5 s to match vmixAfterCardsRender's phase lock, so every Live tile moves
+ *  together and a re-render never restarts it. "Tap again" inverts to white. ─── */
+@property --rc-ang { syntax: '<angle>'; inherits: false; initial-value: 0deg; }
+@keyframes rc-run { to { --rc-ang: 360deg; } }
+@keyframes rc-tally { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+#page-rooms {
+  --rc-live-fill: oklch(0.396 0.141 25.723);
+  --rc-live-fill-hover: oklch(0.36 0.13 25.7);
+  --rc-live-edge: oklch(0.505 0.213 27.518);
+  --rc-live-hi: oklch(0.885 0.062 18.334);
+  --rc-live-text: #fff;
+  --rc-live-sub: oklch(0.885 0.062 18.334);
+}
+#page-rooms .vmix-fn-toggle.active {
+  border: 1.5px solid transparent;
+  background:
+    linear-gradient(var(--rc-live-fill), var(--rc-live-fill)) padding-box,
+    conic-gradient(from var(--rc-ang), var(--rc-live-hi), var(--rc-live-edge) 22%, var(--rc-live-edge) 78%, var(--rc-live-hi)) border-box;
+  color: var(--rc-live-text);
+  box-shadow: none;
+  animation: rc-run 2s linear infinite !important;
+}
+#page-rooms .vmix-fn-toggle.active:hover:not(:disabled) {
+  background:
+    linear-gradient(var(--rc-live-fill-hover), var(--rc-live-fill-hover)) padding-box,
+    conic-gradient(from var(--rc-ang), var(--rc-live-hi), var(--rc-live-edge) 22%, var(--rc-live-edge) 78%, var(--rc-live-hi)) border-box;
+}
+#page-rooms .vmix-fn-toggle.active .vmix-fn-label { color: var(--rc-live-text); font-weight: 600; }
+#page-rooms .vmix-fn-toggle.active .vmix-fn-state { color: var(--rc-live-sub); font-weight: 500; }
+#page-rooms .vmix-fn-toggle.active .vmix-fn-dot { background: currentColor; animation: rc-tally 1.5s ease-in-out infinite !important; }
+/* Stale: last known state only. Paler fill, dashed plain edge, no motion. */
+#page-rooms .vmix-fn-toggle.active.stale { background: color-mix(in oklch, var(--rc-live-fill) 55%, transparent); border: 1.5px dashed oklch(1 0 0 / 0.45); animation: none !important; }
+#page-rooms .vmix-fn-toggle.active.stale .vmix-fn-dot { animation: none !important; }
+/* Armed for stop: white tile, red text. */
+#page-rooms .vmix-fn-toggle.armed,
+#page-rooms .vmix-fn-toggle.active.armed { background: oklch(0.985 0 0); border: 1.5px solid oklch(0.985 0 0); animation: none !important; box-shadow: 0 0 0 3px color-mix(in oklch, var(--rc-live-edge) 70%, transparent); }
+#page-rooms .vmix-fn-toggle.armed .vmix-fn-label,
+#page-rooms .vmix-fn-toggle.armed .vmix-fn-state { color: oklch(0.505 0.213 27.518); font-weight: 600; }
+#page-rooms .vmix-fn-toggle.active.pending { animation: none !important; opacity: 0.7; }
+@media (prefers-reduced-motion: reduce) {
+  #page-rooms .vmix-fn-toggle.active, #page-rooms .vmix-fn-toggle.active .vmix-fn-dot { animation: none !important; }
+}
+
 /* HTTPS-warn summary — hide the default disclosure triangle across engines
  * so the custom chevron-less "Tap for details" cue reads as intended. */
 #vmix-https-warn > summary::-webkit-details-marker { display: none; }
@@ -1973,12 +2018,12 @@ body.role-user .admin-only-input { pointer-events: none; opacity: 0.55; }
   </div>
 </div>
 
-<script src="tracker-routing-helpers.js?v=2026.10.07.7"></script>
+<script src="tracker-routing-helpers.js?v=2026.10.07.8"></script>
 <script>
 // Bump on every deploy. Shown in Settings → About so you can confirm a
 // push actually reached the browser (past the service-worker cache).
 // Keep the sw.js CACHE constant in lockstep with this — same string.
-const APP_VERSION = '2026.10.07.7';
+const APP_VERSION = '2026.10.07.8';
 const {
   ROOM_PROXY_STALE_MS,
   selectRoomProxyRoute,
