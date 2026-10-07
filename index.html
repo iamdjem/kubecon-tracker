@@ -1618,7 +1618,7 @@ body.role-user .admin-only-input { pointer-events: none; opacity: 0.55; }
 // Bump on every deploy. Shown in Settings → About so you can confirm a
 // push actually reached the browser (past the service-worker cache).
 // Keep the sw.js CACHE constant in lockstep with this — same string.
-const APP_VERSION = '2026.10.07.1';
+const APP_VERSION = '2026.10.07.2';
 const {
   ROOM_PROXY_STALE_MS,
   selectRoomProxyRoute,
@@ -4678,10 +4678,12 @@ function updateScheduleEmbed(val) {
   }
 }
 
-function showToast(msg) {
+let _toastTimer = null;
+function showToast(msg, ms) {
   const t=document.getElementById('toast');
   t.textContent=msg; t.classList.add('show');
-  setTimeout(()=>t.classList.remove('show'),2000);
+  clearTimeout(_toastTimer);
+  _toastTimer = setTimeout(()=>t.classList.remove('show'), ms || 2000);
 }
 
 // ─── Confirm Modal ────────────────────────────────────────────────────────
@@ -5476,7 +5478,7 @@ function trackerEnsureIdentity() {
 }
 
 // ─── Audit log writes ──────────────────────────────────────────────────────
-function trackerWriteAudit(action, roomKey, result) {
+function trackerWriteAudit(action, roomKey, result, detail) {
   try {
     if (!fbDb || !currentEventId) return;
     const identity = trackerIdentity
@@ -5490,6 +5492,9 @@ function trackerWriteAudit(action, roomKey, result) {
       room: roomKey || '__all__',
       result: result || 'ok'
     };
+    // Why a command failed (proxy error, timeout, route), so a failure can be
+    // diagnosed afterwards instead of only from a 2 s toast.
+    if (detail) entry.detail = String(detail).slice(0, 300);
     fbDb.child('events/' + currentEventId + '/audit').push().set(entry).catch(function (e) {
       console.warn('[tracker audit] write failed', e);
     });
@@ -6160,6 +6165,13 @@ function vmixMakeCard(r) {
                       : !r.ip ? 'Set room IP first' : '';
 
   var card = document.createElement('div');
+  card.id = 'vmix-card-' + r.key;
+  // Everything that changes the card's buttons. When this is unchanged the
+  // previous card (and its buttons) is kept, so a tap that is in progress
+  // during a status update is not lost to a rebuilt button.
+  card.dataset.sig = JSON.stringify([r.name, r.ip || '', st.ok, !!st.recording, !!st.streaming, !!st.multicorder,
+    tier, stale, err, roomLocked, isObserver, !!route.url, disabled, vmixOpenIpRows.has(r.key), trackerRoleIsDirector(),
+    Object.keys(_vmixPending).filter(function (k) { return k.indexOf(r.key + '|') === 0; }).sort().join(',')]);
   card.style.cssText = 'background:var(--s2);border:1px solid var(--line2);border-radius:14px;overflow:hidden;' + (roomLocked ? 'opacity:0.65;' : '');
 
   // ── Header: tier dot · name · REC timer · Ping · lock · gear ──
@@ -6194,6 +6206,7 @@ function vmixMakeCard(r) {
   // Ping sits right next to the timer (same group as name + timer) — same
   // 11px size + tabular-nums so the metrics line up visually.
   var pingEl = document.createElement('span');
+  pingEl.id = 'vmix-ping-' + r.key;
   pingEl.style.cssText = 'flex-shrink:0;font-size:11px;font-weight:600;font-variant-numeric:tabular-nums;color:' + vmixTierColor(tier) + ';white-space:nowrap;display:inline-flex;align-items:center;gap:4px;';
   var age = vmixStatusAgeMs(st);
   var ageText = age == null ? '' : ' · ' + vmixFmtAge(age);
@@ -6693,6 +6706,8 @@ function _renderVmixCardsInner() {
     }
   }
 
+  var prevCards = {};
+  Array.prototype.forEach.call(el.children, function (n) { if (n.id && n.id.indexOf('vmix-card-') === 0) prevCards[n.id] = n; });
   el.innerHTML = '';
 
   // Director diagnostic: when a crew tab is active but yields zero rooms,
@@ -6756,7 +6771,19 @@ function _renderVmixCardsInner() {
     }
   }
 
-  rooms.forEach(function (r) { el.appendChild(vmixMakeCard(r)); });
+  rooms.forEach(function (r) {
+    var fresh = vmixMakeCard(r);
+    var prev = prevCards[fresh.id];
+    if (prev && prev.dataset.sig === fresh.dataset.sig) {
+      // Same buttons as before: keep the existing card and refresh only the
+      // ping / age text. The REC timer is refreshed by the 1 s tick.
+      var np = fresh.querySelector('#vmix-ping-' + r.key), op = prev.querySelector('#vmix-ping-' + r.key);
+      if (np && op && op.innerHTML !== np.innerHTML) { op.innerHTML = np.innerHTML; op.style.color = np.style.color; }
+      el.appendChild(prev);
+    } else {
+      el.appendChild(fresh);
+    }
+  });
 
   // Page-level All Rooms row visibility — hide when a non-"all" crew filter
   // is active so the master "START ALL" doesn't shadow the filtered scope
@@ -7048,9 +7075,11 @@ async function vmixOne(key, fn) {
     trackerWriteAudit(action, key, 'fail'); return;
   }
   showToast('⏳ ' + fn + '…');
+  const route = vmixRouteForRoom(key);
   const res = await vmixCall(room.ip, fn, key);
-  showToast(res.ok ? '✓ ' + fn : '✗ Failed: ' + (res.error || 'blocked?'));
-  trackerWriteAudit(action, key, res.ok ? 'ok' : 'fail');
+  showToast(res.ok ? '✓ ' + fn : '✗ Failed: ' + (res.error || 'blocked?'), res.ok ? 2000 : 8000);
+  trackerWriteAudit(action, key, res.ok ? 'ok' : 'fail',
+    res.ok ? '' : (res.error || 'unknown error') + ' | via ' + (route.source || 'none') + ' ' + String(route.url || '').replace(/^https?:\/\//, ''));
   setTimeout(() => vmixRefreshStatus(key), 1000);
 }
 
