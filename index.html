@@ -1618,7 +1618,7 @@ body.role-user .admin-only-input { pointer-events: none; opacity: 0.55; }
 // Bump on every deploy. Shown in Settings → About so you can confirm a
 // push actually reached the browser (past the service-worker cache).
 // Keep the sw.js CACHE constant in lockstep with this — same string.
-const APP_VERSION = '2026.05.21.1';
+const APP_VERSION = '2026.10.07.1';
 const {
   ROOM_PROXY_STALE_MS,
   selectRoomProxyRoute,
@@ -6308,6 +6308,7 @@ function vmixMakeCard(r) {
       return;
     }
     var btn = document.createElement('button');
+    btn.dataset.room = r.key; btn.dataset.fn = f.label; btn.dataset.on = f.on ? '1' : '0';
     var klass = err ? 'error' : f.on ? 'active' : 'inactive';
     btn.className = 'vmix-fn-toggle ' + klass;
     btn.disabled = disabled || err;
@@ -6330,6 +6331,7 @@ function vmixMakeCard(r) {
       btn.classList.add('pending');
       btn.disabled = true;
       state.textContent = f.on ? 'Stopping…' : 'Starting…';
+      vmixPendingMark(r.key, f.label, f.on);
       vmixOne(r.key, f.on ? f.stopFn : f.startFn);
     };
     controls.appendChild(btn);
@@ -6490,7 +6492,39 @@ function trackerRematchAssignedRooms() {
   showToast('Re-matched: ' + matched.length + ' of ' + crewRoomNames.length + ' crew rooms');
 }
 
+// Cards are rebuilt on every status update (several per second with 3+
+// Commanders). Two things must survive a rebuild:
+// 1. The LIVE pulse: its animation restarts on each new element, which made
+//    the pulse stutter. Phase-lock it to the wall clock so it stays smooth.
+// 2. A pressed button's "Starting…/Stopping…" state: keep it until the room
+//    reports the new state, or 15 s pass.
+var _vmixPending = {};
+function vmixPendingMark(roomKey, fnLabel, wasOn) {
+  _vmixPending[roomKey + '|' + fnLabel] = { wasOn: !!wasOn, until: Date.now() + 15000 };
+}
+function vmixAfterCardsRender() {
+  var el = document.getElementById('vmix-cards');
+  if (!el) return;
+  var now = Date.now();
+  el.querySelectorAll('.vmix-fn-toggle.active').forEach(function (b) { b.style.animationDelay = (-(now % 2000)) + 'ms'; });
+  el.querySelectorAll('.vmix-fn-dot').forEach(function (d) { d.style.animationDelay = (-(now % 1500)) + 'ms'; });
+  el.querySelectorAll('button.vmix-fn-toggle[data-room]').forEach(function (b) {
+    var id = b.dataset.room + '|' + b.dataset.fn, p = _vmixPending[id];
+    if (!p) return;
+    if (now > p.until || (b.dataset.on === '1') !== p.wasOn) { delete _vmixPending[id]; return; }
+    b.classList.add('pending');
+    b.disabled = true;
+    var st = b.querySelector('.vmix-fn-state');
+    if (st) st.textContent = p.wasOn ? 'Stopping…' : 'Starting…';
+  });
+}
+
 function renderVmixCards() {
+  _renderVmixCardsInner.apply(this, arguments);
+  vmixAfterCardsRender();
+}
+
+function _renderVmixCardsInner() {
   var el = document.getElementById('vmix-cards');
   if (!el) return;
 
