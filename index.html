@@ -1709,7 +1709,7 @@ body.role-user .admin-only-input { pointer-events: none; opacity: 0.55; }
 // Bump on every deploy. Shown in Settings → About so you can confirm a
 // push actually reached the browser (past the service-worker cache).
 // Keep the sw.js CACHE constant in lockstep with this — same string.
-const APP_VERSION = '2026.10.07.1';
+const APP_VERSION = '2026.10.07.4';
 const {
   ROOM_PROXY_STALE_MS,
   selectRoomProxyRoute,
@@ -4769,10 +4769,12 @@ function updateScheduleEmbed(val) {
   }
 }
 
-function showToast(msg) {
+let _toastTimer = null;
+function showToast(msg, ms) {
   const t=document.getElementById('toast');
   t.textContent=msg; t.classList.add('show');
-  setTimeout(()=>t.classList.remove('show'),2000);
+  clearTimeout(_toastTimer);
+  _toastTimer = setTimeout(()=>t.classList.remove('show'), ms || 2000);
 }
 
 // ─── Confirm Modal ────────────────────────────────────────────────────────
@@ -5567,7 +5569,7 @@ function trackerEnsureIdentity() {
 }
 
 // ─── Audit log writes ──────────────────────────────────────────────────────
-function trackerWriteAudit(action, roomKey, result) {
+function trackerWriteAudit(action, roomKey, result, detail) {
   try {
     if (!fbDb || !currentEventId) return;
     const identity = trackerIdentity
@@ -5581,6 +5583,9 @@ function trackerWriteAudit(action, roomKey, result) {
       room: roomKey || '__all__',
       result: result || 'ok'
     };
+    // Why a command failed (proxy error, timeout, route), so a failure can be
+    // diagnosed afterwards instead of only from a 2 s toast.
+    if (detail) entry.detail = String(detail).slice(0, 300);
     fbDb.child('events/' + currentEventId + '/audit').push().set(entry).catch(function (e) {
       console.warn('[tracker audit] write failed', e);
     });
@@ -6294,6 +6299,16 @@ function vmixMakeCard(r) {
 
   var card = document.createElement('div');
   card.id = 'vmix-card-' + r.key;
+  // Everything that changes the card's buttons. When this is unchanged the
+  // previous card (and its buttons) is kept, so a tap that is in progress
+  // during a status update is not lost to a rebuilt button. Only pending and
+  // armed entries that are still active count, so their expiry redraws.
+  var nowSig = Date.now();
+  card.dataset.sig = JSON.stringify([r.name, r.ip || '', st.ok, !!st.recording, !!st.streaming, !!st.multicorder,
+    tier, stale, err, unknown, health ? health.kind + ':' + health.level : '', roomLocked, isObserver, !!route.url, disabled,
+    vmixOpenIpRows.has(r.key), trackerRoleIsDirector(),
+    Object.keys(_vmixPending).filter(function (k) { return k.indexOf(r.key + '|') === 0 && _vmixPending[k].until > nowSig; }).sort().join(','),
+    Object.keys(_vmixArmed).filter(function (k) { return k.indexOf(r.key + '|') === 0 && _vmixArmed[k] > nowSig; }).sort().join(',')]);
   card.style.cssText = 'background:var(--s2);border:1px solid var(--line2);border-radius:14px;overflow:hidden;scroll-margin-top:96px;' + (roomLocked ? 'opacity:0.65;' : '');
   if (health && health.level === 'down') card.className = 'vmix-card-down';
   else if (health && health.level === 'warn') card.className = 'vmix-card-warn';
@@ -6330,6 +6345,7 @@ function vmixMakeCard(r) {
   // Ping sits right next to the timer (same group as name + timer) — same
   // 11px size + tabular-nums so the metrics line up visually.
   var pingEl = document.createElement('span');
+  pingEl.id = 'vmix-ping-' + r.key;
   pingEl.style.cssText = 'flex-shrink:0;font-size:11px;font-weight:600;font-variant-numeric:tabular-nums;color:' + vmixTierColor(tier) + ';white-space:nowrap;display:inline-flex;align-items:center;gap:4px;';
   var age = vmixStatusAgeMs(st);
   var ageText = age == null ? '' : ' · ' + vmixFmtAge(age);
@@ -6399,6 +6415,7 @@ function vmixMakeCard(r) {
     reason.className = 'vmix-reason ' + health.level;
     reason.setAttribute('role', health.level === 'down' ? 'alert' : 'status');
     var rtxt = document.createElement('span');
+    rtxt.id = 'vmix-reason-' + r.key;
     rtxt.textContent = health.text;
     reason.appendChild(rtxt);
     if (health.action === 'ip' && !isObserver) {
@@ -6493,6 +6510,7 @@ function vmixMakeCard(r) {
         vmixArmStop(r.key, f.label);
         btn.classList.add('armed');
         state.textContent = 'Tap again to stop';
+        renderVmixCards();
         return;
       }
       vmixDisarmStop(r.key, f.label);
@@ -6922,6 +6940,8 @@ function _renderVmixCardsInner() {
     }
   }
 
+  var prevCards = {};
+  Array.prototype.forEach.call(el.children, function (n) { if (n.id && n.id.indexOf('vmix-card-') === 0) prevCards[n.id] = n; });
   el.innerHTML = '';
 
   // Director diagnostic: when a crew tab is active but yields zero rooms,
@@ -6985,7 +7005,21 @@ function _renderVmixCardsInner() {
     }
   }
 
-  rooms.forEach(function (r) { el.appendChild(vmixMakeCard(r)); });
+  rooms.forEach(function (r) {
+    var fresh = vmixMakeCard(r);
+    var prev = prevCards[fresh.id];
+    if (prev && prev.dataset.sig === fresh.dataset.sig) {
+      // Same buttons as before: keep the existing card and refresh only the
+      // ping / age text. The REC timer is refreshed by the 1 s tick.
+      var np = fresh.querySelector('#vmix-ping-' + r.key), op = prev.querySelector('#vmix-ping-' + r.key);
+      if (np && op && op.innerHTML !== np.innerHTML) { op.innerHTML = np.innerHTML; op.style.color = np.style.color; }
+      var nr = fresh.querySelector('#vmix-reason-' + r.key), orr = prev.querySelector('#vmix-reason-' + r.key);
+      if (nr && orr && orr.textContent !== nr.textContent) orr.textContent = nr.textContent;
+      el.appendChild(prev);
+    } else {
+      el.appendChild(fresh);
+    }
+  });
 
   // Page-level All Rooms row visibility — hide when a non-"all" crew filter
   // is active so the master "START ALL" doesn't shadow the filtered scope
@@ -7122,9 +7156,34 @@ async function vmixSaveIp(key) {
   vmixRefreshStatus(key);
 }
 
+// Commands go to the route this page currently believes in. If that fails
+// (a Commander restarted and its tunnel URL changed, or the page fell back to
+// an old global proxy), read the room's freshest claim straight from Firebase
+// and retry once there. Start/Stop are idempotent in vMix, so a retry is safe.
 async function vmixCall(ip, fn, roomKey) {
+  const first = await vmixCallOnce(ip, fn, roomKey);
+  if (first.ok || !roomKey || !fbDb || !currentEventId) return first;
+  try {
+    const snap = await fbDb.child('events/' + currentEventId + '/roomProxyClaims/' + roomKey).once('value');
+    const freshest = Object.values(snap.val() || {})
+      .filter(function (c) { return c && c.url; })
+      .sort(function (a, b) { return (b.updatedAt || 0) - (a.updatedAt || 0); })[0];
+    if (!freshest || freshest.url === first.url) return first;
+    console.log('[vmix-route] retry', roomKey, fn, 'via fresh claim', freshest.url);
+    const second = await vmixCallOnce(ip, fn, roomKey, freshest.url);
+    if (second.ok) {
+      trackerStickyRoomRoutes[roomKey] = { url: freshest.url, commanderId: freshest.commanderId || '', source: 'claim', selectedAt: Date.now() };
+      return { ok: true, retried: true };
+    }
+    return { ok: false, error: first.error + ' | retry via fresh claim: ' + second.error, url: first.url };
+  } catch (e) {
+    return first;
+  }
+}
+
+async function vmixCallOnce(ip, fn, roomKey, overrideUrl) {
   if (!ip) return { ok: false, error: 'No IP' };
-  const route = vmixRouteForRoom(roomKey);
+  const route = overrideUrl ? { url: overrideUrl, source: 'claim-retry' } : vmixRouteForRoom(roomKey);
   const proxy = route.url;
   console.log('[vmix-route] command', roomKey, fn, 'via', route.source, proxy || '(none)', route.commanderId || '');
   try {
@@ -7139,7 +7198,7 @@ async function vmixCall(ip, fn, roomKey) {
       // off / different subnet / firewall).
       let detail = '';
       try { detail = (await r.text()).trim().slice(0, 120); } catch (_) {}
-      return { ok: false, error: `proxy HTTP ${r.status}${detail ? ' — ' + detail : ''} — Commander may not reach ${ip}:8088` };
+      return { ok: false, url: proxy, error: `proxy HTTP ${r.status}${detail ? ' — ' + detail : ''} — Commander may not reach ${ip}:8088` };
     } else if (location.protocol === 'https:') {
       return { ok: false, error: 'No proxy route for this room' };
     } else {
@@ -7147,7 +7206,7 @@ async function vmixCall(ip, fn, roomKey) {
       const r = await fetch(`http://${ip}:8088/api/?Function=${fn}`, { mode: 'no-cors' });
       return { ok: true };
     }
-  } catch(e) { return { ok: false, error: e.message }; }
+  } catch(e) { return { ok: false, url: proxy, error: e.message + (proxy ? ' (' + String(proxy).replace(/^https?:\/\//, '') + ')' : '') }; }
 }
 
 async function vmixGetStatus(ip, roomKey) {
@@ -7277,9 +7336,11 @@ async function vmixOne(key, fn) {
     trackerWriteAudit(action, key, 'fail'); return;
   }
   showToast('⏳ ' + fn + '…');
+  const route = vmixRouteForRoom(key);
   const res = await vmixCall(room.ip, fn, key);
-  showToast(res.ok ? '✓ ' + fn : '✗ Failed: ' + (res.error || 'blocked?'));
-  trackerWriteAudit(action, key, res.ok ? 'ok' : 'fail');
+  showToast(res.ok ? '✓ ' + fn : '✗ Failed: ' + (res.error || 'blocked?'), res.ok ? 2000 : 8000);
+  trackerWriteAudit(action, key, res.ok ? 'ok' : 'fail',
+    res.ok ? '' : (res.error || 'unknown error') + ' | via ' + (route.source || 'none') + ' ' + String(route.url || '').replace(/^https?:\/\//, ''));
   setTimeout(() => vmixRefreshStatus(key), 1000);
 }
 
