@@ -1838,6 +1838,23 @@ button, input, select, textarea { font-family: inherit; }
 }
 .auth-row-role { color: var(--t1); }
 
+
+/* Solid states everywhere: tints are opaque mixes on the page grey, never see-through.
+ * Faded icons use grayscale and brightness instead of opacity. Scrims behind dialogs
+ * and sheets stay translucent on purpose. */
+.room-tag.done, .event-pill.live, .badge-r { background: #10241a; }
+.ov-card.complete { background: #0f1f17; border-color: #1f4a33; }
+.sched-tile.done { background: #0f1f17; }
+.room-tag.wip, .day-chip.on, .badge-rw, .event-chip.on, .event-pill.archived, .header-identity-menu-item:hover { background: #262626; }
+.badge-w { background: #171a2e; }
+.rec-warn, .badge-s, .badge-24hr, .del-btn:active { background: #2a1414; }
+.modal-check { background: var(--s2); }
+.signin-crew-option.selected { background: #262626; border-color: var(--t1); }
+.step-icon { opacity: 1; filter: grayscale(1) brightness(0.55); }
+.step input:checked + .step-box .step-icon { filter: none; }
+.ov-step { opacity: 1; filter: grayscale(1) brightness(0.35); }
+.ov-step.on { filter: none; }
+.ov-dot { opacity: 1; }
 </style>
 </head>
 <body>
@@ -2109,12 +2126,12 @@ button, input, select, textarea { font-family: inherit; }
   </div>
 </div>
 
-<script src="tracker-routing-helpers.js?v=2026.10.07.10"></script>
+<script src="tracker-routing-helpers.js?v=2026.10.07.11"></script>
 <script>
 // Bump on every deploy. Shown in Settings → About so you can confirm a
 // push actually reached the browser (past the service-worker cache).
 // Keep the sw.js CACHE constant in lockstep with this — same string.
-const APP_VERSION = '2026.10.07.10';
+const APP_VERSION = '2026.10.07.11';
 const {
   ROOM_PROXY_STALE_MS,
   selectRoomProxyRoute,
@@ -4823,7 +4840,7 @@ function renderSettings() {
           </div>
           <div class="event-admin-row">
             ${isTemplateEvent(ev)
-              ? '<span class="event-pill" style="color:#67c8e8;border-color:rgba(103,200,232,0.4);background:rgba(103,200,232,0.1);">TEMPLATE</span>'
+              ? '<span class="event-pill" style="color:#67c8e8;border-color:rgba(103,200,232,0.4);background:#0f2229;">TEMPLATE</span>'
               : `<span class="event-pill ${ev.archived ? 'archived' : 'live'}">${ev.archived ? 'ARCHIVED' : 'LIVE'}</span>`}
             ${ev.id === currentEventId ? '<span class="event-pill live">CURRENT</span>' : ''}
             ${eventMetaLine(ev) ? `<span class="event-pill">${escapeHtml(eventMetaLine(ev))}</span>` : ''}
@@ -5329,7 +5346,7 @@ function renderOverview() {
       ).join('');
       html += `<div class="ov-card${complete?' complete':''}" onclick="openRoomDetail('${room.id}')">
         <div class="ov-top">
-          <div class="ov-dot" style="background:${crewColor};opacity:0.6;"></div>
+          <div class="ov-dot" style="background:${crewColor};"></div>
           <div class="ov-room">${room.name}</div>
         </div>
         <div class="ov-bar"><div class="ov-fill" style="width:${pct}%;background:${color};"></div></div>
@@ -5638,7 +5655,7 @@ function renderSchedule() {
             const val = getSchedStep(schedCrewId, room.id, schedDay, i, st.key);
             return `<div onclick="event.stopPropagation();toggleSchedStep('${schedCrewId}','${room.id}','${schedDay}',${i},'${st.key}')"
               style="display:flex;align-items:center;gap:5px;padding:4px 8px;border-radius:5px;cursor:pointer;
-                background:${val?'rgba(76,175,116,0.12)':'var(--s2)'};border:1px solid ${val?'rgba(76,175,116,0.3)':'var(--line2)'};
+                background:${val?'#10241a':'var(--s2)'};border:1px solid ${val?'rgba(76,175,116,0.3)':'var(--line2)'};
                 transition:all 0.12s;">
               <span style="font-size:13px;line-height:1;">${st.icon}</span>
               <span style="font-size:10px;font-weight:600;color:${val?'var(--green)':'var(--t3)'};">${st.label}</span>
@@ -5663,7 +5680,7 @@ function renderSchedule() {
                   const val = getSchedStep(schedCrewId, room.id, schedDay, i, st.key);
                   return `<div onclick="event.stopPropagation();toggleSchedStep('${schedCrewId}','${room.id}','${schedDay}',${i},'${st.key}')"
                     style="display:flex;align-items:center;gap:3px;padding:5px 8px;border-radius:5px;cursor:pointer;
-                    background:${val?'rgba(76,175,116,0.12)':'var(--s2)'};border:1px solid ${val?'rgba(76,175,116,0.3)':'var(--line2)'};
+                    background:${val?'#10241a':'var(--s2)'};border:1px solid ${val?'rgba(76,175,116,0.3)':'var(--line2)'};
                     transition:all 0.12s;flex:1;min-width:0;">
                     <span style="font-size:13px;flex-shrink:0;">${st.icon}</span>
                     <span style="font-size:10px;font-weight:600;color:${val?'var(--green)':'var(--t3)'};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${st.label}</span>
@@ -5677,7 +5694,7 @@ function renderSchedule() {
                   return `<div onclick="event.stopPropagation();toggleSchedStep('${schedCrewId}','${room.id}','${schedDay}',${i},'${st.key}')"
                     style="display:inline-flex;align-items:center;justify-content:center;
                     padding:4px 8px;border-radius:3px;cursor:pointer;
-                    background:${val?'rgba(76,175,116,0.2)':'rgba(255,255,255,0.07)'};
+                    background:${val?'#143022':'var(--s3)'};
                     border:1px solid ${val?'rgba(76,175,116,0.5)':'rgba(255,255,255,0.12)'};
                     transition:all 0.12s;">
                     <span style="font-size:11px;font-weight:500;color:${val?'var(--green)':'var(--t3)'};white-space:nowrap;">${st.label}</span>
