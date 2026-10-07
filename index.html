@@ -486,23 +486,33 @@ body {
 .save-btn:active { opacity: 0.8; }
 
 /* ── BOTTOM NAV ── */
+/* shadcn/ui look, same tokens as Room Control: translucent bar, Geist 11/500 labels in
+   sentence case, the current tab gets the accent fill. Colour stays neutral. */
 .bottom-nav {
-  position: fixed; bottom: 0; left: 0; right: 0;
-  height: 58px; background: #111; border-top: 1px solid var(--line);
-  display: flex; z-index: 150;
-  padding-bottom: env(safe-area-inset-bottom);
+  position: fixed; bottom: 0; left: 0; right: 0; z-index: 150;
+  display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 4px;
+  padding: 6px max(8px, calc((100vw - 720px) / 2)) calc(6px + env(safe-area-inset-bottom));
+  background: color-mix(in oklch, oklch(0.145 0 0) 92%, transparent);
+  -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px);
+  border-top: 1px solid oklch(1 0 0 / 10%);
+  font-family: 'Geist', -apple-system, system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
 }
 .nav-tab {
-  flex: 1; display: flex; flex-direction: column;
-  align-items: center; justify-content: center; gap: 3px;
-  cursor: pointer; color: var(--t3); transition: color 0.15s;
-  font-size: 9px; font-weight: 700; letter-spacing: 0.4px;
-  text-transform: uppercase; padding-top: 6px;
+  appearance: none; border: 0; background: transparent; font: inherit;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;
+  min-width: 0; height: 52px; padding: 0 2px; border-radius: 8px;
+  color: oklch(0.708 0 0); cursor: pointer;
+  font-size: 11px; font-weight: 500; line-height: 14px; letter-spacing: 0; text-transform: none; white-space: nowrap;
+  transition: background-color 150ms, color 150ms;
   -webkit-tap-highlight-color: transparent;
 }
-.nav-tab svg { width: 20px; height: 20px; stroke: currentColor; }
-.nav-tab.on { color: var(--accent); }
-body { padding-bottom: 58px; }
+.nav-tab svg { width: 20px; height: 20px; flex-shrink: 0; stroke: currentColor; }
+.nav-tab span { max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
+.nav-tab:hover { color: oklch(0.985 0 0); background: oklch(0.269 0 0 / 60%); }
+.nav-tab.on { color: oklch(0.985 0 0); background: oklch(0.269 0 0); }
+.nav-tab:focus-visible { outline: none; box-shadow: 0 0 0 3px oklch(0.556 0 0 / 50%); }
+body { padding-bottom: calc(64px + env(safe-area-inset-bottom)); }
 #tracker { padding-bottom: 80px; }
 .ov-grid { padding-bottom: 80px; }
 #schedColView { padding-bottom: 80px; }
@@ -1843,33 +1853,13 @@ body.role-user .admin-only-input { pointer-events: none; opacity: 0.55; }
 <div id="no-live-event-overlay" class="no-live-event-overlay"></div>
 
 <!-- BOTTOM NAV -->
-<nav class="bottom-nav">
-  <div class="nav-tab on" id="nav-setup" onclick="switchPage('setup')">
-    <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
-    Setup
-  </div>
-  <div class="nav-tab" id="nav-overview" onclick="switchPage('overview')">
-    <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
-    Overview
-  </div>
-  <div class="nav-tab" id="nav-today" onclick="switchPage('today')">
-    <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-    Schedule
-  </div>
-  <div class="nav-tab" id="nav-rooms" onclick="switchPage('rooms')">
-    <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4" fill="currentColor" stroke="none"/></svg>
-    Recording
-  </div>
-  <div class="nav-tab" id="nav-share" onclick="copyAppLink()" style="color:#25D366;">
-    <svg viewBox="0 0 32 32" fill="currentColor" style="width:22px;height:22px;">
-      <path d="M16 1C7.716 1 1 7.716 1 16c0 2.628.672 5.1 1.852 7.256L1 31l7.94-1.824A14.94 14.94 0 0 0 16 31c8.284 0 15-6.716 15-15S24.284 1 16 1zm0 27.4a12.35 12.35 0 0 1-6.3-1.726l-.452-.268-4.712 1.082 1.122-4.578-.296-.47A12.36 12.36 0 0 1 3.6 16C3.6 9.148 9.148 3.6 16 3.6S28.4 9.148 28.4 16 22.852 28.4 16 28.4zm6.77-9.28c-.37-.186-2.19-1.08-2.53-1.202-.34-.122-.586-.186-.832.186-.246.37-.954 1.202-1.17 1.448-.216.246-.43.278-.8.092-.37-.186-1.562-.576-2.976-1.836-1.1-.982-1.842-2.194-2.058-2.564-.216-.37-.022-.57.162-.754.166-.166.37-.432.556-.648.186-.216.248-.37.37-.616.124-.246.062-.462-.03-.648-.092-.186-.832-2.006-1.14-2.746-.3-.72-.606-.622-.832-.634l-.708-.012c-.246 0-.648.092-.988.462s-1.296 1.266-1.296 3.086 1.326 3.578 1.512 3.824c.186.246 2.61 3.986 6.326 5.59.884.382 1.572.61 2.108.78.886.282 1.692.242 2.33.146.71-.106 2.19-.896 2.5-1.762.308-.866.308-1.608.216-1.762-.092-.154-.338-.246-.708-.432z"/>
-    </svg>
-    Share
-  </div>
-  <div class="nav-tab" id="nav-settings" onclick="switchPage('settings')">
-    <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-    Settings
-  </div>
+<nav class="bottom-nav" aria-label="Sections">
+  <button type="button" class="nav-tab on" id="nav-setup" onclick="switchPage('setup')"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 10.5V19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h12.5"/><path d="m9 11 3 3L22 4"/></svg><span>Setup</span></button>
+  <button type="button" class="nav-tab" id="nav-overview" onclick="switchPage('overview')"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/></svg><span>Overview</span></button>
+  <button type="button" class="nav-tab" id="nav-today" onclick="switchPage('today')"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg><span>Schedule</span></button>
+  <button type="button" class="nav-tab" id="nav-rooms" onclick="switchPage('rooms')"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3" fill="currentColor" stroke="none"/></svg><span>Recording</span></button>
+  <button type="button" class="nav-tab" id="nav-share" onclick="copyAppLink()"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.59 13.51 6.83 3.98M15.41 6.51l-6.82 3.98"/></svg><span>Share</span></button>
+  <button type="button" class="nav-tab" id="nav-settings" onclick="switchPage('settings')"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg><span>Settings</span></button>
 </nav>
 
 <!-- SCHEDULE SHEET -->
@@ -1983,12 +1973,12 @@ body.role-user .admin-only-input { pointer-events: none; opacity: 0.55; }
   </div>
 </div>
 
-<script src="tracker-routing-helpers.js?v=2026.10.07.6"></script>
+<script src="tracker-routing-helpers.js?v=2026.10.07.7"></script>
 <script>
 // Bump on every deploy. Shown in Settings → About so you can confirm a
 // push actually reached the browser (past the service-worker cache).
 // Keep the sw.js CACHE constant in lockstep with this — same string.
-const APP_VERSION = '2026.10.07.6';
+const APP_VERSION = '2026.10.07.7';
 const {
   ROOM_PROXY_STALE_MS,
   selectRoomProxyRoute,
